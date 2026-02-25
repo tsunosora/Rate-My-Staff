@@ -1,41 +1,44 @@
 <template>
   <AppLayout>
-    <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
-      <div class="flex justify-between items-center mb-5 max-md:flex-col max-md:items-start max-md:gap-4">
+    <div class="flex flex-col h-full gap-6">
+      
+      <!-- Header Actions -->
+      <div class="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-4">
         <div>
-          <h1 class="m-0 text-2xl font-bold">Reports & Analytics</h1>
-          <p class="m-0 text-[#7f8c8d] text-[0.9rem]">Performance overview and data exports</p>
+          <h1 class="m-0 text-2xl font-bold text-gray-800">Reports & Analytics</h1>
+          <p class="m-0 text-gray-500 text-sm mt-1">Performance overview and data exports</p>
         </div>
         
-        <div class="flex gap-2.5">
-          <button @click="exportPdf" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded font-medium cursor-pointer hover:bg-gray-100 flex items-center gap-2">
-            <span>📄</span> Export to PDF
+        <div class="flex flex-wrap gap-2 w-full md:w-auto mt-2 md:mt-0">
+          <button @click="exportPdf" class="bg-white border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2 flex-1 md:flex-none">
+            <span class="text-lg leading-none">📄</span> Export to PDF
           </button>
-          <button @click="exportExcel" class="bg-[#27ae60] border-none text-white px-4 py-2 rounded font-medium cursor-pointer hover:bg-[#219653] flex items-center gap-2">
-            <span>📊</span> Export to Excel
+          <button @click="exportExcel" class="bg-[#10b981] border-none text-white px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center gap-2 flex-1 md:flex-none">
+            <span class="text-lg leading-none">📊</span> Export to Excel
           </button>
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-5 flex gap-4 items-center flex-wrap">
+      <!-- Filters -->
+      <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex gap-4 items-center flex-wrap">
         <div class="flex items-center gap-2">
-          <label class="font-semibold text-[0.9rem]">Period:</label>
-          <select v-model="filters.period" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
+          <label class="font-bold text-gray-500 text-xs uppercase tracking-wide">Period</label>
+          <select v-model="filters.period" @change="fetchData" class="p-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50">
             <option value="all">All Time</option>
             <option v-for="period in availablePeriods" :key="period" :value="period">{{ period }}</option>
           </select>
         </div>
         
         <div class="flex items-center gap-2">
-          <label class="font-semibold text-[0.9rem]">Department:</label>
-          <select v-model="filters.department" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
+          <label class="font-bold text-gray-500 text-xs uppercase tracking-wide">Department</label>
+          <select v-model="filters.department" @change="fetchData" class="p-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50">
             <option value="all">All Departments</option>
             <option v-for="dept in availableDepartments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
           </select>
         </div>
         <div class="flex items-center gap-2">
-          <label class="font-semibold text-[0.9rem]">Category:</label>
-          <select v-model="filters.performance_category" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
+          <label class="font-bold text-gray-500 text-xs uppercase tracking-wide">Category</label>
+          <select v-model="filters.performance_category" @change="fetchData" class="p-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50">
             <option value="all">All Performers</option>
             <option value="high_performer">High Performers (>4.0)</option>
             <option value="average">Average (3.0 - 4.0)</option>
@@ -44,63 +47,66 @@
         </div>
         
         <div class="flex items-center gap-2 ml-auto">
-          <input type="text" v-model="filters.search" @input="debounceFetchData" placeholder="Search employee..." class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db] min-w-[200px]">
+          <input type="text" v-model="filters.search" @input="debounceFetchData" placeholder="Search employee..." class="p-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50 min-w-[250px]">
         </div>
       </div>
 
       <!-- Key Metrics summary -->
-      <div class="grid grid-cols-4 gap-5 mb-5 max-md:grid-cols-2 max-sm:grid-cols-1">
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-l-4 border-[#3498db]">
-          <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Total Assessments</h3>
-          <div class="text-[1.8rem] font-bold mt-2">{{ summary.total_assessments }}</div>
+      <div class="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-sm:grid-cols-1">
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Total Assessments</h3>
+          <div class="text-[2rem] font-extrabold mt-2 text-gray-800">{{ summary.total_assessments }}</div>
         </div>
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-l-4 border-[#9b59b6]">
-          <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Company Average</h3>
-          <div class="text-[1.8rem] font-bold mt-2">{{ summary.average_score }}</div>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Company Average</h3>
+          <div class="text-[2rem] font-extrabold mt-2 text-[#3b82f6]">{{ summary.average_score }}</div>
         </div>
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-l-4 border-[#2ecc71]">
-          <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">High Performers (>4.0)</h3>
-          <div class="text-[1.8rem] font-bold mt-2">{{ summary.high_performers }}</div>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">High Performers (>4.0)</h3>
+          <div class="text-[2rem] font-extrabold mt-2 text-[#10b981]">{{ summary.high_performers }}</div>
         </div>
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-l-4 border-[#e74c3c]">
-          <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Needs Impr. (<3.0)</h3>
-          <div class="text-[1.8rem] font-bold mt-2">{{ summary.needs_improvement }}</div>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Needs Impr. (<3.0)</h3>
+          <div class="text-[2rem] font-extrabold mt-2 text-red-500">{{ summary.needs_improvement }}</div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden">
-        <div class="p-4 border-b border-[#eee] bg-[#fafafa]">
-          <h3 class="m-0 text-[1.1rem]">Evaluated All Employees</h3>
+      <!-- Table Container -->
+      <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 overflow-hidden flex-1 flex flex-col">
+        <div class="p-6 border-b border-gray-100 bg-white">
+          <h3 class="m-0 text-[1.1rem] font-bold text-gray-800">Evaluated Employees</h3>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full border-collapse text-left min-w-[800px]">
             <thead>
-              <tr>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Date</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Employee</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Department</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Template</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Period</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Score</th>
-                <th class="bg-[#f8f9fa] p-3 px-4 border-b-2 border-[#eee] text-[#7f8c8d] text-[0.85rem] font-semibold">Action</th>
+              <tr class="bg-gray-50 border-b border-gray-200">
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Date</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Employee</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Department</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Template</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Period</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Score</th>
+                <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Action</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading"><td colspan="7" class="p-4 text-center text-gray-500">Loading data...</td></tr>
               <tr v-else-if="recentAssessments.length === 0"><td colspan="7" class="p-4 text-center text-gray-500">No assessments found for selected filters.</td></tr>
-              <tr v-else v-for="item in recentAssessments" :key="item.id" class="border-b border-[#eee] hover:bg-[#f9f9f9]">
-                <td class="p-3 px-4 text-[0.9rem]">{{ new Date(item.date).toLocaleDateString() }}</td>
-                <td class="p-3 px-4 text-[0.9rem] font-medium">{{ item.employee_name }}</td>
-                <td class="p-3 px-4 text-[0.9rem]">{{ item.department.name ? item.department.name : item.department }}</td>
-                <td class="p-3 px-4 text-[0.9rem]">{{ item.template_name }}</td>
-                <td class="p-3 px-4 text-[0.9rem]">{{ item.period }}</td>
-                <td class="p-3 px-4 text-[0.9rem] font-bold">
+              <tr v-else v-for="item in recentAssessments" :key="item.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td class="px-3 py-3 text-sm text-gray-500 text-center">{{ new Date(item.date).toLocaleDateString() }}</td>
+                <td class="px-3 py-3 text-[15px] font-bold text-gray-800 text-center">{{ item.employee_name }}</td>
+                <td class="px-3 py-3 text-sm text-gray-600 text-center">{{ item.department.name ? item.department.name : item.department }}</td>
+                <td class="px-3 py-3 text-sm text-gray-600 text-center">{{ item.template_name }}</td>
+                <td class="px-3 py-3 text-sm text-gray-600 text-center">{{ item.period }}</td>
+                <td class="px-3 py-3 text-sm font-bold text-center">
                   <span :class="{'text-[#27ae60]': item.score >= 4.0, 'text-[#f39c12]': item.score >= 3.0 && item.score < 4.0, 'text-[#c62828]': item.score < 3.0}">
                     {{ Number(item.score).toFixed(2) }}
                   </span>
                 </td>
-                <td class="p-3 px-4 text-[0.9rem]">
-                  <button @click="showDetails(item.id)" class="bg-transparent border border-[#3498db] text-[#3498db] px-2 py-1 rounded text-[0.8rem] hover:bg-[#ebf5fb] cursor-pointer transition-colors inline-block">View Details</button>
+                <td class="px-3 py-3 text-sm text-center">
+                  <div class="flex justify-center">
+                    <button @click="showDetails(item.id)" class="bg-white border border-[#3b82f6] text-[#3b82f6] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-50 cursor-pointer transition-colors inline-block shadow-sm">View Details</button>
+                  </div>
                 </td>
               </tr>
             </tbody>

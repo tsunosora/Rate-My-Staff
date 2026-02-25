@@ -1,101 +1,108 @@
 <template>
   <AppLayout>
-    <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
-      <div class="flex justify-between items-center mb-5">
+    <div class="flex flex-col gap-6 h-full">
+      <div class="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-4">
         <div>
-          <h2 class="m-0 text-[1.5rem] font-bold mb-2">Bulk Assessment</h2>
-          <div class="flex items-center gap-3 text-[0.85rem] text-[#666]">
-             <label class="flex items-center gap-2">
-                <strong>Date:</strong>
-                <input type="date" v-model="assessmentDate" class="p-1 border border-gray-300 rounded outline-none" @change="updatePeriodFromDate">
+          <h1 class="m-0 text-2xl font-bold text-gray-800 mb-3">Bulk Assessment</h1>
+          <div class="flex items-center gap-4 text-sm text-gray-600">
+             <label class="flex items-center gap-2 font-bold">
+                Date:
+                <input type="date" v-model="assessmentDate" class="p-2 border border-gray-200 rounded-xl outline-none focus:border-[#3b82f6] shadow-sm bg-white font-normal" @change="updatePeriodFromDate">
              </label>
-             <label class="flex items-center gap-2">
-                <strong>Period:</strong>
-                <input type="text" v-model="currentPeriod" class="p-1 border border-gray-300 rounded outline-none" placeholder="e.g. March 2026">
+             <label class="flex items-center gap-2 font-bold">
+                Period:
+                <input type="text" v-model="currentPeriod" class="p-2 border border-gray-200 rounded-xl outline-none focus:border-[#3b82f6] shadow-sm bg-white font-normal" placeholder="e.g. March 2026">
              </label>
           </div>
         </div>
-        <div class="flex gap-2.5">
+        <div class="flex gap-3">
           <!-- TODO: Save as draft logic -->
-          <button class="bg-[#95a5a6] text-white border-none px-4 py-2 rounded cursor-pointer hover:bg-[#7f8c8d]">Save as Draft</button>
-          <button @click="submitAll" :disabled="saving" class="bg-[#27ae60] text-white border-none px-4 py-2 rounded cursor-pointer hover:bg-[#219653] disabled:opacity-50">
+          <button class="bg-white text-gray-600 border border-gray-200 px-5 py-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors shadow-sm font-bold text-sm">Save as Draft</button>
+          <button @click="submitAll" :disabled="saving" class="bg-[#10b981] text-white border-none px-5 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-600 disabled:opacity-50 transition-colors shadow-sm font-bold text-sm">
             {{ saving ? 'Submitting...' : 'Submit All' }}
           </button>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden flex-1 flex flex-col">
-        <div class="p-[15px] bg-[#fafafa] border-b border-[#eee] flex gap-[15px] flex-wrap items-center">
-          <input type="text" v-model="filters.search" placeholder="Search employee..." class="p-1.5 px-3 border border-[#ddd] rounded min-w-[250px] outline-none focus:border-[#3498db]">
-          <select v-model="filters.department_id" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
+      <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 overflow-hidden flex-1 flex flex-col">
+        <div class="p-5 bg-white border-b border-gray-100 flex gap-4 flex-wrap items-center">
+          <input type="text" v-model="filters.search" placeholder="Search employee..." class="p-2.5 px-4 border border-gray-200 rounded-xl min-w-[250px] outline-none focus:border-[#3b82f6] shadow-sm bg-gray-50/50 text-sm transition-colors">
+          <select v-model="filters.department_id" class="p-2.5 border border-gray-200 rounded-xl outline-none focus:border-[#3b82f6] shadow-sm bg-gray-50/50 text-sm transition-colors min-w-[180px]">
             <option value="">All Departments</option>
             <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
           </select>
-          <select v-model="filters.template_id" @change="loadTemplate" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db] ml-auto">
+          <select v-model="filters.template_id" @change="loadTemplate" class="p-2.5 border border-gray-200 rounded-xl outline-none focus:border-[#3b82f6] shadow-sm bg-gray-50/50 ml-auto font-bold text-[#3b82f6] text-sm transition-colors min-w-[200px]">
             <option value="">-- Choose Template --</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
           </select>
         </div>
 
         <div class="overflow-x-auto flex-1">
-          <table class="w-full border-collapse text-left min-w-[800px]">
+          <table class="w-full border-collapse text-left min-w-[800px] text-sm">
              <thead>
-               <tr class="bg-[#f8f9fa] border-b-2 border-[#eee]">
-                 <th class="p-3 text-[0.85rem]">Employee Name</th>
+               <tr class="bg-gray-50 border-b border-gray-200">
+                 <th class="px-3 py-3 font-bold text-gray-600 uppercase tracking-wider text-sm text-center whitespace-nowrap">Employee Name</th>
                  <!-- Dynamic Indicator Columns -->
-                 <th v-if="!currentTemplate" class="p-3 text-[0.85rem] italic text-gray-500">Select a template to view indicators</th>
+                 <th v-if="!currentTemplate" class="px-3 py-3 font-normal italic text-gray-400 text-sm text-center">Select a template to view indicators</th>
                  <template v-else>
-                   <th v-for="ind in currentTemplate.indicators" :key="ind.id" class="p-3 text-[0.85rem]">
+                   <th v-for="ind in currentTemplate.indicators" :key="ind.id" class="px-3 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-center whitespace-nowrap">
                      {{ ind.name }} ({{ ind.weight }}%)
                    </th>
                  </template>
-                 <th class="p-3 text-[0.85rem]">Final Score</th>
-                 <th class="p-3 text-[0.85rem]">Status</th>
+                 <th class="px-3 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-center whitespace-nowrap">Final Score</th>
+                 <th class="px-3 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-center whitespace-nowrap">Status</th>
                </tr>
              </thead>
              <tbody>
-               <tr v-if="loading" class="border-b border-[#eee]"><td colspan="10" class="p-4 text-center text-gray-500">Loading employees...</td></tr>
-               <tr v-else-if="employees.length === 0" class="border-b border-[#eee]"><td colspan="10" class="p-4 text-center text-gray-500">No employees found.</td></tr>
+               <tr v-if="loading" class="border-b border-gray-100"><td colspan="10" class="p-6 text-center text-gray-400 font-medium">Loading employees...</td></tr>
+               <tr v-else-if="employees.length === 0" class="border-b border-gray-100"><td colspan="10" class="p-6 text-center text-gray-400 font-medium">No employees found.</td></tr>
                
-               <tr v-for="(emp, empIndex) in employees" :key="emp.id" class="border-b border-[#eee] hover:bg-[#f9f9f9]">
-                 <td class="p-3 font-medium">{{ emp.full_name }}<br><span class="text-xs text-gray-500">{{ emp.department ? emp.department.name : 'Unknown' }}</span></td>
+               <tr v-for="(emp, empIndex) in employees" :key="emp.id" class="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+                 <td class="px-3 py-3 text-center">
+                   <strong class="text-gray-800 text-[15px] block mb-1">{{ emp.full_name }}</strong>
+                   <span class="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-md mt-1 inline-block border border-gray-100">{{ emp.department ? emp.department.name : 'Unknown' }}</span>
+                 </td>
                  
                  <!-- Empty state when no template selected -->
-                 <td v-if="!currentTemplate" class="p-3 text-gray-500 italic">
-                   <span v-if="emp.latest_assessment">Last Assessed: {{ emp.latest_assessment.period }}</span>
-                   <span v-else>No history</span>
+                 <td v-if="!currentTemplate" class="px-3 py-3 text-gray-400 text-sm text-center">
+                   <span v-if="emp.latest_assessment" class="bg-gray-50 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 shadow-sm">Last Assessed: {{ emp.latest_assessment.period }}</span>
+                   <span v-else class="text-gray-300 italic">No history</span>
                  </td>
                  
                  <!-- Score inputs per indicator -->
                  <template v-else>
-                   <td v-for="(ind, indIndex) in currentTemplate.indicators" :key="ind.id" class="p-3">
-                     <input 
-                       type="number" 
-                       v-model.number="getScoreModel(emp.id, ind.id).score"
-                       min="1" max="5" 
-                       placeholder="-"
-                       class="w-[50px] p-1 border rounded text-center outline-none focus:border-[#3498db]"
-                       :class="{'border-[#e74c3c] bg-[#fff9f9]': getScoreModel(emp.id, ind.id).score && getScoreModel(emp.id, ind.id).score < 3, 'border-[#3498db]': getScoreModel(emp.id, ind.id).score >= 3}"
-                     >
+                   <td v-for="(ind, indIndex) in currentTemplate.indicators" :key="ind.id" class="px-3 py-3 text-center">
+                     <div class="flex justify-center">
+                       <input 
+                         type="number" 
+                         v-model.number="getScoreModel(emp.id, ind.id).score"
+                         min="1" max="5" 
+                         placeholder="-"
+                         class="w-[60px] p-2 border-2 rounded-lg text-center outline-none focus:border-[#3b82f6] transition-colors shadow-sm font-bold text-gray-700"
+                         :class="{'border-red-300 bg-red-50 text-red-600': getScoreModel(emp.id, ind.id).score && getScoreModel(emp.id, ind.id).score < 3, 'border-blue-100 bg-blue-50': getScoreModel(emp.id, ind.id).score >= 3, 'border-gray-200': !getScoreModel(emp.id, ind.id).score}"
+                       >
+                     </div>
                    </td>
                  </template>
                  
-                 <td class="p-3 font-bold" :class="getFinalScoreColor(calculateRowScore(emp.id))">
+                 <td class="px-3 py-3 font-bold text-lg text-center" :class="getFinalScoreColor(calculateRowScore(emp.id))">
                    <span v-if="!currentTemplate">
                      <span v-if="emp.latest_assessment" :class="getFinalScoreColor(emp.latest_assessment.total_score)">
                        {{ Number(emp.latest_assessment.total_score).toFixed(2) }}
                      </span>
-                     <span v-else class="text-gray-400 font-normal">-</span>
+                     <span v-else class="text-gray-300 font-normal">-</span>
                    </span>
                    <span v-else>{{ calculateRowScore(emp.id) > 0 ? calculateRowScore(emp.id).toFixed(2) : 'N/A' }}</span>
                  </td>
-                 <td class="p-3">
-                   <span v-if="!currentTemplate">
-                      <span v-if="emp.latest_assessment" class="bg-[#d4edda] text-[#155724] px-2 py-1 rounded-[12px] text-[0.75rem] font-medium">Completed</span>
-                      <span v-else class="text-gray-400 font-normal text-[0.8rem]">-</span>
-                   </span>
-                   <span v-else-if="isRowReady(emp.id)" class="bg-[#e8f5e9] text-[#2e7d32] px-2 py-1 rounded-[12px] text-[0.75rem]">Ready</span>
-                   <span v-else class="bg-[#ffebee] text-[#c62828] px-2 py-1 rounded-[12px] text-[0.75rem]">Incomplete</span>
+                 <td class="px-3 py-3">
+                   <div class="flex justify-center items-center h-full min-h-[50px]">
+                     <span v-if="!currentTemplate">
+                        <span v-if="emp.latest_assessment" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 shadow-sm">History</span>
+                        <span v-else class="text-gray-300 font-normal">-</span>
+                     </span>
+                     <span v-else-if="isRowReady(emp.id)" class="bg-green-100 text-green-700 px-4 py-1.5 rounded-lg text-xs font-bold border border-green-200 shadow-sm flex items-center justify-center w-fit">Ready</span>
+                     <span v-else class="bg-orange-50 text-orange-600 px-4 py-1.5 rounded-lg text-xs font-bold border border-orange-100 shadow-sm flex items-center justify-center w-fit">Incomplete</span>
+                   </div>
                  </td>
                </tr>
              </tbody>
@@ -103,32 +110,39 @@
         </div>
       </div>
 
-      <div class="mt-5 bg-[#ebf5fb] p-[15px] rounded-lg border-l-4 border-[#3498db] shrink-0">
-        <h4 class="m-0 mb-1 text-[0.9rem] font-bold">Scoring Guide:</h4>
-        <p class="m-0 text-[0.8rem] text-[#555]">5: Exceeds Targets | 4: Meets Targets | 3: Average | 2: Needs Improvement | 1: Critical Failure</p>
+      <div class="bg-blue-50 p-5 rounded-2xl border border-blue-100 shrink-0 flex items-start gap-4">
+        <span class="text-2xl mt-1">💡</span>
+        <div>
+          <h4 class="m-0 mb-1 font-bold text-blue-900">Scoring Guide</h4>
+          <p class="m-0 text-sm text-blue-800 leading-relaxed font-medium"><strong>5:</strong> Exceeds Targets &bull; <strong>4:</strong> Meets Targets &bull; <strong>3:</strong> Average &bull; <strong>2:</strong> Needs Improvement &bull; <strong>1:</strong> Critical Failure</p>
+        </div>
       </div>
       
       <!-- Custom Alert Modal -->
-      <div v-if="alertModal.show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-6 rounded-lg max-w-sm w-full shadow-xl">
-          <h3 class="text-lg font-bold mb-2" :class="alertModal.isError ? 'text-red-600' : 'text-green-600'">
+      <div v-if="alertModal.show" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl border border-gray-100">
+          <h3 class="text-lg font-bold mb-3 flex items-center gap-2" :class="alertModal.isError ? 'text-red-500' : 'text-emerald-500'">
+            <span v-if="alertModal.isError" class="text-2xl">⚠️</span>
+            <span v-else class="text-2xl">✅</span>
             {{ alertModal.title }}
           </h3>
-          <p class="text-gray-700 mb-6">{{ alertModal.message }}</p>
+          <p class="text-gray-600 mb-6 text-sm leading-relaxed">{{ alertModal.message }}</p>
           <div class="flex justify-end">
-            <button @click="alertModal.show = false" class="px-5 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">OK</button>
+            <button @click="alertModal.show = false" class="px-6 py-2.5 bg-[#3b82f6] text-white rounded-xl hover:bg-blue-600 transition-colors font-bold shadow-sm text-sm w-full">Got it</button>
           </div>
         </div>
       </div>
 
       <!-- Custom Confirm Modal -->
-      <div v-if="confirmModal.show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-6 rounded-lg max-w-sm w-full shadow-xl">
-          <h3 class="text-lg font-bold mb-2">Confirm Submission</h3>
-          <p class="text-gray-700 mb-6">Are you sure you want to submit assessments for {{ confirmModal.count }} employees?</p>
-          <div class="flex justify-end gap-3">
-            <button @click="confirmModal.show = false" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-            <button @click="proceedSubmit" class="px-4 py-2 bg-[#27ae60] text-white rounded hover:bg-[#219653]">Confirm</button>
+      <div v-if="confirmModal.show" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl border border-gray-100">
+          <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span class="text-2xl">❓</span> Confirm Submission
+          </h3>
+          <p class="text-gray-600 mb-6 text-sm leading-relaxed">Are you sure you want to submit assessments for <strong class="text-gray-800">{{ confirmModal.count }}</strong> employees? This action cannot be easily undone.</p>
+          <div class="flex justify-end gap-3 w-full">
+            <button @click="confirmModal.show = false" class="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-bold text-sm flex-1 shadow-sm">Cancel</button>
+            <button @click="proceedSubmit" class="px-4 py-2.5 bg-[#10b981] text-white rounded-xl hover:bg-emerald-600 transition-colors font-bold text-sm flex-1 shadow-sm">Yes, Submit All</button>
           </div>
         </div>
       </div>

@@ -1,16 +1,19 @@
 <template>
   <AppLayout>
-    <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
-      <div class="flex justify-between items-center mb-[30px] max-md:flex-col max-md:items-start max-md:gap-4">
-        <h1 class="m-0 text-2xl font-bold">Settings & User Management</h1>
-        <button @click="saveChanges" :disabled="saving" class="bg-[#27ae60] text-white border-none px-4 py-2 rounded font-bold cursor-pointer hover:bg-[#219653] disabled:opacity-50">
+    <div class="flex flex-col gap-6 h-full">
+      <div class="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-4">
+        <div>
+           <h1 class="m-0 text-2xl font-bold text-gray-800">Settings & Configuration</h1>
+           <p class="m-0 text-gray-500 text-sm mt-1">Manage users, master data, and system preferences</p>
+        </div>
+        <button @click="saveChanges" :disabled="saving" class="bg-[#10b981] text-white border-none px-6 py-3 rounded-xl font-bold cursor-pointer hover:bg-emerald-600 disabled:opacity-50 shadow-sm transition-colors text-sm w-full md:w-auto mt-2 md:mt-0">
           {{ saving ? 'Saving...' : 'Save All Changes' }}
         </button>
       </div>
 
       <!-- User Access Management -->
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] mb-[25px]">
-        <h2 class="text-[1.1rem] font-semibold text-[#2c3e50] mb-5 pb-2.5 border-b-2 border-[#ecf0f1]">User Access Management</h2>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+        <h2 class="text-[1.1rem] font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100">User Access Management</h2>
         
         <div class="overflow-x-auto">
           <table class="w-full border-collapse mt-2.5 min-w-[600px]">
@@ -47,11 +50,11 @@
       </div>
 
       <!-- System Settings -->
-      <div class="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+      <div class="grid grid-cols-2 gap-6 max-md:grid-cols-1">
         
         <!-- Branding Card -->
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-          <h2 class="text-[1.1rem] font-semibold text-[#2c3e50] mb-5 pb-2.5 border-b-2 border-[#ecf0f1]">Branding & Subdomain</h2>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h2 class="text-[1.1rem] font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100">Branding & Subdomain</h2>
           
           <div class="mb-[15px]">
             <label class="block mb-[5px] text-[0.9rem] font-medium">Subdomain</label>
@@ -77,8 +80,8 @@
         </div>
 
         <!-- Master Data Management -->
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-          <h2 class="text-[1.1rem] font-semibold text-[#2c3e50] mb-5 pb-2.5 border-b-2 border-[#ecf0f1]">Master Data (Categories & Roles)</h2>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+          <h2 class="text-[1.1rem] font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100">Master Data (Categories & Roles)</h2>
           
           <!-- Departments -->
           <div class="mb-6">
@@ -122,25 +125,28 @@
       </div>
 
       <!-- System Announcements -->
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] mt-5 mb-[25px]">
-        <h2 class="text-[1.1rem] font-semibold text-[#2c3e50] mb-5 pb-2.5 border-b-2 border-[#ecf0f1]">System Announcements (Broadcast)</h2>
-        <div class="max-w-2xl bg-[#ebf5fb] border border-[#3498db] p-4 rounded mb-5">
-            <p class="m-0 text-[#2980b9] text-sm">Use this form to send a real-time notification to <strong>all users</strong> in the system. The message will appear in their notification bell immediately.</p>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 mb-6">
+        <h2 class="text-[1.1rem] font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100">System Announcements (Broadcast)</h2>
+        <div class="max-w-2xl bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 flex items-start gap-3">
+            <span class="text-xl">📢</span>
+            <p class="m-0 text-blue-800 text-sm leading-relaxed">Use this form to send a real-time notification to <strong>all users</strong> in the system. The message will appear in their notification bell immediately.</p>
         </div>
         
-        <div class="max-w-2xl">
-          <div class="mb-[15px]">
-            <label class="block mb-[5px] text-[0.9rem] font-medium">Announcement Title</label>
-            <input type="text" v-model="broadcastForm.title" placeholder="e.g., Mandatory Server Maintenance" class="w-full p-2.5 border border-[#ddd] rounded box-border focus:outline-none focus:border-[#3498db]">
+        <div class="max-w-2xl bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+          <div class="mb-5">
+            <label class="block mb-2 text-sm font-bold text-gray-600">Announcement Title</label>
+            <input type="text" v-model="broadcastForm.title" placeholder="e.g., Mandatory Server Maintenance" class="w-full p-3 border border-gray-200 rounded-xl box-border focus:outline-none focus:border-[#3b82f6] shadow-sm text-sm">
           </div>
           
-          <div class="mb-[15px]">
-            <label class="block mb-[5px] text-[0.9rem] font-medium">Message Body</label>
-            <textarea v-model="broadcastForm.message" rows="4" placeholder="Type your announcement here..." class="w-full p-2.5 border border-[#ddd] rounded box-border focus:outline-none focus:border-[#3498db] resize-y"></textarea>
+          <div class="mb-6">
+            <label class="block mb-2 text-sm font-bold text-gray-600">Message Body</label>
+            <textarea v-model="broadcastForm.message" rows="4" placeholder="Type your announcement here..." class="w-full p-3 border border-gray-200 rounded-xl box-border focus:outline-none focus:border-[#3b82f6] shadow-sm text-sm resize-y"></textarea>
           </div>
           
-          <button @click="sendBroadcast" :disabled="sendingBroadcast" class="bg-[#e67e22] text-white border-none px-5 py-2.5 rounded font-bold cursor-pointer hover:bg-[#d35400] transition-colors disabled:opacity-50 flex items-center gap-2">
-            <span>📢</span> {{ sendingBroadcast ? 'Broadcasting...' : 'Send Broadcast to All Users' }}
+          <button @click="sendBroadcast" :disabled="sendingBroadcast || !broadcastForm.title || !broadcastForm.message" class="bg-[#3b82f6] text-white border-none px-6 py-3 rounded-xl font-bold cursor-pointer hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm shadow-sm w-full flex justify-center items-center gap-2">
+            <span v-if="sendingBroadcast" class="animate-spin text-lg">⏳</span>
+            <span v-else class="text-lg">✉️</span> 
+            {{ sendingBroadcast ? 'Broadcasting...' : 'Send Broadcast to All Users' }}
           </button>
         </div>
       </div>

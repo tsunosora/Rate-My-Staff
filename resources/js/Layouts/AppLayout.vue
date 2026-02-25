@@ -1,90 +1,125 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-[#f4f7f6] font-sans text-[#333]">
-    <!-- Sidebar -->
-    <div class="w-[220px] bg-[#2c3e50] text-white flex flex-col py-5 transition-all md:w-[220px] max-md:w-[60px]">
-      <div class="px-5 pb-5 border-b border-[#34495e] font-bold text-lg max-md:hidden">
-        HR Admin
+  <div class="flex h-screen overflow-hidden bg-[#f0f4f8] font-sans text-gray-800 p-3 sm:p-5 gap-3 sm:gap-5 max-md:pb-[80px] max-md:p-0">
+    
+    <!-- Sidebar / Bottom Nav (Soft UI floating card) -->
+    <div class="w-[100px] bg-white sm:rounded-[32px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.06)] flex flex-col py-8 items-center justify-between transition-all flex-shrink-0 z-40 overflow-y-auto hide-scrollbar max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:w-full max-md:h-[75px] max-md:flex-row max-md:py-0 max-md:px-2 max-md:rounded-none max-md:rounded-t-3xl max-md:shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)]">
+      
+      <!-- Logo / Branding -->
+      <div class="font-bold text-xl text-[#3b82f6] mb-8 text-center px-2 flex flex-col items-center max-md:hidden">
+        <span class="text-3xl mb-1">⭐</span>
+        <span class="text-[0.7rem] uppercase tracking-wider text-gray-400">HR Admin</span>
       </div>
       
-      <div class="mt-4 flex flex-col">
-        <router-link to="/dashboard" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">🏠</span>
-          <span class="max-md:hidden">Dashboard</span>
+      <!-- Navigation Links -->
+      <nav class="flex flex-col gap-3 w-full px-3 items-center max-md:flex-row max-md:justify-around max-md:px-2 max-md:gap-1 max-md:flex-1 h-full max-md:h-auto">
+        <router-link to="/dashboard" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">🏠</span>
+          <span class="text-[0.6rem] font-bold max-md:hidden">Dashboard</span>
         </router-link>
         
-        <router-link to="/employees" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">👥</span>
-          <span class="max-md:hidden">Employees</span>
+        <router-link to="/employees" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">👥</span>
+          <span class="text-[0.6rem] font-bold max-md:hidden">Employees</span>
         </router-link>
 
-        <router-link to="/assessments/create/single" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">📝</span>
-          <span class="max-md:hidden">New Assessment</span>
+        <router-link to="/assessments/create/single" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">📝</span>
+          <span class="text-[0.6rem] font-bold text-center leading-tight max-md:hidden">New<br>Score</span>
         </router-link>
 
-        <router-link to="/assessments/templates" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">📁</span>
-          <span class="max-md:hidden">Templates</span>
+        <router-link to="/assessments/templates" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50 max-md:hidden" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">📁</span>
+          <span class="text-[0.6rem] font-bold max-md:hidden">Templates</span>
         </router-link>
 
-        <router-link to="/assessments/create/bulk" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">📋</span>
-          <span class="max-md:hidden">Bulk Assessment</span>
+        <router-link to="/assessments/create/bulk" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">📋</span>
+          <span class="text-[0.6rem] font-bold text-center leading-tight max-md:hidden">Bulk<br>Score</span>
         </router-link>
 
-        <router-link to="/reports" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">📊</span>
-          <span class="max-md:hidden">Reports</span>
+        <router-link to="/reports" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50 max-md:hidden" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">📊</span>
+          <span class="text-[0.6rem] font-bold max-md:hidden">Reports</span>
         </router-link>
 
-        <router-link to="/settings" class="flex items-center px-5 py-3 cursor-pointer transition-colors text-[#bdc3c7] hover:bg-[#34495e] hover:text-white" active-class="bg-[#34495e] text-white">
-          <span class="text-xl mr-3">⚙️</span>
-          <span class="max-md:hidden">Settings</span>
+        <!-- More menu for mobile to access hidden routes -->
+        <router-link to="/settings" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+          <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">⚙️</span>
+          <span class="text-[0.6rem] font-bold max-md:hidden">Settings</span>
         </router-link>
+      </nav>
+
+      <!-- Profile & Logout at Bottom (hidden on mobile) -->
+      <div class="flex flex-col items-center mt-6 gap-3 pt-6 border-t border-gray-100 w-full max-md:hidden">
+        <!-- User Profile Bubble -->
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-[45px] h-[45px] bg-indigo-100 text-indigo-600 rounded-full overflow-hidden flex items-center justify-center font-bold text-lg shadow-sm border-2 border-white relative">
+            {{ userInitials }}
+            <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></span>
+          </div>
+          <span class="text-[0.55rem] font-bold text-gray-600 text-center leading-tight mx-1 truncate w-[80px]">{{ userName }}</span>
+        </div>
+        
+        <!-- Logout Button -->
+        <button @click="logout" class="flex flex-col items-center text-gray-400 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer mt-1" title="Log out">
+          <span class="text-xl">🚪</span>
+        </button>
       </div>
+
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col overflow-y-auto w-full">
-      <!-- Header -->
-      <header class="bg-white px-[30px] py-[15px] flex justify-between items-center shadow-[0_2px_4px_rgba(0,0,0,0.05)] sticky top-0 z-10 w-full">
-        <div class="text-[1.4rem] font-semibold">{{ pageTitle }}</div>
+    <div class="flex-1 flex flex-col overflow-y-auto w-full relative hide-scrollbar sm:rounded-3xl">
+      
+      <!-- Seamless Transparent Header -->
+      <header class="px-4 py-4 sm:px-6 sm:py-6 flex justify-between items-center w-full sticky top-0 z-30 bg-[#f0f4f8]/90 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+           <div class="md:hidden w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm shadow-sm border-2 border-white relative whitespace-nowrap">
+             {{ userInitials }}
+             <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></span>
+           </div>
+           <div>
+             <h1 class="text-xl sm:text-[1.8rem] font-bold text-[#1e293b] tracking-tight m-0 leading-tight">{{ pageTitle }}</h1>
+             <p class="text-gray-500 text-xs sm:text-sm m-0 mt-0.5 sm:mt-1 max-md:hidden">Manage your daily tasks and reports</p>
+           </div>
+        </div>
         
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-5">
           <!-- Notification Bell -->
-          <div class="relative cursor-pointer" @click="toggleNotifications">
-            <span class="text-xl">🔔</span>
-            <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+          <div class="relative cursor-pointer bg-white p-2.5 sm:p-3 rounded-full shadow-sm hover:shadow-md transition-shadow" @click="toggleNotifications">
+            <span class="text-lg sm:text-xl leading-none block">🔔</span>
+            <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-sm">
               {{ unreadCount > 9 ? '9+' : unreadCount }}
             </span>
             
             <!-- Notification Dropdown -->
-            <div v-if="showNotifications" class="absolute right-0 mt-3 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 transform origin-top-right transition-all">
-              <div class="p-3 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                <h3 class="font-bold text-sm m-0">Notifications</h3>
-                <button v-if="unreadCount > 0" @click.stop="markAllAsRead" class="text-xs text-blue-500 hover:text-blue-700 bg-transparent border-none cursor-pointer p-0">Mark all read</button>
+            <div v-if="showNotifications" class="absolute right-0 mt-4 w-72 sm:w-80 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-50 z-50 transform origin-top-right transition-all">
+              <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                <h3 class="font-bold text-sm m-0 text-gray-800">Notifications</h3>
+                <button v-if="unreadCount > 0" @click.stop="markAllAsRead" class="text-xs text-[#3b82f6] hover:text-blue-700 font-semibold bg-transparent border-none cursor-pointer p-0">Mark all read</button>
               </div>
-              <div class="max-h-80 overflow-y-auto w-full">
-                <div v-if="notifications.length === 0" class="p-4 text-center text-gray-500 text-sm">
+              <div class="max-h-[350px] overflow-y-auto w-full rounded-b-2xl">
+                <div v-if="notifications.length === 0" class="p-6 text-center text-gray-400 text-sm flex flex-col items-center">
+                  <span class="text-3xl mb-2 opacity-50">📭</span>
                   No notifications yet.
                 </div>
                 <div v-for="notif in notifications" :key="notif.id" 
                      @click.stop="markAsRead(notif)"
-                     class="p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
-                     :class="{'bg-blue-50/30': !notif.read_at}">
+                     class="p-4 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                     :class="{'bg-[#f0f7ff]': !notif.read_at}">
                   <div class="flex items-start gap-3">
-                    <div class="mt-1 text-blue-500">
-                      <span v-if="!notif.read_at" class="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span v-else class="text-gray-300">✓</span>
+                    <div class="mt-1">
+                      <span v-if="!notif.read_at" class="inline-block w-2.5 h-2.5 bg-[#3b82f6] rounded-full shadow-sm"></span>
+                      <span v-else class="text-green-400 text-xs">✓</span>
                     </div>
-                    <div>
-                      <p class="text-sm font-semibold m-0 text-gray-800" :class="{'text-gray-600 font-normal': notif.read_at}">
+                    <div class="flex-1">
+                      <p class="text-sm font-bold m-0 text-gray-800 leading-tight" :class="{'text-gray-500 font-medium': notif.read_at}">
                         {{ notif.data.title || 'System Notification' }}
                       </p>
-                      <p class="text-xs text-gray-500 mt-1 mb-1 line-clamp-2">
+                      <p class="text-xs text-gray-500 mt-1 mb-1 line-clamp-2 leading-relaxed">
                         {{ notif.data.message || 'You have a new message.' }}
                       </p>
-                      <span class="text-[10px] text-gray-400 font-medium">
+                      <span class="text-[0.65rem] text-gray-400 font-medium tracking-wide uppercase">
                          {{ new Date(notif.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) }}
                       </span>
                     </div>
@@ -93,20 +128,16 @@
               </div>
             </div>
           </div>
-
-          <span class="max-md:hidden text-gray-600 font-medium pl-2 border-l border-gray-200">Welcome, {{ userName }}</span>
-          <div class="w-[35px] h-[35px] bg-[#3498db] text-white rounded-full overflow-hidden flex items-center justify-center cursor-pointer font-bold shadow-sm">
-            {{ userInitials }}
-          </div>
-          <!-- Log out button -->
-          <button @click="logout" class="ml-4 text-sm text-red-500 hover:text-red-700 font-medium bg-transparent border-none cursor-pointer">
-            Logout
+          
+          <!-- Mobile Logout Button -->
+          <button @click="logout" class="md:hidden flex items-center justify-center bg-white p-2.5 rounded-full shadow-sm hover:shadow-md transition-shadow cursor-pointer border-none" title="Log out">
+            <span class="text-lg leading-none block text-red-500">🚪</span>
           </button>
         </div>
       </header>
 
-      <!-- Page Content -->
-      <main class="w-full">
+      <!-- Page Content Slot -->
+      <main class="w-full px-4 sm:px-6 pb-6">
         <slot></slot>
       </main>
     </div>

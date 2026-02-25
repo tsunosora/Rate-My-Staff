@@ -1,92 +1,111 @@
 <template>
   <AppLayout>
-    <div class="p-[25px] grid grid-cols-4 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
+    <div class="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-sm:grid-cols-1">
       
       <!-- Metrics -->
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] border-l-4 border-l-[#3498db]">
-        <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Total Employees</h3>
-        <div class="text-[1.8rem] font-bold mt-2.5">
-          <span v-if="loading" class="text-gray-300">...</span>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden border border-gray-50">
+        <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-3">
+          <span class="text-xl">👥</span>
+        </div>
+        <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Total Employees</h3>
+        <div class="text-[2rem] font-extrabold mt-1 text-gray-800">
+          <span v-if="loading" class="text-gray-300 animate-pulse">...</span>
           <span v-else>{{ metrics.total_employees }}</span>
         </div>
       </div>
       
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] border-l-4 border-l-[#f1c40f]">
-        <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Pending Reviews</h3>
-        <div class="text-[1.8rem] font-bold mt-2.5">
-          <span v-if="loading" class="text-gray-300">...</span>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden border border-gray-50">
+        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-3">
+          <span class="text-xl">⏳</span>
+        </div>
+        <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Pending Reviews</h3>
+        <div class="text-[2rem] font-extrabold mt-1 text-gray-800">
+          <span v-if="loading" class="text-gray-300 animate-pulse">...</span>
           <span v-else>{{ metrics.pending_reviews }}</span>
         </div>
       </div>
       
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] border-l-4 border-l-[#2ecc71]">
-        <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Avg. Team Score</h3>
-        <div class="text-[1.8rem] font-bold mt-2.5">
-          <span v-if="loading" class="text-gray-300">...</span>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden border border-gray-50">
+        <div class="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center mb-3">
+          <span class="text-xl">📈</span>
+        </div>
+        <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Avg. Team Score</h3>
+        <div class="text-[2rem] font-extrabold mt-1 text-gray-800">
+          <span v-if="loading" class="text-gray-300 animate-pulse">...</span>
           <span v-else>{{ metrics.avg_score }}</span>
         </div>
       </div>
       
-      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] border-l-4 border-l-[#e74c3c]">
-        <h3 class="m-0 text-[0.85rem] text-[#7f8c8d] uppercase">Notifications</h3>
-        <div class="text-[1.8rem] font-bold mt-2.5">
-          <span v-if="loading" class="text-gray-300">...</span>
+      <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden border border-gray-50">
+        <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-3">
+          <span class="text-xl">🔔</span>
+        </div>
+        <h3 class="m-0 text-xs text-gray-400 uppercase font-bold tracking-wide">Notifications</h3>
+        <div class="text-[2rem] font-extrabold mt-1 text-gray-800">
+          <span v-if="loading" class="text-gray-300 animate-pulse">...</span>
           <span v-else>{{ metrics.notifications }}</span>
         </div>
       </div>
 
       <!-- Quick Actions -->
-      <div class="col-span-4 bg-white p-5 rounded-lg flex gap-[15px] flex-wrap shadow-[0_2px_10px_rgba(0,0,0,0.05)] items-center">
-        <strong class="mr-2">Quick Actions:</strong>
-        <router-link to="/assessments/create/single" class="px-5 py-2.5 rounded text-white font-medium inline-flex items-center justify-center bg-[#3498db] hover:bg-[#2980b9] transition-colors decoration-none">+ New Assessment</router-link>
-        <router-link to="/assessments/create/bulk" class="px-5 py-2.5 rounded text-white font-medium inline-flex items-center justify-center bg-[#27ae60] hover:bg-[#219653] transition-colors decoration-none">Bulk Entry</router-link>
-        <router-link to="/reports" class="px-5 py-2.5 rounded text-white font-medium inline-flex items-center justify-center bg-[#f39c12] hover:bg-[#d68910] transition-colors decoration-none">Export PDF/Excel</router-link>
-        <router-link to="/employees" class="px-5 py-2.5 rounded text-white font-medium inline-flex items-center justify-center bg-[#9b59b6] hover:bg-[#8e44ad] transition-colors decoration-none">Import Data</router-link>
+      <div class="col-span-4 max-md:col-span-2 max-sm:col-span-1 bg-white p-6 rounded-3xl flex gap-4 flex-wrap shadow-[0_8px_30px_rgb(0,0,0,0.04)] items-center border border-gray-50">
+        <strong class="mr-2 text-gray-700 w-full md:w-auto mb-2 md:mb-0">Quick Actions:</strong>
+        <router-link to="/assessments/create/single" class="px-5 py-2.5 rounded-xl text-white font-medium inline-flex items-center justify-center bg-[#3b82f6] hover:bg-blue-600 transition-colors shadow-sm decoration-none text-sm grow md:grow-0 text-center">+ New Assessment</router-link>
+        <router-link to="/assessments/create/bulk" class="px-5 py-2.5 rounded-xl text-white font-medium inline-flex items-center justify-center bg-[#10b981] hover:bg-emerald-600 transition-colors shadow-sm decoration-none text-sm grow md:grow-0 text-center">Bulk Entry</router-link>
+        <router-link to="/reports" class="px-5 py-2.5 rounded-xl text-white font-medium inline-flex items-center justify-center bg-[#f59e0b] hover:bg-amber-600 transition-colors shadow-sm decoration-none text-sm grow md:grow-0 text-center">Export PDF/Excel</router-link>
+        <router-link to="/employees" class="px-5 py-2.5 rounded-xl text-white font-medium inline-flex items-center justify-center bg-[#8b5cf6] hover:bg-violet-600 transition-colors shadow-sm decoration-none text-sm grow md:grow-0 text-center">Manage Staff</router-link>
       </div>
 
       <!-- Main Content Rows -->
-      <div class="col-span-4 grid grid-cols-[2fr_1fr] gap-5 max-md:grid-cols-1">
+      <div class="col-span-4 max-md:col-span-2 max-sm:col-span-1 grid grid-cols-[2fr_1fr] gap-6 max-md:grid-cols-1">
         
         <!-- Performance Trend & Recent Activity -->
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-6">
             <!-- Performance Trend Chart -->
-            <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-                <h2 class="mt-0 text-[1.1rem] border-b border-[#eee] pb-2.5 mb-4 font-semibold">Team Performance Trend</h2>
-                <div v-if="loading" class="text-gray-400">Loading chart...</div>
+            <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+                <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-5 font-bold text-gray-800">Team Performance Trend</h2>
+                <div v-if="loading" class="text-gray-400 animate-pulse h-[300px] flex items-center justify-center bg-gray-50 rounded-xl">Loading chart...</div>
                 <div v-else class="relative h-[300px] w-full">
                     <Line v-if="chartDataLoaded" :data="chartCanvasData" :options="chartOptions" />
                 </div>
             </div>
 
             <!-- Recent Activity -->
-            <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] h-full">
-            <h2 class="mt-0 text-[1.1rem] border-b border-[#eee] pb-2.5 mb-4 font-semibold">Recent Activity</h2>
-            <div v-if="loading" class="text-gray-400">Loading activity...</div>
-            <div v-else-if="recentActivity.length === 0" class="text-gray-500">No recent activity.</div>
+            <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 h-full">
+            <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-5 font-bold text-gray-800">Recent Activity</h2>
+            <div v-if="loading" class="text-gray-400 animate-pulse">Loading activity...</div>
+            <div v-else-if="recentActivity.length === 0" class="text-gray-500 py-4 text-center">No recent activity.</div>
             <ul v-else class="list-none p-0 m-0">
-                <li v-for="activity in recentActivity" :key="activity.id" class="py-3 border-b border-[#f9f9f9] flex flex-col text-[0.9rem] last:border-b-0">
-                  <div class="flex justify-between items-start mb-1">
-                    <span class="font-medium text-[#2c3e50]">{{ activity.user ? activity.user.name : 'System' }}</span>
-                    <span class="text-[0.8rem] text-[#95a5a6] font-medium">{{ new Date(activity.created_at).toLocaleDateString() }} {{ new Date(activity.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</span>
+                <li v-for="activity in recentActivity" :key="activity.id" class="py-4 border-b border-gray-50 flex flex-col text-[0.9rem] last:border-b-0">
+                  <div class="flex justify-between items-start mb-1 gap-2">
+                    <span class="font-bold text-gray-800">{{ activity.user ? activity.user.name : 'System' }}</span>
+                    <span class="text-[0.75rem] text-gray-400 font-medium whitespace-nowrap bg-gray-50 px-2 py-1 rounded-md">{{ new Date(activity.created_at).toLocaleDateString() }}</span>
                   </div>
-                  <span class="text-[#555]">{{ activity.message || `Performed ${activity.action} on ${activity.target_table}` }}</span>
+                  <span class="text-gray-500 text-sm">{{ activity.message || `Performed ${activity.action} on ${activity.target_table}` }}</span>
                 </li>
             </ul>
             </div>
         </div>
 
         <!-- System Alerts -->
-        <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] h-fit">
-          <h2 class="mt-0 text-[1.1rem] border-b border-[#eee] pb-2.5 mb-4 font-semibold">System Alerts</h2>
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 h-fit">
+          <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-4 font-bold text-gray-800">System Alerts</h2>
           
-          <div v-if="loading" class="text-gray-400">Loading alerts...</div>
-          <div v-else class="list-none p-0 m-0">
-            <div v-for="(alert, index) in alerts" :key="index" class="py-3 text-[0.9rem]">
-              <span :class="{'text-[#e74c3c]': alert.type === 'danger', 'text-[#f39c12]': alert.type === 'warning', 'text-[#3498db]': alert.type === 'info'}">● {{ alert.message }}</span>
+          <div v-if="loading" class="text-gray-400 animate-pulse">Loading alerts...</div>
+          <div v-else class="list-none p-0 m-0 flex flex-col gap-3">
+            <div v-for="(alert, index) in alerts" :key="index" class="p-4 rounded-2xl text-[0.9rem]" :class="{'bg-red-50 text-red-600': alert.type === 'danger', 'bg-orange-50 text-orange-600': alert.type === 'warning', 'bg-blue-50 text-blue-600': alert.type === 'info'}">
+              <span class="font-semibold block mb-1 flex items-center gap-2">
+                <span v-if="alert.type === 'danger'">🔴</span>
+                <span v-if="alert.type === 'warning'">🟠</span>
+                <span v-if="alert.type === 'info'">🔵</span>
+                Notice
+              </span>
+              {{ alert.message }}
             </div>
           </div>
-          <div class="mt-5 bg-[#f9f9f9] p-4 rounded text-[0.85rem] border border-[#eee]">
-            <strong class="font-semibold">Assessment Tip:</strong> Focus on 'Respon Waktu' for Customer Service evaluations this week.
+          <div class="mt-6 bg-[#f0f4f8] p-5 rounded-2xl text-[0.85rem] border border-[#e2e8f0]">
+            <strong class="font-bold text-blue-600 block mb-1">💡 Assessment Tip:</strong> 
+            Focus on 'Respon Waktu' for Customer Service evaluations this week.
           </div>
         </div>
 

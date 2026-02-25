@@ -1,83 +1,87 @@
 <template>
   <AppLayout>
-    <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
-      <div class="flex justify-between items-center mb-[25px] max-md:flex-col max-md:items-start max-md:gap-4">
-        <h1 class="m-0 text-[1.5rem] font-bold">Employee Directory</h1>
-        <div class="flex gap-2.5">
+    <div class="flex flex-col h-full gap-6">
+      
+      <!-- Header Actions -->
+      <div class="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-4">
+        <h1 class="m-0 text-2xl font-bold text-gray-800">Employee Directory</h1>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto">
           <input type="file" ref="fileInput" @change="handleFileImport" accept=".csv,.txt" class="hidden" style="display: none;" />
-          <button @click="triggerImport" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors">Import CSV</button>
-          <button @click="exportPdf" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors">Export PDF</button>
-          <button @click="showAddModal = true" class="bg-[#3498db] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer flex items-center hover:bg-[#2980b9] transition-colors">+ Add Employee</button>
-          <router-link to="/assessments/create/bulk" class="bg-[#2ecc71] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer flex items-center hover:bg-[#27ae60] transition-colors decoration-none">+ Bulk</router-link>
+          <button @click="triggerImport" class="bg-white border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors shadow-sm grow md:grow-0 text-center">Import CSV</button>
+          <button @click="exportPdf" class="bg-white border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors shadow-sm grow md:grow-0 text-center">Export PDF</button>
+          <button @click="showAddModal = true" class="bg-[#3b82f6] text-white border-none px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer flex justify-center items-center hover:bg-blue-600 transition-colors shadow-sm grow md:grow-0">+ Add Employee</button>
+          <router-link to="/assessments/create/bulk" class="bg-[#10b981] text-white border-none px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer flex justify-center items-center hover:bg-emerald-600 transition-colors shadow-sm decoration-none grow md:grow-0">+ Bulk Score</router-link>
         </div>
       </div>
 
       <!-- Filters -->
-      <div class="bg-white p-[15px] rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-5 flex gap-[15px] items-center flex-wrap">
-        <input type="text" v-model="filters.search" @keyup.enter="loadEmployees" class="flex-1 p-2 border border-[#ddd] rounded text-[14px] outline-none focus:border-[#3498db]" placeholder="Search by name, ID or email...">
-        <select v-model="filters.department_id" @change="loadEmployees" class="p-2 border border-[#ddd] rounded text-[14px] outline-none focus:border-[#3498db]">
+      <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex gap-4 items-center flex-wrap">
+        <input type="text" v-model="filters.search" @keyup.enter="loadEmployees" class="flex-1 p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50" placeholder="Search by name, ID or email...">
+        <select v-model="filters.department_id" @change="loadEmployees" class="p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50 min-w-[200px]">
           <option value="">All Departments</option>
           <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
-        <button @click="loadEmployees" class="bg-[#3498db] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-[#2980b9] transition-colors">Apply Filters</button>
+        <button @click="loadEmployees" class="bg-gray-800 text-white border-none px-6 py-3 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-700 transition-colors shadow-sm">Apply Filters</button>
       </div>
 
       <!-- Table Container -->
-      <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden flex-1 flex flex-col min-h-[400px]">
+      <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 overflow-hidden flex-1 flex flex-col min-h-[400px]">
         <div class="overflow-x-auto">
           <table class="w-full border-collapse text-left min-w-[800px]">
              <thead>
-               <tr>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d] w-10"><input type="checkbox" v-model="selectAll"></th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Employee Name</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Department</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Role</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Last Assessment</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Avg Score</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Status</th>
-                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Actions</th>
+               <tr class="bg-gray-50 border-b border-gray-200">
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs w-10 text-center"><input type="checkbox" v-model="selectAll"></th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Employee Name</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Department</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Role</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Last Assessment</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Avg Score</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Status</th>
+                 <th class="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Actions</th>
                </tr>
              </thead>
              <tbody>
                <tr v-if="loading"><td colspan="8" class="p-4 text-center text-gray-500">Loading...</td></tr>
                <tr v-else-if="employees.length === 0"><td colspan="8" class="p-4 text-center text-gray-500">No employees found.</td></tr>
                
-               <tr v-else v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50 transition-colors">
-                 <td class="p-3 px-[15px] border-b border-[#eee]"><input type="checkbox" v-model="selectedEmployees" :value="emp.id"></td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
-                    <strong>{{ emp.full_name }}</strong><br>
-                    <small class="text-[#999]">ID: {{ emp.employee_code }}</small>
+               <tr v-else v-for="emp in employees" :key="emp.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                 <td class="px-3 py-3 text-center"><input type="checkbox" v-model="selectedEmployees" :value="emp.id"></td>
+                 <td class="px-3 py-3 text-center">
+                    <strong class="text-gray-800 text-[15px]">{{ emp.full_name }}</strong><br>
+                    <span class="text-xs text-gray-500 mt-1 inline-block">ID: {{ emp.employee_code }}</span>
                  </td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">{{ emp.department ? emp.department.name : '-' }}</td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">{{ emp.position ? emp.position.name : '-' }}</td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                 <td class="px-3 py-3 text-sm text-gray-600 font-medium text-center">{{ emp.department ? emp.department.name : '-' }}</td>
+                 <td class="px-3 py-3 text-sm text-gray-600 text-center">{{ emp.position ? emp.position.name : '-' }}</td>
+                 <td class="px-3 py-3 text-sm text-gray-500 font-medium whitespace-nowrap text-center">
                     {{ emp.latest_assessment ? new Date(emp.latest_assessment.assessment_date).toLocaleDateString() : '-' }}
                  </td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
-                    <div v-if="emp.average_score" class="flex flex-col gap-1 items-start">
-                      <span class="bg-[#e8f4fd] text-[#3498db] px-2 py-0.5 rounded font-bold">{{ Number(emp.average_score).toFixed(1) }}</span>
-                      <span v-if="emp.previous_score !== null && emp.previous_score !== undefined" class="text-[10px] text-gray-500 flex items-center gap-1 font-medium bg-gray-100 px-1 py-0.5 rounded" title="Previous score">
+                 <td class="px-3 py-3 text-sm">
+                    <div v-if="emp.average_score" class="flex flex-col gap-1 items-center justify-center">
+                      <span class="bg-[#e8f4fd] text-[#3498db] px-2.5 py-1 rounded-md font-bold">{{ Number(emp.average_score).toFixed(1) }}</span>
+                      <span v-if="emp.previous_score !== null && emp.previous_score !== undefined" class="text-[11px] text-gray-500 flex items-center justify-center gap-1 font-medium bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200" title="Previous score">
                           Prev: {{ Number(emp.previous_score).toFixed(1) }}
                           <span v-if="emp.average_score > emp.previous_score" class="text-green-500 font-bold" title="Improved">▲</span>
                           <span v-else-if="emp.average_score < emp.previous_score" class="text-red-500 font-bold" title="Declined">▼</span>
                       </span>
                     </div>
-                    <span v-else class="bg-[#eee] text-[#666] px-2 py-0.5 rounded font-bold">-</span>
+                    <span v-else class="bg-gray-100 text-gray-400 px-2.5 py-1 rounded-md font-bold text-center block w-fit mx-auto">-</span>
                  </td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
-                    <span v-if="emp.latest_assessment" class="px-2 py-1 rounded-[12px] text-[11px] font-bold bg-[#d4edda] text-[#155724]">Completed</span>
-                    <span v-else class="px-2 py-1 rounded-[12px] text-[11px] font-bold bg-[#fff3cd] text-[#856404]">Pending</span>
+                 <td class="px-3 py-3 text-sm text-center">
+                    <div class="flex justify-center">
+                      <span v-if="emp.latest_assessment" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#d4edda] text-[#155724] border border-green-200">Completed</span>
+                      <span v-else class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#fff3cd] text-[#856404] border border-yellow-200">Pending</span>
+                    </div>
                  </td>
-                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
-                    <div class="flex gap-2">
-                      <button v-if="emp.latest_assessment" @click="openAssessmentDetails(emp.latest_assessment.id)" class="px-2 py-1 text-[12px] rounded font-medium bg-[#2ecc71] text-white border-none cursor-pointer hover:bg-[#27ae60] transition-colors" title="View Details">
+                 <td class="px-3 py-3 text-sm">
+                    <div class="flex gap-2 justify-center">
+                      <button v-if="emp.latest_assessment" @click="openAssessmentDetails(emp.latest_assessment.id)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#10b981] text-white border-none cursor-pointer hover:bg-emerald-600 transition-colors shadow-sm" title="View Details">
                          View Details
                       </button>
-                      <router-link v-else :to="`/assessments/create/single?employee=${emp.id}`" class="px-2 py-1 text-[12px] rounded font-medium bg-[#3498db] text-white hover:bg-[#2980b9] border border-transparent transition-colors decoration-none" title="Assess Employee">
+                      <router-link v-else :to="`/assessments/create/single?employee=${emp.id}`" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#3b82f6] text-white hover:bg-blue-600 border border-transparent transition-colors decoration-none shadow-sm" title="Assess Employee">
                          Assess
                       </router-link>
-                      <button @click="openEditModal(emp)" class="px-2 py-1 text-[12px] rounded font-medium bg-[#f39c12] text-white hover:bg-[#d68910] border-none cursor-pointer" title="Edit Employee">Edit</button>
-                      <button @click="requestDelete(emp)" class="px-2 py-1 text-[12px] rounded font-medium bg-[#e74c3c] text-white hover:bg-[#c0392b] border-none cursor-pointer" title="Delete Employee">Delete</button>
+                      <button @click="openEditModal(emp)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#f59e0b] text-white hover:bg-amber-600 border-none cursor-pointer shadow-sm" title="Edit Employee">Edit</button>
+                      <button @click="requestDelete(emp)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 border-none cursor-pointer shadow-sm" title="Delete Employee">Delete</button>
                     </div>
                  </td>
                </tr>
@@ -87,11 +91,11 @@
       </div>
 
       <!-- Pagination Placeholder -->
-      <div v-if="pagination.total > 0" class="flex justify-between items-center mt-5 text-[14px] text-[#7f8c8d]">
+      <div v-if="pagination.total > 0" class="flex justify-between items-center mt-2 px-2 text-sm text-gray-500 font-medium">
         <span>Showing {{ pagination.from }} to {{ pagination.to }} of {{ pagination.total }} employees</span>
-        <div class="flex gap-2.5">
-          <button @click="changePage(pagination.current_page - 1)" :disabled="pagination.current_page <= 1" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-          <button @click="changePage(pagination.current_page + 1)" :disabled="pagination.current_page >= pagination.last_page" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+        <div class="flex gap-3">
+          <button @click="changePage(pagination.current_page - 1)" :disabled="pagination.current_page <= 1" class="bg-white border border-gray-200 text-gray-700 px-5 py-2 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+          <button @click="changePage(pagination.current_page + 1)" :disabled="pagination.current_page >= pagination.last_page" class="bg-white border border-gray-200 text-gray-700 px-5 py-2 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
         </div>
       </div>
 
