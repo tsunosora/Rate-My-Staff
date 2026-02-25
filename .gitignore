@@ -24,3 +24,10 @@ Kimi_Agent_Project Setup Guide.zip
 zip_extracted
 l11-tmp
 cookie.txt
+
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore

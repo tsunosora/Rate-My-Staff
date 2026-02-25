@@ -22,9 +22,7 @@
           <label class="font-semibold text-[0.9rem]">Period:</label>
           <select v-model="filters.period" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
             <option value="all">All Time</option>
-            <option value="Q1 2024">Q1 2024</option>
-            <option value="Q4 2023">Q4 2023</option>
-            <option value="Q3 2023">Q3 2023</option>
+            <option v-for="period in availablePeriods" :key="period" :value="period">{{ period }}</option>
           </select>
         </div>
         
@@ -32,9 +30,7 @@
           <label class="font-semibold text-[0.9rem]">Department:</label>
           <select v-model="filters.department" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
             <option value="all">All Departments</option>
-            <option value="Customer Service">Customer Service</option>
-            <option value="IT Support">IT Support</option>
-            <option value="Marketing">Marketing</option>
+            <option v-for="dept in availableDepartments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
           </select>
         </div>
       </div>
@@ -61,7 +57,7 @@
 
       <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden">
         <div class="p-4 border-b border-[#eee] bg-[#fafafa]">
-          <h3 class="m-0 text-[1.1rem]">Recent Evaluated Employees</h3>
+          <h3 class="m-0 text-[1.1rem]">Evaluated All Employees</h3>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full border-collapse text-left min-w-[800px]">
@@ -213,6 +209,9 @@ const recentAssessments = ref([]);
 const showModal = ref(false);
 const selectedAssessment = ref(null);
 
+const availablePeriods = ref([]);
+const availableDepartments = ref([]);
+
 onMounted(() => {
   fetchData();
 });
@@ -228,6 +227,13 @@ const fetchData = async () => {
     summary.needs_improvement = res.data.summary.needs_improvement;
     
     recentAssessments.value = res.data.recent_assessments;
+    
+    if (res.data.available_periods) {
+      availablePeriods.value = res.data.available_periods;
+    }
+    if (res.data.available_departments) {
+      availableDepartments.value = res.data.available_departments;
+    }
   } catch (e) {
     console.error("Failed to load report data", e);
   } finally {

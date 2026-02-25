@@ -24,7 +24,7 @@ class ReportController extends Controller
 
         if ($department !== 'all') {
             $query->whereHas('employee', function ($q) use ($department) {
-                $q->where('department', $department);
+                $q->where('department_id', $department);
             });
         }
 
@@ -39,7 +39,7 @@ class ReportController extends Controller
 
         // Group by department for chart data
         $departmentScores = $assessments->groupBy(function ($item) {
-            return $item->employee->department;
+            return ($item->employee && $item->employee->department) ? $item->employee->department->name : 'Unknown';
         })->map(function ($group) {
             return [
                 'count' => $group->count(),
@@ -47,19 +47,23 @@ class ReportController extends Controller
             ];
         });
 
-        // Recent assessments list
-        $recentList = $assessments->take(10)->map(function ($assessment) {
+        // All assessments list (no limit)
+        $recentList = $assessments->map(function ($assessment) {
             return [
                 'id' => $assessment->id,
                 'employee_id' => $assessment->employee_id,
-                'employee_name' => $assessment->employee->full_name,
-                'department' => $assessment->employee->department,
-                'template_name' => $assessment->template->name,
+                'employee_name' => $assessment->employee ? $assessment->employee->full_name : 'Unknown',
+                'department' => ($assessment->employee && $assessment->employee->department) ? $assessment->employee->department->name : 'Unknown',
+                'template_name' => $assessment->template ? $assessment->template->name : 'Unknown',
                 'period' => $assessment->period,
                 'score' => $assessment->total_score,
                 'date' => $assessment->assessment_date,
             ];
         });
+
+        // Fetch dropdown options for frontend
+        $availablePeriods = Assessment::select('period')->distinct()->whereNotNull('period')->pluck('period');
+        $availableDepartments = \App\Models\Department::select('id', 'name')->orderBy('name')->get();
 
         return response()->json([
             'summary' => [
@@ -70,6 +74,8 @@ class ReportController extends Controller
             ],
             'department_scores' => $departmentScores,
             'recent_assessments' => $recentList,
+            'available_periods' => $availablePeriods,
+            'available_departments' => $availableDepartments,
         ]);
     }
 
