@@ -37,7 +37,7 @@
           <span class="text-[0.6rem] font-bold text-center leading-tight max-md:hidden">Bulk<br>Score</span>
         </router-link>
 
-        <router-link to="/reports" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50 max-md:hidden" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
+        <router-link to="/reports" class="flex flex-col items-center justify-center w-full aspect-square max-md:aspect-auto max-md:h-14 max-md:w-14 rounded-2xl cursor-pointer transition-all text-gray-400 hover:text-[#3b82f6] hover:bg-blue-50/50" active-class="bg-[#3b82f6] !text-white shadow-md transform scale-105 max-md:scale-110">
           <span class="text-2xl mb-1 max-md:m-0 max-md:text-xl">📊</span>
           <span class="text-[0.6rem] font-bold max-md:hidden">Reports</span>
         </router-link>
