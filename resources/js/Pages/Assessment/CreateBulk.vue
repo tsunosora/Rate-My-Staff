@@ -3,8 +3,17 @@
     <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
       <div class="flex justify-between items-center mb-5">
         <div>
-          <h2 class="m-0 text-[1.5rem] font-bold">Bulk Assessment</h2>
-          <p class="m-0 text-[#666] text-[0.85rem]">Department: All | Period: {{ currentPeriod }}</p>
+          <h2 class="m-0 text-[1.5rem] font-bold mb-2">Bulk Assessment</h2>
+          <div class="flex items-center gap-3 text-[0.85rem] text-[#666]">
+             <label class="flex items-center gap-2">
+                <strong>Date:</strong>
+                <input type="date" v-model="assessmentDate" class="p-1 border border-gray-300 rounded outline-none" @change="updatePeriodFromDate">
+             </label>
+             <label class="flex items-center gap-2">
+                <strong>Period:</strong>
+                <input type="text" v-model="currentPeriod" class="p-1 border border-gray-300 rounded outline-none" placeholder="e.g. March 2026">
+             </label>
+          </div>
         </div>
         <div class="flex gap-2.5">
           <!-- TODO: Save as draft logic -->
@@ -35,9 +44,11 @@
                  <th class="p-3 text-[0.85rem]">Employee Name</th>
                  <!-- Dynamic Indicator Columns -->
                  <th v-if="!currentTemplate" class="p-3 text-[0.85rem] italic text-gray-500">Select a template to view indicators</th>
-                 <th v-for="ind in currentTemplate?.indicators" :key="ind.id" class="p-3 text-[0.85rem]">
-                   {{ ind.name }} ({{ ind.weight }}%)
-                 </th>
+                 <template v-else>
+                   <th v-for="ind in currentTemplate.indicators" :key="ind.id" class="p-3 text-[0.85rem]">
+                     {{ ind.name }} ({{ ind.weight }}%)
+                   </th>
+                 </template>
                  <th class="p-3 text-[0.85rem]">Final Score</th>
                  <th class="p-3 text-[0.85rem]">Status</th>
                </tr>
@@ -49,23 +60,41 @@
                <tr v-for="(emp, empIndex) in employees" :key="emp.id" class="border-b border-[#eee] hover:bg-[#f9f9f9]">
                  <td class="p-3 font-medium">{{ emp.full_name }}<br><span class="text-xs text-gray-500">{{ emp.department ? emp.department.name : 'Unknown' }}</span></td>
                  
-                 <!-- Score inputs per indicator -->
-                 <td v-for="(ind, indIndex) in currentTemplate?.indicators" :key="ind.id" class="p-3">
-                   <input 
-                     type="number" 
-                     v-model.number="getScoreModel(emp.id, ind.id).score"
-                     min="1" max="5" 
-                     placeholder="-"
-                     class="w-[50px] p-1 border rounded text-center outline-none focus:border-[#3498db]"
-                     :class="{'border-[#e74c3c] bg-[#fff9f9]': getScoreModel(emp.id, ind.id).score && getScoreModel(emp.id, ind.id).score < 3, 'border-[#3498db]': getScoreModel(emp.id, ind.id).score >= 3}"
-                   >
+                 <!-- Empty state when no template selected -->
+                 <td v-if="!currentTemplate" class="p-3 text-gray-500 italic">
+                   <span v-if="emp.latest_assessment">Last Assessed: {{ emp.latest_assessment.period }}</span>
+                   <span v-else>No history</span>
                  </td>
                  
+                 <!-- Score inputs per indicator -->
+                 <template v-else>
+                   <td v-for="(ind, indIndex) in currentTemplate.indicators" :key="ind.id" class="p-3">
+                     <input 
+                       type="number" 
+                       v-model.number="getScoreModel(emp.id, ind.id).score"
+                       min="1" max="5" 
+                       placeholder="-"
+                       class="w-[50px] p-1 border rounded text-center outline-none focus:border-[#3498db]"
+                       :class="{'border-[#e74c3c] bg-[#fff9f9]': getScoreModel(emp.id, ind.id).score && getScoreModel(emp.id, ind.id).score < 3, 'border-[#3498db]': getScoreModel(emp.id, ind.id).score >= 3}"
+                     >
+                   </td>
+                 </template>
+                 
                  <td class="p-3 font-bold" :class="getFinalScoreColor(calculateRowScore(emp.id))">
-                   {{ calculateRowScore(emp.id) > 0 ? calculateRowScore(emp.id).toFixed(2) : 'N/A' }}
+                   <span v-if="!currentTemplate">
+                     <span v-if="emp.latest_assessment" :class="getFinalScoreColor(emp.latest_assessment.total_score)">
+                       {{ Number(emp.latest_assessment.total_score).toFixed(2) }}
+                     </span>
+                     <span v-else class="text-gray-400 font-normal">-</span>
+                   </span>
+                   <span v-else>{{ calculateRowScore(emp.id) > 0 ? calculateRowScore(emp.id).toFixed(2) : 'N/A' }}</span>
                  </td>
                  <td class="p-3">
-                   <span v-if="isRowReady(emp.id)" class="bg-[#e8f5e9] text-[#2e7d32] px-2 py-1 rounded-[12px] text-[0.75rem]">Ready</span>
+                   <span v-if="!currentTemplate">
+                      <span v-if="emp.latest_assessment" class="bg-[#d4edda] text-[#155724] px-2 py-1 rounded-[12px] text-[0.75rem] font-medium">Completed</span>
+                      <span v-else class="text-gray-400 font-normal text-[0.8rem]">-</span>
+                   </span>
+                   <span v-else-if="isRowReady(emp.id)" class="bg-[#e8f5e9] text-[#2e7d32] px-2 py-1 rounded-[12px] text-[0.75rem]">Ready</span>
                    <span v-else class="bg-[#ffebee] text-[#c62828] px-2 py-1 rounded-[12px] text-[0.75rem]">Incomplete</span>
                  </td>
                </tr>
@@ -129,7 +158,22 @@ const showAlert = (title, message, isError = false) => {
   alertModal.show = true;
 };
 
-const currentPeriod = ref('Q1 ' + new Date().getFullYear());
+const today = new Date();
+const assessmentDate = ref(today.toISOString().split('T')[0]);
+
+const getPeriodString = (dateObj) => {
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+};
+
+const currentPeriod = ref(getPeriodString(today));
+
+const updatePeriodFromDate = () => {
+   if (assessmentDate.value) {
+       const d = new Date(assessmentDate.value);
+       currentPeriod.value = getPeriodString(d);
+   }
+};
 
 const filters = reactive({
   search: '',
@@ -198,21 +242,28 @@ const loadTemplate = async () => {
   try {
     const res = await axios.get(`/api/assessments/templates/${filters.template_id}`);
     currentTemplate.value = res.data;
-    initializeScoreCache(); // Re-init cache with new template indicators
+    
+    // Fetch previous scores for bulk prepopulation
+    const scoresRes = await axios.get(`/api/assessments/templates/${filters.template_id}/scores`);
+    const historyScores = scoresRes.data; 
+    
+    initializeScoreCache(historyScores); 
   } catch (error) {
     console.error("Error loading template", error);
   }
 };
 
-const initializeScoreCache = () => {
+const initializeScoreCache = (historyScores = {}) => {
   if (!currentTemplate.value) return;
   
   employees.value.forEach(emp => {
     if (!bulkScores[emp.id]) bulkScores[emp.id] = {};
+    const empHistory = historyScores[emp.id] || {};
     
     currentTemplate.value.indicators.forEach(ind => {
-      if (bulkScores[emp.id][ind.id] === undefined) {
-         bulkScores[emp.id][ind.id] = { score: null };
+      // If we don't have a score set by the user yet, set it from history or null
+      if (bulkScores[emp.id][ind.id] === undefined || bulkScores[emp.id][ind.id].score === null) {
+         bulkScores[emp.id][ind.id] = { score: empHistory[ind.id] !== undefined ? empHistory[ind.id] : null };
       }
     });
   });
@@ -280,6 +331,7 @@ const submitAll = () => {
         readyAssessments.push({
           employee_id: emp.id,
           template_id: currentTemplate.value.id,
+          assessment_date: assessmentDate.value,
           period: currentPeriod.value,
           status: 'completed',
           evaluator_notes: '',

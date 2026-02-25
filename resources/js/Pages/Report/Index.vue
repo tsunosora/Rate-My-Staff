@@ -33,6 +33,19 @@
             <option v-for="dept in availableDepartments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
           </select>
         </div>
+        <div class="flex items-center gap-2">
+          <label class="font-semibold text-[0.9rem]">Category:</label>
+          <select v-model="filters.performance_category" @change="fetchData" class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db]">
+            <option value="all">All Performers</option>
+            <option value="high_performer">High Performers (>4.0)</option>
+            <option value="average">Average (3.0 - 4.0)</option>
+            <option value="needs_improvement">Needs Improvement (<3.0)</option>
+          </select>
+        </div>
+        
+        <div class="flex items-center gap-2 ml-auto">
+          <input type="text" v-model="filters.search" @input="debounceFetchData" placeholder="Search employee..." class="p-2 border border-[#ddd] rounded outline-none focus:border-[#3498db] min-w-[200px]">
+        </div>
       </div>
 
       <!-- Key Metrics summary -->
@@ -173,7 +186,7 @@
         </div>
 
         <div class="p-5 border-t border-gray-200 flex justify-end gap-2">
-          <router-link :to="`/assessments/edit/${selectedAssessment?.id}`" class="px-4 py-2 bg-[#3498db] text-white border-none rounded font-medium cursor-pointer hover:bg-[#2980b9] transition-colors decoration-none flex items-center gap-1">
+          <router-link v-if="selectedAssessment" :to="`/assessments/edit/${selectedAssessment.id}`" class="px-4 py-2 bg-[#3498db] text-white border-none rounded font-medium cursor-pointer hover:bg-[#2980b9] transition-colors decoration-none flex items-center gap-1">
              ✏️ Edit Details
           </router-link>
           <button @click="closeModal" class="px-4 py-2 bg-gray-200 border-none rounded font-medium cursor-pointer hover:bg-gray-300 transition-colors text-[#333]">Close</button>
@@ -193,8 +206,18 @@ const loading = ref(true);
 
 const filters = reactive({
   period: 'all',
-  department: 'all'
+  department: 'all',
+  performance_category: 'all',
+  search: ''
 });
+
+let searchTimeout = null;
+const debounceFetchData = () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetchData();
+    }, 500);
+};
 
 const summary = reactive({
   total_assessments: 0,

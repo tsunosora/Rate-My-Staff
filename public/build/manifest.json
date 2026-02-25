@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BwSIOxBj.css",
+    "file": "assets/app-H0OWBSX-.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/Pages/Assessment/CreateBulk.vue": {
-    "file": "assets/CreateBulk-ONuAL6AW.js",
+    "file": "assets/CreateBulk-BPmRrjlW.js",
     "name": "CreateBulk",
     "src": "resources/js/Pages/Assessment/CreateBulk.vue",
     "isDynamicEntry": true,
@@ -14,7 +14,7 @@
     ]
   },
   "resources/js/Pages/Assessment/EditSingle.vue": {
-    "file": "assets/EditSingle-oXzq271S.js",
+    "file": "assets/EditSingle-DdiJBRGE.js",
     "name": "EditSingle",
     "src": "resources/js/Pages/Assessment/EditSingle.vue",
     "isDynamicEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "resources/js/Pages/Assessment/Templates.vue": {
-    "file": "assets/Templates-lV-pov1W.js",
+    "file": "assets/Templates-BgfKEEde.js",
     "name": "Templates",
     "src": "resources/js/Pages/Assessment/Templates.vue",
     "isDynamicEntry": true,
@@ -32,7 +32,7 @@
     ]
   },
   "resources/js/Pages/Report/Index.vue": {
-    "file": "assets/Index-D5OwgiIn.js",
+    "file": "assets/Index-B9cfZh7F.js",
     "name": "Index",
     "src": "resources/js/Pages/Report/Index.vue",
     "isDynamicEntry": true,
@@ -41,7 +41,7 @@
     ]
   },
   "resources/js/Pages/Setting/Index.vue": {
-    "file": "assets/Index-LbtYGE1R.js",
+    "file": "assets/Index-Df9-x7VP.js",
     "name": "Index",
     "src": "resources/js/Pages/Setting/Index.vue",
     "isDynamicEntry": true,
@@ -50,7 +50,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DDwbOjzF.js",
+    "file": "assets/app-442_5PZY.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,

@@ -46,6 +46,7 @@ class Employee extends Model
      */
     protected $appends = [
         'average_score',
+        'previous_score',
         'photo_url',
     ];
 
@@ -83,6 +84,24 @@ class Employee extends Model
         return $this->assessments()
             ->where('status', 'completed')
             ->avg('total_score');
+    }
+
+    /**
+     * Get previous assessment score for trend tracking.
+     */
+    public function getPreviousScoreAttribute(): ?float
+    {
+        $assessments = $this->assessments()
+            ->where('status', 'completed')
+            ->orderBy('assessment_date', 'desc')
+            ->take(2)
+            ->get();
+
+        if ($assessments->count() > 1) {
+            return $assessments[1]->total_score;
+        }
+
+        return null;
     }
 
     /**

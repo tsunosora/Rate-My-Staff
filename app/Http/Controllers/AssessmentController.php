@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Assessment;
 use App\Models\AssessmentTemplate;
 use App\Models\Employee;
+use App\Models\User;
+use App\Notifications\SystemUpdateNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +25,7 @@ class AssessmentController extends Controller
      */
     public function getEmployees(Request $request)
     {
-        $query = Employee::with('department')->active();
+        $query = Employee::with(['department', 'latestAssessment'])->active();
 
         if ($request->has('department_id')) {
             $query->where('department_id', $request->department_id);
@@ -46,6 +48,37 @@ class AssessmentController extends Controller
     }
 
     /**
+     * Get the latest scores for employees for a specific template.
+     * Useful for pre-filling the bulk assessment form.
+     */
+    public function getLatestScoresByTemplate($templateId)
+    {
+        // Fetch the latest assessment for this template for each employee
+        $assessments = Assessment::with('scores')
+            ->where('template_id', $templateId)
+            ->where('status', 'completed')
+            ->whereIn('id', function ($query) use ($templateId) {
+                $query->select(DB::raw('MAX(id)'))
+                    ->from('assessments')
+                    ->where('template_id', $templateId)
+                    ->where('status', 'completed')
+                    ->groupBy('employee_id');
+            })
+            ->get();
+
+        $employeeScores = [];
+        foreach ($assessments as $assessment) {
+            $scores = [];
+            foreach ($assessment->scores as $score) {
+                $scores[$score->indicator_id] = $score->score;
+            }
+            $employeeScores[$assessment->employee_id] = $scores;
+        }
+
+        return response()->json($employeeScores);
+    }
+
+    /**
      * Store a single assessment.
      */
     public function storeSingle(Request $request)
@@ -53,6 +86,7 @@ class AssessmentController extends Controller
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'template_id' => 'required|exists:assessment_templates,id',
+            'assessment_date' => 'nullable|date',
             'period' => 'required|string',
             'status' => 'required|in:draft,completed',
             'evaluator_notes' => 'nullable|string',
@@ -69,7 +103,7 @@ class AssessmentController extends Controller
                 'employee_id' => $validated['employee_id'],
                 'evaluator_id' => auth()->id() ?? 1, // Fallback for dev if auth drops
                 'template_id' => $validated['template_id'],
-                'assessment_date' => now(),
+                'assessment_date' => $validated['assessment_date'] ?? now(),
                 'period' => $validated['period'],
                 'evaluator_notes' => $validated['evaluator_notes'],
                 'development_plan' => $validated['development_plan'],
@@ -92,6 +126,13 @@ class AssessmentController extends Controller
             if ($validated['status'] === 'completed') {
                 $assessment->total_score = $assessment->calculateTotalScore();
                 $assessment->save();
+
+                // Send automatic notification
+                $employeeName = $assessment->employee ? $assessment->employee->full_name : 'An employee';
+                \Illuminate\Support\Facades\Notification::send(User::all(), new SystemUpdateNotification(
+                    'Assessment Completed',
+                    "A new assessment has been completed for {$employeeName} (Period: {$assessment->period})."
+                ));
             }
 
             DB::commit();
@@ -152,8 +193,19 @@ class AssessmentController extends Controller
 
             // Calculate and save the total score
             if ($validated['status'] === 'completed') {
+                // Check if it was just changed to completed from draft to avoid duplicate notifications on every edit
+                $wasDraft = $assessment->getOriginal('status') !== 'completed';
+
                 $assessment->total_score = $assessment->calculateTotalScore();
                 $assessment->save(); // observers will calculate grade etc.
+
+                if ($wasDraft) {
+                    $employeeName = $assessment->employee ? $assessment->employee->full_name : 'An employee';
+                    \Illuminate\Support\Facades\Notification::send(User::all(), new SystemUpdateNotification(
+                        'Assessment Completed',
+                        "A draft assessment was finalized for {$employeeName} (Period: {$assessment->period})."
+                    ));
+                }
             }
 
             DB::commit();

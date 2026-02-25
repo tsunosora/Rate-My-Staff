@@ -13,20 +13,8 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        $period = $request->get('period', 'all');
-        $department = $request->get('department', 'all');
-
         $query = Assessment::with(['employee', 'template']);
-
-        if ($period !== 'all') {
-            $query->where('period', $period);
-        }
-
-        if ($department !== 'all') {
-            $query->whereHas('employee', function ($q) use ($department) {
-                $q->where('department_id', $department);
-            });
-        }
+        $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
 
@@ -95,20 +83,8 @@ class ReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        $period = $request->get('period', 'all');
-        $department = $request->get('department', 'all');
-
         $query = Assessment::with(['employee.department', 'employee.position', 'template']);
-
-        if ($period !== 'all') {
-            $query->where('period', $period);
-        }
-
-        if ($department !== 'all') {
-            $query->whereHas('employee', function ($q) use ($department) {
-                $q->where('department', $department);
-            });
-        }
+        $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
 
@@ -122,22 +98,15 @@ class ReportController extends Controller
     {
         $period = $request->get('period', 'all');
         $department = $request->get('department', 'all');
+        $category = $request->get('performance_category', 'all');
+        $search = $request->get('search', '');
 
         $query = Assessment::with(['employee.department', 'employee.position', 'template']);
-
-        if ($period !== 'all') {
-            $query->where('period', $period);
-        }
-
-        if ($department !== 'all') {
-            $query->whereHas('employee', function ($q) use ($department) {
-                $q->where('department', $department);
-            });
-        }
+        $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.reports', compact('assessments', 'period', 'department'));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.reports', compact('assessments', 'period', 'department', 'category', 'search'));
         return $pdf->download('reports.pdf');
     }
 
@@ -155,5 +124,44 @@ class ReportController extends Controller
         ])->findOrFail($id);
 
         return response()->json($assessment);
+    }
+
+    /**
+     * Apply common filters to the assessment query.
+     */
+    private function applyFilters($query, Request $request)
+    {
+        $period = $request->get('period', 'all');
+        $department = $request->get('department', 'all');
+        $category = $request->get('performance_category', 'all');
+        $search = $request->get('search');
+
+        if ($period !== 'all') {
+            $query->where('period', $period);
+        }
+
+        if ($department !== 'all') {
+            $query->whereHas('employee', function ($q) use ($department) {
+                $q->where('department_id', $department);
+            });
+        }
+
+        if ($category !== 'all') {
+            if ($category === 'high_performer') {
+                $query->where('total_score', '>=', 4.0);
+            } elseif ($category === 'average') {
+                $query->whereBetween('total_score', [3.0, 3.99]);
+            } elseif ($category === 'needs_improvement') {
+                $query->where('total_score', '<', 3.0);
+            }
+        }
+
+        if (!empty($search)) {
+            $query->whereHas('employee', function ($q) use ($search) {
+                $q->where('full_name', 'like', '%' . $search . '%');
+            });
+        }
+
+        return $query;
     }
 }

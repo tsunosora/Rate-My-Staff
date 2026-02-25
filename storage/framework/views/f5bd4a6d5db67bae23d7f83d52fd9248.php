@@ -79,8 +79,14 @@
 
     <div class="filters">
         <span>Period:</span> <?php echo e($period === 'all' ? 'All Time' : $period); ?><br>
-        <span>Department:</span> <?php echo e($department === 'all' ? 'All Departments' : $department); ?>
+        <span>Department:</span>
+        <?php echo e($department === 'all' ? 'All Departments' : \App\Models\Department::find($department)?->name ?? 'All Departments'); ?><br>
+        <span>Category:</span>
+        <?php echo e($category === 'all' ? 'All Performers' : ($category === 'high_performer' ? 'High Performers (>4.0)' : ($category === 'average' ? 'Average (3.0 - 4.0)' : 'Needs Improvement (<3.0)'))); ?>
 
+        <?php if(!empty($search)): ?>
+            <br><span>Search:</span> "<?php echo e($search); ?>"
+        <?php endif; ?>
     </div>
 
     <table>

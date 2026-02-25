@@ -120,6 +120,30 @@
         </div>
         
       </div>
+
+      <!-- System Announcements -->
+      <div class="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] mt-5 mb-[25px]">
+        <h2 class="text-[1.1rem] font-semibold text-[#2c3e50] mb-5 pb-2.5 border-b-2 border-[#ecf0f1]">System Announcements (Broadcast)</h2>
+        <div class="max-w-2xl bg-[#ebf5fb] border border-[#3498db] p-4 rounded mb-5">
+            <p class="m-0 text-[#2980b9] text-sm">Use this form to send a real-time notification to <strong>all users</strong> in the system. The message will appear in their notification bell immediately.</p>
+        </div>
+        
+        <div class="max-w-2xl">
+          <div class="mb-[15px]">
+            <label class="block mb-[5px] text-[0.9rem] font-medium">Announcement Title</label>
+            <input type="text" v-model="broadcastForm.title" placeholder="e.g., Mandatory Server Maintenance" class="w-full p-2.5 border border-[#ddd] rounded box-border focus:outline-none focus:border-[#3498db]">
+          </div>
+          
+          <div class="mb-[15px]">
+            <label class="block mb-[5px] text-[0.9rem] font-medium">Message Body</label>
+            <textarea v-model="broadcastForm.message" rows="4" placeholder="Type your announcement here..." class="w-full p-2.5 border border-[#ddd] rounded box-border focus:outline-none focus:border-[#3498db] resize-y"></textarea>
+          </div>
+          
+          <button @click="sendBroadcast" :disabled="sendingBroadcast" class="bg-[#e67e22] text-white border-none px-5 py-2.5 rounded font-bold cursor-pointer hover:bg-[#d35400] transition-colors disabled:opacity-50 flex items-center gap-2">
+            <span>📢</span> {{ sendingBroadcast ? 'Broadcasting...' : 'Send Broadcast to All Users' }}
+          </button>
+        </div>
+      </div>
     </div>
     <!-- Add Department Modal -->
     <div v-if="showDeptModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
@@ -177,6 +201,10 @@ import AppLayout from '../../Layouts/AppLayout.vue';
 const loading = ref(true);
 const saving = ref(false);
 const users = ref([]);
+
+// --- Broadcast State ---
+const sendingBroadcast = ref(false);
+const broadcastForm = reactive({ title: '', message: '' });
 
 // --- Master Data State ---
 const departments = ref([]);
@@ -282,4 +310,27 @@ const saveChanges = async () => {
         saving.value = false;
     }
 }
+
+// --- Broadcast Methods ---
+const sendBroadcast = async () => {
+    if (!broadcastForm.title || !broadcastForm.message) {
+        alert("Please enter both a title and a message.");
+        return;
+    }
+    
+    if (!confirm("Are you sure you want to send this notification to all users?")) return;
+
+    sendingBroadcast.value = true;
+    try {
+        const res = await axios.post('/api/notifications/broadcast', broadcastForm);
+        alert(res.data.message || 'Broadcast sent successfully!');
+        broadcastForm.title = '';
+        broadcastForm.message = '';
+    } catch (e) {
+        console.error("Failed to send broadcast", e);
+        alert('An error occurred while broadcasting.');
+    } finally {
+        sendingBroadcast.value = false;
+    }
+};
 </script>

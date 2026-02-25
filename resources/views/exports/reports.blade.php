@@ -79,7 +79,13 @@
 
     <div class="filters">
         <span>Period:</span> {{ $period === 'all' ? 'All Time' : $period }}<br>
-        <span>Department:</span> {{ $department === 'all' ? 'All Departments' : $department }}
+        <span>Department:</span>
+        {{ $department === 'all' ? 'All Departments' : \App\Models\Department::find($department)?->name ?? 'All Departments' }}<br>
+        <span>Category:</span>
+        {{ $category === 'all' ? 'All Performers' : ($category === 'high_performer' ? 'High Performers (>4.0)' : ($category === 'average' ? 'Average (3.0 - 4.0)' : 'Needs Improvement (<3.0)')) }}
+        @if(!empty($search))
+            <br><span>Search:</span> "{{ $search }}"
+        @endif
     </div>
 
     <table>

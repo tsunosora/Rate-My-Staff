@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     // Assessment API
     Route::get('/api/assessments/templates', [\App\Http\Controllers\AssessmentController::class, 'getTemplates']);
     Route::get('/api/assessments/templates/{id}', [\App\Http\Controllers\AssessmentController::class, 'getTemplateDetails']);
+    Route::get('/api/assessments/templates/{id}/scores', [\App\Http\Controllers\AssessmentController::class, 'getLatestScoresByTemplate']);
     Route::get('/api/assessments/employees', [\App\Http\Controllers\AssessmentController::class, 'getEmployees']);
     Route::post('/api/assessments/single', [\App\Http\Controllers\AssessmentController::class, 'storeSingle']);
     Route::put('/api/assessments/single/{id}', [\App\Http\Controllers\AssessmentController::class, 'updateSingle']);
@@ -70,6 +71,13 @@ Route::middleware('auth')->group(function () {
     // Settings API
     Route::get('/api/settings', [\App\Http\Controllers\SettingController::class, 'index']);
     Route::post('/api/settings', [\App\Http\Controllers\SettingController::class, 'store']);
+
+    // Notifications API
+    Route::get('/api/notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('/api/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+    Route::post('/api/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('/api/notifications/test', [\App\Http\Controllers\NotificationController::class, 'sendTestNotification']);
+    Route::post('/api/notifications/broadcast', [\App\Http\Controllers\NotificationController::class, 'broadcastNotification']);
 });
 
 // Catch-all route for Vue SPA
