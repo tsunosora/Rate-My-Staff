@@ -1,0 +1,30 @@
+{
+  "name": "rate-my-staff",
+  "version": "1.0.0",
+  "description": "A comprehensive web-based employee performance assessment system built with Laravel 10, Vue.js 3, and Tailwind CSS. This application allows companies to evaluate and manage employee performance with features including role-based access control, import/export functionality, PDF/Excel report generation, and mobile-responsive design.",
+  "main": "vite.config.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "autoprefixer": "^10.4.24",
+    "axios": "^1.13.5",
+    "laravel-vite-plugin": "^1.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.1",
+    "vite": "^6.4.1",
+    "vue": "^3.5.29"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "chart.js": "^4.5.1",
+    "vue-chartjs": "^5.3.3",
+    "vue-router": "^4.6.4"
+  }
+}

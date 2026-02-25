@@ -1,0 +1,26 @@
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+/.fleet
+/.zed
+/.nova
+/.gemini
+/.antigravity
+*.log
+Kimi_Agent_Project Setup Guide.zip
+zip_extracted
+l11-tmp
+cookie.txt

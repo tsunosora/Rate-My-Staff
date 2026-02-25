@@ -1,0 +1,492 @@
+<template>
+  <AppLayout>
+    <div class="p-[25px] flex flex-col h-full bg-[#f4f7f6]">
+      <div class="flex justify-between items-center mb-[25px] max-md:flex-col max-md:items-start max-md:gap-4">
+        <h1 class="m-0 text-[1.5rem] font-bold">Employee Directory</h1>
+        <div class="flex gap-2.5">
+          <input type="file" ref="fileInput" @change="handleFileImport" accept=".csv,.txt" class="hidden" style="display: none;" />
+          <button @click="triggerImport" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors">Import CSV</button>
+          <button @click="exportPdf" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors">Export PDF</button>
+          <button @click="showAddModal = true" class="bg-[#3498db] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer flex items-center hover:bg-[#2980b9] transition-colors">+ Add Employee</button>
+          <router-link to="/assessments/create/bulk" class="bg-[#2ecc71] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer flex items-center hover:bg-[#27ae60] transition-colors decoration-none">+ Bulk</router-link>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white p-[15px] rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] mb-5 flex gap-[15px] items-center flex-wrap">
+        <input type="text" v-model="filters.search" @keyup.enter="loadEmployees" class="flex-1 p-2 border border-[#ddd] rounded text-[14px] outline-none focus:border-[#3498db]" placeholder="Search by name, ID or email...">
+        <select v-model="filters.department_id" @change="loadEmployees" class="p-2 border border-[#ddd] rounded text-[14px] outline-none focus:border-[#3498db]">
+          <option value="">All Departments</option>
+          <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+        </select>
+        <button @click="loadEmployees" class="bg-[#3498db] text-white border-none px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-[#2980b9] transition-colors">Apply Filters</button>
+      </div>
+
+      <!-- Table Container -->
+      <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden flex-1 flex flex-col min-h-[400px]">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-left min-w-[800px]">
+             <thead>
+               <tr>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d] w-10"><input type="checkbox" v-model="selectAll"></th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Employee Name</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Department</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Role</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Last Assessment</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Avg Score</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Status</th>
+                 <th class="bg-[#f8f9fa] p-3 px-[15px] border-b-2 border-[#eee] font-semibold text-[13px] text-[#7f8c8d]">Actions</th>
+               </tr>
+             </thead>
+             <tbody>
+               <tr v-if="loading"><td colspan="8" class="p-4 text-center text-gray-500">Loading...</td></tr>
+               <tr v-else-if="employees.length === 0"><td colspan="8" class="p-4 text-center text-gray-500">No employees found.</td></tr>
+               
+               <tr v-else v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50 transition-colors">
+                 <td class="p-3 px-[15px] border-b border-[#eee]"><input type="checkbox" v-model="selectedEmployees" :value="emp.id"></td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                    <strong>{{ emp.full_name }}</strong><br>
+                    <small class="text-[#999]">ID: {{ emp.employee_code }}</small>
+                 </td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">{{ emp.department ? emp.department.name : '-' }}</td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">{{ emp.position ? emp.position.name : '-' }}</td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                    {{ emp.latest_assessment ? new Date(emp.latest_assessment.assessment_date).toLocaleDateString() : '-' }}
+                 </td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                    <span v-if="emp.average_score" class="bg-[#e8f4fd] text-[#3498db] px-2 py-0.5 rounded font-bold">{{ Number(emp.average_score).toFixed(1) }}</span>
+                    <span v-else class="bg-[#eee] text-[#666] px-2 py-0.5 rounded font-bold">-</span>
+                 </td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                    <span v-if="emp.latest_assessment" class="px-2 py-1 rounded-[12px] text-[11px] font-bold bg-[#d4edda] text-[#155724]">Completed</span>
+                    <span v-else class="px-2 py-1 rounded-[12px] text-[11px] font-bold bg-[#fff3cd] text-[#856404]">Pending</span>
+                 </td>
+                 <td class="p-3 px-[15px] border-b border-[#eee] text-[14px]">
+                    <div class="flex gap-2">
+                      <router-link :to="`/assessments/create/single?employee=${emp.id}`" class="px-2 py-1 text-[12px] rounded font-medium border border-transparent transition-colors decoration-none" :class="emp.latest_assessment ? 'bg-transparent border-[#bdc3c7] text-[#7f8c8d] hover:bg-gray-100' : 'bg-[#3498db] text-white hover:bg-[#2980b9]'" title="Assess Employee">
+                         Assess
+                      </router-link>
+                      <button @click="openEditModal(emp)" class="px-2 py-1 text-[12px] rounded font-medium bg-[#f39c12] text-white hover:bg-[#d68910] border-none cursor-pointer" title="Edit Employee">Edit</button>
+                      <button @click="requestDelete(emp)" class="px-2 py-1 text-[12px] rounded font-medium bg-[#e74c3c] text-white hover:bg-[#c0392b] border-none cursor-pointer" title="Delete Employee">Delete</button>
+                    </div>
+                 </td>
+               </tr>
+             </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination Placeholder -->
+      <div v-if="pagination.total > 0" class="flex justify-between items-center mt-5 text-[14px] text-[#7f8c8d]">
+        <span>Showing {{ pagination.from }} to {{ pagination.to }} of {{ pagination.total }} employees</span>
+        <div class="flex gap-2.5">
+          <button @click="changePage(pagination.current_page - 1)" :disabled="pagination.current_page <= 1" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+          <button @click="changePage(pagination.current_page + 1)" :disabled="pagination.current_page >= pagination.last_page" class="bg-transparent border border-[#bdc3c7] text-[#7f8c8d] px-4 py-2 rounded text-[14px] font-medium cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-xl font-bold m-0">Add New Employee</h2>
+          <button @click="closeModal" class="text-gray-500 hover:text-gray-800 bg-transparent border-none text-2xl font-bold cursor-pointer">&times;</button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto flex-1">
+          <form @submit.prevent="submitEmployee" class="grid grid-cols-2 gap-4">
+            
+            <!-- Removed Employee ID Field -->
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Nama Lengkap (Full Name)</label>
+              <input v-model="form.full_name" required type="text" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Nama Panggil (Nickname)</label>
+              <input v-model="form.nickname" required type="text" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Department</label>
+              <select v-model="form.department_id" required class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+                <option value="" disabled>Select Department</option>
+                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Jabatan (Position)</label>
+              <select v-model="form.position_id" required :disabled="!form.department_id" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <option value="" disabled>Select Position</option>
+                <option v-for="pos in filteredPositions" :key="pos.id" :value="pos.id">{{ pos.name }}</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Tanggal Masuk (Join Date)</label>
+              <input v-model="form.join_date" required type="date" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Gaji (Salary)</label>
+              <input v-model="form.salary" required type="number" min="0" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+          </form>
+        </div>
+
+        <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" @click="closeModal" class="px-4 py-2 border border-gray-300 rounded bg-white text-gray-700 cursor-pointer font-medium hover:bg-gray-50">Cancel</button>
+          <button type="button" @click="submitEmployee" :disabled="submitting" class="px-4 py-2 border-none rounded bg-[#3498db] text-white cursor-pointer font-medium hover:bg-[#2980b9] disabled:opacity-50">
+            {{ submitting ? 'Saving...' : 'Save Employee' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Employee Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-xl font-bold m-0">Edit Employee</h2>
+          <button @click="closeEditModal" class="text-gray-500 hover:text-gray-800 bg-transparent border-none text-2xl font-bold cursor-pointer">&times;</button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto flex-1">
+          <form @submit.prevent="updateEmployee" class="grid grid-cols-2 gap-4">
+            
+            <div class="flex flex-col gap-1 col-span-2">
+              <label class="text-sm font-semibold">Employee ID (Code)</label>
+              <input v-model="editForm.employee_code" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none bg-gray-100 cursor-not-allowed" readonly>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Nama Lengkap (Full Name)</label>
+              <input v-model="editForm.full_name" required type="text" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Nama Panggil (Nickname)</label>
+              <input v-model="editForm.nickname" type="text" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Department</label>
+              <select v-model="editForm.department_id" required class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+                <option value="" disabled>Select Department</option>
+                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Jabatan (Position)</label>
+              <select v-model="editForm.position_id" required :disabled="!editForm.department_id" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <option value="" disabled>Select Position</option>
+                <option v-for="pos in editFilteredPositions" :key="pos.id" :value="pos.id">{{ pos.name }}</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Tanggal Masuk (Join Date)</label>
+              <input v-model="editForm.join_date" required type="date" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Gaji (Salary)</label>
+              <input v-model="editForm.salary" type="number" min="0" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+            
+            <div class="flex flex-col gap-1 col-span-2 relative top-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" v-model="editForm.is_active" class="w-4 h-4 rounded">
+                <span class="text-sm font-semibold">Active Employee</span>
+              </label>
+            </div>
+
+          </form>
+        </div>
+
+        <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" @click="closeEditModal" class="px-4 py-2 border border-gray-300 rounded bg-white text-gray-700 cursor-pointer font-medium hover:bg-gray-50">Cancel</button>
+          <button type="button" @click="updateEmployee" :disabled="submitting" class="px-4 py-2 border-none rounded bg-[#3498db] text-white cursor-pointer font-medium hover:bg-[#2980b9] disabled:opacity-50">
+            {{ submitting ? 'Updating...' : 'Update Employee' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-sm flex flex-col">
+        <div class="p-5 border-b border-gray-200">
+          <h2 class="text-xl font-bold m-0 text-[#e74c3c]">Confirm Deletion</h2>
+        </div>
+        <div class="p-5">
+          <p class="m-0 text-gray-700">Are you sure you want to delete <strong>{{ employeeToDelete?.full_name }}</strong>?</p>
+          <p class="m-0 mt-2 text-sm text-gray-500">This action cannot be undone.</p>
+        </div>
+        <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" @click="closeDeleteModal" class="px-4 py-2 border border-gray-300 rounded bg-white text-gray-700 cursor-pointer font-medium hover:bg-gray-50">Cancel</button>
+          <button type="button" @click="confirmDeleteEmployee" :disabled="deleting" class="px-4 py-2 border-none rounded bg-[#e74c3c] text-white cursor-pointer font-medium hover:bg-[#c0392b] disabled:opacity-50">
+            {{ deleting ? 'Deleting...' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </AppLayout>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, computed } from 'vue';
+import axios from 'axios';
+import AppLayout from '../../Layouts/AppLayout.vue';
+
+const employees = ref([]);
+const departments = ref([]);
+const positions = ref([]);
+const loading = ref(true);
+
+const filters = reactive({
+  search: '',
+  department_id: ''
+});
+
+const pagination = reactive({
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+  from: 0,
+  to: 0
+});
+
+const selectedEmployees = ref([]);
+
+const selectAll = computed({
+  get() {
+    return employees.value.length > 0 && selectedEmployees.value.length === employees.value.length;
+  },
+  set(value) {
+    if (value) {
+      selectedEmployees.value = employees.value.map(emp => emp.id);
+    } else {
+      selectedEmployees.value = [];
+    }
+  }
+});
+
+onMounted(async () => {
+  await loadMasterData();
+  await loadEmployees();
+});
+
+const loadMasterData = async () => {
+    try {
+        const [resDepts, resPos] = await Promise.all([
+            axios.get('/api/departments'),
+            axios.get('/api/positions')
+        ]);
+        departments.value = resDepts.data;
+        positions.value = resPos.data;
+    } catch(e) {
+        console.error("Failed to load master data", e);
+    }
+}
+
+const loadEmployees = async (page = 1) => {
+  loading.value = true;
+  try {
+    const params = {
+        page: page,
+        search: filters.search,
+        department_id: filters.department_id
+    };
+    
+    // We update the controller to return latest_assessment relation if needed. 
+    // Usually it's better defined in Eloquent using appending or with()
+    const res = await axios.get('/api/employees', { params });
+    
+    employees.value = res.data.data;
+    
+    pagination.current_page = res.data.current_page;
+    pagination.last_page = res.data.last_page;
+    pagination.total = res.data.total;
+    pagination.from = res.data.from;
+    pagination.to = res.data.to;
+    
+  } catch (e) {
+    console.error("Failed to load employees list", e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const changePage = (page) => {
+  if (page >= 1 && page <= pagination.last_page) {
+    loadEmployees(page);
+  }
+};
+
+// --- Modal Add Employee Logic ---
+const showAddModal = ref(false);
+const submitting = ref(false);
+const form = reactive({
+  full_name: '',
+  nickname: '',
+  department_id: '',
+  position_id: '',
+  join_date: '',
+  salary: ''
+});
+
+const filteredPositions = computed(() => {
+    if(!form.department_id) return [];
+    return positions.value.filter(p => p.department_id === form.department_id);
+});
+
+const closeModal = () => {
+  showAddModal.value = false;
+  // Reset form
+  Object.keys(form).forEach(key => form[key] = '');
+};
+
+const submitEmployee = async () => {
+  submitting.value = true;
+  try {
+    await axios.post('/api/employees', form);
+    alert('Employee added successfully!');
+    closeModal();
+    loadEmployees(1); // Reload data
+  } catch (error) {
+    console.error("Failed to add employee", error);
+    alert('Failed to add employee: \n' + (error.response?.data?.message || error.message));
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// --- Edit Employee Logic ---
+const showEditModal = ref(false);
+const editingEmployee = ref(null);
+const editForm = reactive({
+  employee_code: '',
+  full_name: '',
+  nickname: '',
+  department_id: '',
+  position_id: '',
+  join_date: '',
+  salary: '',
+  is_active: true
+});
+
+const editFilteredPositions = computed(() => {
+    if(!editForm.department_id) return [];
+    return positions.value.filter(p => p.department_id === editForm.department_id);
+});
+
+const openEditModal = (emp) => {
+  editingEmployee.value = emp;
+  editForm.employee_code = emp.employee_code;
+  editForm.full_name = emp.full_name;
+  editForm.nickname = emp.nickname;
+  editForm.department_id = emp.department_id;
+  editForm.position_id = emp.position_id;
+  editForm.join_date = emp.join_date;
+  editForm.salary = emp.salary;
+  editForm.is_active = emp.is_active;
+  showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+  showEditModal.value = false;
+  editingEmployee.value = null;
+};
+
+const updateEmployee = async () => {
+  submitting.value = true;
+  try {
+    await axios.put(`/api/employees/${editingEmployee.value.id}`, editForm);
+    alert('Employee updated successfully!');
+    closeEditModal();
+    loadEmployees(pagination.current_page); // Reload data
+  } catch (error) {
+    console.error("Failed to update employee", error);
+    alert('Failed to update employee: \n' + (error.response?.data?.message || error.message));
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const showDeleteModal = ref(false);
+const employeeToDelete = ref(null);
+const deleting = ref(false);
+
+const requestDelete = (emp) => {
+  employeeToDelete.value = emp;
+  showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false;
+  employeeToDelete.value = null;
+};
+
+const confirmDeleteEmployee = async () => {
+  if (!employeeToDelete.value) return;
+  deleting.value = true;
+  try {
+    await axios.delete(`/api/employees/${employeeToDelete.value.id}`);
+    closeDeleteModal();
+    loadEmployees(pagination.current_page);
+  } catch (error) {
+    console.error("Failed to delete employee", error);
+    alert('Failed to delete employee: \n' + (error.response?.data?.message || error.message));
+  } finally {
+    deleting.value = false;
+  }
+};
+
+// --- Import/Export Logic ---
+const fileInput = ref(null);
+
+const triggerImport = () => {
+  if(fileInput.value) {
+    fileInput.value.click();
+  }
+};
+
+const handleFileImport = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    loading.value = true;
+    const res = await axios.post('/api/employees/import-csv', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    alert(res.data.message);
+    loadEmployees(1); // Reload data
+  } catch (error) {
+    console.error("Import failed", error);
+    alert('Import failed: \n' + (error.response?.data?.message || error.message));
+  } finally {
+    loading.value = false;
+    event.target.value = ''; // Reset file input
+  }
+};
+
+const exportPdf = () => {
+    const params = new URLSearchParams({
+        search: filters.search,
+        department_id: filters.department_id
+    }).toString();
+    window.open(`/api/employees/export-pdf?${params}`, '_blank');
+};
+</script>
