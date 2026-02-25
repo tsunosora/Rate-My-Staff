@@ -1,0 +1,65 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BwSIOxBj.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/Pages/Assessment/CreateBulk.vue": {
+    "file": "assets/CreateBulk-ONuAL6AW.js",
+    "name": "CreateBulk",
+    "src": "resources/js/Pages/Assessment/CreateBulk.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Assessment/EditSingle.vue": {
+    "file": "assets/EditSingle-oXzq271S.js",
+    "name": "EditSingle",
+    "src": "resources/js/Pages/Assessment/EditSingle.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Assessment/Templates.vue": {
+    "file": "assets/Templates-lV-pov1W.js",
+    "name": "Templates",
+    "src": "resources/js/Pages/Assessment/Templates.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Report/Index.vue": {
+    "file": "assets/Index-D5OwgiIn.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Report/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Setting/Index.vue": {
+    "file": "assets/Index-LbtYGE1R.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Setting/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DDwbOjzF.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/Report/Index.vue",
+      "resources/js/Pages/Setting/Index.vue",
+      "resources/js/Pages/Assessment/EditSingle.vue",
+      "resources/js/Pages/Assessment/CreateBulk.vue",
+      "resources/js/Pages/Assessment/Templates.vue"
+    ]
+  }
+}
