@@ -173,6 +173,20 @@ const ratingColor = computed(() => {
 });
 
 onMounted(async () => {
+    // Check if user already submitted within the last hour for this specific employee
+    const lastSubmitted = localStorage.getItem(`rate_my_staff_submitted_${token}`);
+    if (lastSubmitted) {
+        const timePassed = Date.now() - parseInt(lastSubmitted);
+        if (timePassed < 60 * 60 * 1000) { // 1 hour in ms
+            error.value = 'Hooray! You’ve already rated this employee recently. Please try again later.';
+            isLoading.value = false;
+            return;
+        } else {
+            // Expired, clear it
+            localStorage.removeItem(`rate_my_staff_submitted_${token}`);
+        }
+    }
+
     try {
         const res = await axios.get(`/api/public/employee/${token}`);
         employee.value = res.data;
@@ -187,28 +201,42 @@ onMounted(async () => {
 const submitRating = async () => {
     if (form.rating === 0) return;
     
+    // Double check local storage right before submit
+    const lastSubmitted = localStorage.getItem(`rate_my_staff_submitted_${token}`);
+    if (lastSubmitted && (Date.now() - parseInt(lastSubmitted) < 60 * 60 * 1000)) {
+        alert("You have already submitted a rating recently. Please try again in an hour.");
+        return;
+    }
+
     isSubmitting.value = true;
     error.value = '';
     
     try {
         await axios.post(`/api/public/employee/${token}/rate`, form);
         isSuccess.value = true;
+        // Save to local storage to prevent immediate spam
+        localStorage.setItem(`rate_my_staff_submitted_${token}`, Date.now().toString());
     } catch (e) {
-        // Fallback generic error
         console.error("Submission failed", e);
-        error.value = 'An error occurred while submitting your feedback. Please try again.';
-        // We do not show the error view entirely if it's a submission catch to keep form visible for retry
-        alert(error.value);
+        if (e.response?.status === 429) {
+             error.value = 'Too many attempts. Please try again in an hour.';
+             alert(error.value);
+        } else {
+             error.value = 'An error occurred while submitting your feedback. Please try again.';
+             alert(error.value);
+        }
     } finally {
         isSubmitting.value = false;
     }
 };
 
 const resetForm = () => {
-    form.rater_name = 'Guest';
-    form.rating = 0;
-    form.feedback = '';
-    isSuccess.value = false;
+    // If we want to strictly prevent them from bypassing the UI block, 
+    // we can either hide the "Submit Another" button or just let the reset happen 
+    // but the next submit will be caught by the 429 server error / local storage check.
+    
+    // Just to be user-friendly, if they click submit another, we'll reload and let the onMounted handle the block screen
+    window.location.reload();
 };
 </script>
 

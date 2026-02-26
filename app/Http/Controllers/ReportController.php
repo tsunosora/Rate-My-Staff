@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assessment;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ReportController extends Controller
 {
@@ -123,16 +124,53 @@ class ReportController extends Controller
             'evaluator'
         ])->findOrFail($id);
 
-        // Load recent public feedbacks for this employee
+        // We will fetch paginated feedbacks in a separate endpoint now, 
+        // but we can keep a small preview here if needed, or just let the frontend fetch it.
+        // Let's remove the eager loading of public_feedbacks here since we'll paginate it.
+
+        return response()->json($assessment);
+    }
+
+    /**
+     * Get paginated public feedbacks for a specific employee.
+     */
+    public function getPublicFeedbacks($employeeId, Request $request)
+    {
+        $feedbacks = Assessment::public()
+            ->where('employee_id', $employeeId)
+            ->latest('assessment_date')
+            ->paginate($request->get('limit', 5), ['id', 'assessment_date', 'rater_name', 'total_score', 'evaluator_notes']);
+
+        return response()->json($feedbacks);
+    }
+
+    /**
+     * Export a single Assessment to PDF
+     */
+    public function exportAssessmentPdf($id)
+    {
+        $assessment = Assessment::with([
+            'employee.department',
+            'employee.position',
+            'template',
+            'scores.indicator',
+            'evaluator'
+        ])->findOrFail($id);
+
+        // Fetch recent public feedbacks directly for the PDF (limit to 10 for compactness)
+        $publicFeedbacks = [];
         if ($assessment->employee) {
-            $assessment->public_feedbacks = Assessment::public()
+            $publicFeedbacks = Assessment::public()
                 ->where('employee_id', $assessment->employee_id)
                 ->latest('assessment_date')
-                ->take(5)
+                ->take(10)
                 ->get(['assessment_date', 'rater_name', 'total_score', 'evaluator_notes']);
         }
 
-        return response()->json($assessment);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.assessment', compact('assessment', 'publicFeedbacks'));
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->download('Assessment_' . Str::slug($assessment->employee->full_name ?? 'Employee') . '_' . $assessment->period . '.pdf');
     }
 
     /**

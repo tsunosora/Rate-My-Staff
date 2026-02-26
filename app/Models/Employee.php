@@ -76,7 +76,12 @@ class Employee extends Model
      */
     public function latestAssessment()
     {
-        return $this->hasOne(Assessment::class)->where('is_public', false)->latestOfMany('assessment_date');
+        return $this->hasOne(Assessment::class)->ofMany(
+            ['assessment_date' => 'max', 'id' => 'max'],
+            function ($query) {
+                $query->where('is_public', false);
+            }
+        );
     }
 
     /**

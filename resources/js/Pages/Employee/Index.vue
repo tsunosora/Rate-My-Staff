@@ -345,14 +345,14 @@
                <div class="p-3 bg-blue-50 text-blue-800 rounded border border-blue-200 text-sm font-medium">{{ combinedRecommendation }}</div>
            </div>
 
-           <!-- Public Feedback History Section -->
-           <div v-if="selectedAssessment.public_feedbacks && selectedAssessment.public_feedbacks.length > 0" class="mt-8">
+           <!-- Public Feedback History Section (Paginated) -->
+           <div v-if="publicFeedbacks.data.length > 0" class="mt-8">
                <h3 class="font-bold text-lg border-b pb-2 mb-3 flex items-center gap-2">
                    <span class="text-amber-500">⭐️</span> Public Guest Feedbacks
                </h3>
                
                <div class="flex flex-col gap-3">
-                   <div v-for="(feedback, idx) in selectedAssessment.public_feedbacks" :key="idx" class="bg-amber-50/50 border border-amber-100 rounded-xl p-3 shadow-sm">
+                   <div v-for="(feedback, idx) in publicFeedbacks.data" :key="idx" class="bg-amber-50/50 border border-amber-100 rounded-xl p-3 shadow-sm">
                        <div class="flex justify-between items-start mb-2">
                            <div class="font-semibold text-gray-800 text-sm flex items-center gap-2">
                                <span class="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">{{ feedback.rater_name ? feedback.rater_name.charAt(0).toUpperCase() : 'G' }}</span>
@@ -373,6 +373,15 @@
                        <p class="text-sm text-gray-700 italic m-0 bg-white p-2 rounded border border-gray-100">"{{ feedback.evaluator_notes || 'No feedback provided.' }}"</p>
                    </div>
                </div>
+               
+               <!-- Internal Pagination Controls for Feedback -->
+                <div v-if="publicFeedbacks.last_page > 1" class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                    <span class="text-xs text-gray-500">Showing page {{ publicFeedbacks.current_page }} of {{ publicFeedbacks.last_page }}</span>
+                    <div class="flex gap-2">
+                        <button @click="loadPublicFeedbacks(publicFeedbacks.current_page - 1)" :disabled="publicFeedbacks.current_page <= 1" class="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                        <button @click="loadPublicFeedbacks(publicFeedbacks.current_page + 1)" :disabled="publicFeedbacks.current_page >= publicFeedbacks.last_page" class="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                    </div>
+                </div>
            </div>
         </div>
         <div v-else class="p-10 text-center text-gray-500">
@@ -380,6 +389,11 @@
         </div>
 
         <div class="p-5 border-t border-gray-200 flex justify-end gap-2">
+          <!-- Print / PDF Button -->
+          <a v-if="selectedAssessment" :href="`/api/reports/assessment/${selectedAssessment.id}/export-pdf`" target="_blank" class="px-4 py-2 bg-[#8b5cf6] text-white border-none rounded font-medium cursor-pointer hover:bg-purple-600 transition-colors decoration-none flex items-center gap-1 shadow-sm">
+             📄 Export PDF
+          </a>
+          
           <router-link v-if="selectedAssessment" :to="`/assessments/edit/${selectedAssessment.id}`" class="px-4 py-2 bg-[#3498db] text-white border-none rounded font-medium cursor-pointer hover:bg-[#2980b9] transition-colors decoration-none flex items-center gap-1">
              ✏️ Edit Details
           </router-link>
@@ -454,8 +468,16 @@ const selectAll = computed({
   }
 });
 
+// Assessment Details Data
 const showAssessmentModal = ref(false);
 const selectedAssessment = ref(null);
+
+const publicFeedbacks = reactive({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    total: 0
+});
 
 const combinedRecommendation = computed(() => {
     if (!selectedAssessment.value) return '';
@@ -504,14 +526,33 @@ onMounted(async () => {
 const openAssessmentDetails = async (id) => {
   showAssessmentModal.value = true;
   selectedAssessment.value = null;
+  publicFeedbacks.data = [];
   try {
     const res = await axios.get(`/api/reports/assessment/${id}`);
     selectedAssessment.value = res.data;
+    
+    // Load first page of public feedbacks
+    if (selectedAssessment.value.employee_id) {
+        await loadPublicFeedbacks(1);
+    }
   } catch (e) {
     console.error("Failed to load assessment details", e);
     alert('Failed to load assessment details.');
     showAssessmentModal.value = false;
   }
+};
+
+const loadPublicFeedbacks = async (page = 1) => {
+    if (!selectedAssessment.value?.employee_id) return;
+    try {
+        const res = await axios.get(`/api/reports/employee/${selectedAssessment.value.employee_id}/public-feedbacks?page=${page}&limit=5`);
+        publicFeedbacks.data = res.data.data;
+        publicFeedbacks.current_page = res.data.current_page;
+        publicFeedbacks.last_page = res.data.last_page;
+        publicFeedbacks.total = res.data.total;
+    } catch (e) {
+        console.error("Failed to load public feedbacks", e);
+    }
 };
 
 const closeAssessmentModal = () => {

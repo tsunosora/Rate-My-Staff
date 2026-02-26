@@ -28,6 +28,12 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('public-feedback', function (Request $request) {
+            // Allow 1 review per 60 minutes for the same IP addressing a specific token
+            $token = $request->route('token');
+            return Limit::perMinutes(60, 1)->by($request->ip() . '|' . $token);
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

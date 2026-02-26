@@ -22,7 +22,8 @@ Route::get('/api/test-auth', function () {
 
 // Public Assessment API Routes
 Route::get('/api/public/employee/{token}', [\App\Http\Controllers\PublicAssessmentController::class, 'getEmployeeInfo']);
-Route::post('/api/public/employee/{token}/rate', [\App\Http\Controllers\PublicAssessmentController::class, 'store']);
+Route::post('/api/public/employee/{token}/rate', [\App\Http\Controllers\PublicAssessmentController::class, 'store'])
+    ->middleware('throttle:public-feedback');
 
 // Temporary route to fix missing tokens for existing employees Since terminal is blocked
 Route::get('/api/fix-tokens', function () {
@@ -70,8 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/reports/export-pdf', [\App\Http\Controllers\ReportController::class, 'exportPdf']);
     Route::get('/api/reports/export-excel', [\App\Http\Controllers\ReportController::class, 'exportExcel']);
     Route::get('/api/reports/assessment/{id}', [\App\Http\Controllers\ReportController::class, 'showAssessment']);
+    Route::get('/api/reports/assessment/{id}/export-pdf', [\App\Http\Controllers\ReportController::class, 'exportAssessmentPdf']);
     Route::get('/api/reports', [\App\Http\Controllers\ReportController::class, 'index']);
     Route::get('/api/reports/employee/{id}', [\App\Http\Controllers\ReportController::class, 'employeeReport']);
+    Route::get('/api/reports/employee/{id}/public-feedbacks', [\App\Http\Controllers\ReportController::class, 'getPublicFeedbacks']);
 
     // Master Data API
     Route::get('/api/departments', [\App\Http\Controllers\MasterDataController::class, 'departments']);
