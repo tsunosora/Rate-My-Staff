@@ -12,7 +12,7 @@ class DashboardController extends Controller
     /**
      * Return metrics for the dashboard overview.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Total employees count
         $totalEmployees = Employee::active()->count();
@@ -27,23 +27,60 @@ class DashboardController extends Controller
         // Recent Activity
         $recentActivity = AuditLog::with('user')->latest()->take(5)->get();
 
-        // Performance Trend Data (last 6 months avg score)
-        // Adjust the logic to fetch average score per month based on assessments
-        $months = [];
+        // Performance Trend Data based on filters
+        $timeframe = $request->get('timeframe', 'monthly');
+        $employeeId = $request->get('employee_id', 'all');
+
+        $labels = [];
         $scores = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = now()->subMonths($i)->format('M');
-            $months[] = $month;
 
-            $startOfMonth = now()->subMonths($i)->startOfMonth();
-            $endOfMonth = now()->subMonths($i)->endOfMonth();
+        $limit = 6;
+        if ($timeframe === 'daily')
+            $limit = 14;
+        elseif ($timeframe === 'weekly')
+            $limit = 8; // last 8 weeks
+        elseif ($timeframe === 'monthly')
+            $limit = 6;
+        elseif ($timeframe === 'yearly')
+            $limit = 5;
 
-            $monthAvg = Assessment::whereBetween('assessment_date', [$startOfMonth, $endOfMonth])
+        for ($i = $limit - 1; $i >= 0; $i--) {
+            if ($timeframe === 'daily') {
+                $date = now()->subDays($i);
+                $labels[] = $date->format('d M');
+                $start = $date->copy()->startOfDay();
+                $end = $date->copy()->endOfDay();
+            } elseif ($timeframe === 'weekly') {
+                $date = now()->subWeeks($i);
+                $labels[] = 'Wk ' . $date->format('W');
+                $start = $date->copy()->startOfWeek();
+                $end = $date->copy()->endOfWeek();
+            } elseif ($timeframe === 'yearly') {
+                $date = now()->subYears($i);
+                $labels[] = $date->format('Y');
+                $start = $date->copy()->startOfYear();
+                $end = $date->copy()->endOfYear();
+            } else { // default to monthly
+                $date = now()->subMonths($i);
+                $labels[] = $date->format('M Y');
+                $start = $date->copy()->startOfMonth();
+                $end = $date->copy()->endOfMonth();
+            }
+
+            $query = Assessment::whereBetween('assessment_date', [$start, $end])
                 ->where('status', 'completed')
-                ->avg('total_score');
+                ->official(); // Ensure we are looking at official trends
 
-            $scores[] = $monthAvg ? number_format($monthAvg, 1) : 0;
+            if ($employeeId !== 'all' && !empty($employeeId)) {
+                $query->where('employee_id', $employeeId);
+            }
+
+            $monthAvg = $query->avg('total_score');
+            $scores[] = $monthAvg ? number_format($monthAvg, 2, '.', '') : 0;
         }
+
+        // Active Employees list for filter dropdown
+        $employees = Employee::active()->select('id', 'full_name')->orderBy('full_name')->get();
 
         return response()->json([
             'metrics' => [
@@ -54,9 +91,10 @@ class DashboardController extends Controller
             ],
             'recent_activity' => $recentActivity,
             'chart_data' => [
-                'labels' => $months,
+                'labels' => $labels,
                 'data' => $scores,
             ],
+            'employees' => $employees,
             'alerts' => [
                 ['message' => '3 Assessments Overdue', 'type' => 'danger'],
                 ['message' => 'Backup successful', 'type' => 'warning'],

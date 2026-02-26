@@ -62,8 +62,22 @@
         <!-- Performance Trend & Recent Activity -->
         <div class="flex flex-col gap-6">
             <!-- Performance Trend Chart -->
-            <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
-                <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-5 font-bold text-gray-800">Team Performance Trend</h2>
+            <div class="bg-white p-6 justify-between rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex flex-col">
+                <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-5 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+                    <h2 class="mt-0 text-[1.1rem] m-0 font-bold text-gray-800">Team Performance Trend</h2>
+                    <div class="flex gap-2">
+                        <select v-model="filters.employee_id" @change="fetchDashboardData" class="text-sm border-gray-200 rounded-lg bg-gray-50 py-1.5 focus:ring-blue-500 focus:border-blue-500 min-w-[140px]">
+                            <option value="all">All Employees</option>
+                            <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.full_name }}</option>
+                        </select>
+                        <select v-model="filters.timeframe" @change="fetchDashboardData" class="text-sm border-gray-200 rounded-lg bg-gray-50 py-1.5 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                </div>
                 <div v-if="loading" class="text-gray-400 animate-pulse h-[300px] flex items-center justify-center bg-gray-50 rounded-xl">Loading chart...</div>
                 <div v-else class="relative h-[300px] w-full">
                     <Line v-if="chartDataLoaded" :data="chartCanvasData" :options="chartOptions" />
@@ -146,6 +160,12 @@ const loading = ref(true);
 const metrics = ref({ total_employees: 0, pending_reviews: 0, avg_score: 0, notifications: 0 });
 const recentActivity = ref([]);
 const alerts = ref([]);
+const employees = ref([]);
+
+const filters = ref({
+    timeframe: 'monthly',
+    employee_id: 'all'
+});
 
 // Chart configuration
 const chartDataLoaded = ref(false);
@@ -173,29 +193,42 @@ const chartOptions = ref({
   }
 });
 
-onMounted(async () => {
+const fetchDashboardData = async () => {
   try {
-    const response = await axios.get('/api/dashboard');
-    metrics.value = response.data.metrics;
-    recentActivity.value = response.data.recent_activity;
-    alerts.value = response.data.alerts;
+    const response = await axios.get('/api/dashboard', { params: filters.value });
+    
+    // Only set metrics/activity on first load to prevent flickering on filter change
+    if (loading.value) {
+        metrics.value = response.data.metrics;
+        recentActivity.value = response.data.recent_activity;
+        alerts.value = response.data.alerts;
+    }
+
+    if (response.data.employees && employees.value.length === 0) {
+        employees.value = response.data.employees;
+    }
 
     // Load Chart Data
     if (response.data.chart_data) {
-        chartCanvasData.value = {
-            labels: response.data.chart_data.labels,
-            datasets: [
-                {
-                    label: 'Average Team Score',
-                    backgroundColor: '#3498db',
-                    borderColor: '#3498db',
-                    data: response.data.chart_data.data,
-                    tension: 0.3, // Add smooth curves
-                    fill: false,
-                }
-            ]
-        };
-        chartDataLoaded.value = true;
+        chartDataLoaded.value = false; // Trigger re-render of chart component
+        
+        // small timeout to allow Vue to destroy the old chart before rendering a new one based on new Data
+        setTimeout(() => {
+            chartCanvasData.value = {
+                labels: response.data.chart_data.labels,
+                datasets: [
+                    {
+                        label: filters.value.employee_id === 'all' ? 'Average Team Score' : 'Employee Score',
+                        backgroundColor: '#3498db',
+                        borderColor: '#3498db',
+                        data: response.data.chart_data.data,
+                        tension: 0.3, // Add smooth curves
+                        fill: false,
+                    }
+                ]
+            };
+            chartDataLoaded.value = true;
+        }, 50);
     }
 
   } catch (error) {
@@ -205,5 +238,9 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+};
+
+onMounted(() => {
+    fetchDashboardData();
 });
 </script>
