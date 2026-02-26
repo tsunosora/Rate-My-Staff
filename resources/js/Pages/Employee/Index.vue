@@ -65,6 +65,12 @@
                       </span>
                     </div>
                     <span v-else class="bg-gray-100 text-gray-400 px-2.5 py-1 rounded-md font-bold text-center block w-fit mx-auto">-</span>
+                    <!-- Public rating badge -->
+                    <div v-if="emp.public_rating" class="mt-2 text-center" title="Public Rating">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                           ⭐️ {{ Number(emp.public_rating).toFixed(1) }}
+                        </span>
+                    </div>
                  </td>
                  <td class="px-3 py-3 text-sm text-center">
                     <div class="flex justify-center">
@@ -74,12 +80,21 @@
                  </td>
                  <td class="px-3 py-3 text-sm">
                     <div class="flex gap-2 justify-center">
-                      <button v-if="emp.latest_assessment" @click="openAssessmentDetails(emp.latest_assessment.id)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#10b981] text-white border-none cursor-pointer hover:bg-emerald-600 transition-colors shadow-sm" title="View Details">
-                         View Details
+                      <template v-if="emp.latest_assessment">
+                          <button @click="openAssessmentDetails(emp.latest_assessment.id)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#10b981] text-white border-none cursor-pointer hover:bg-emerald-600 transition-colors shadow-sm" title="View Details">
+                             View Details
+                          </button>
+                      </template>
+                      <template v-else>
+                          <router-link :to="`/assessments/create/single?employee=${emp.id}`" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#3b82f6] text-white hover:bg-blue-600 border border-transparent transition-colors decoration-none shadow-sm" title="Assess Employee">
+                             Assess
+                          </router-link>
+                      </template>
+                      
+                      <button @click="openQrModal(emp)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#8b5cf6] text-white hover:bg-purple-600 border border-transparent transition-colors shadow-sm flex items-center justify-center gap-1" title="Public Rating QR">
+                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                         QR Code
                       </button>
-                      <router-link v-else :to="`/assessments/create/single?employee=${emp.id}`" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#3b82f6] text-white hover:bg-blue-600 border border-transparent transition-colors decoration-none shadow-sm" title="Assess Employee">
-                         Assess
-                      </router-link>
                       <button @click="openEditModal(emp)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-[#f59e0b] text-white hover:bg-amber-600 border-none cursor-pointer shadow-sm" title="Edit Employee">Edit</button>
                       <button @click="requestDelete(emp)" class="px-3 py-1.5 text-xs rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 border-none cursor-pointer shadow-sm" title="Delete Employee">Delete</button>
                     </div>
@@ -265,6 +280,13 @@
                <div>
                    <label class="text-sm font-semibold text-gray-500">Employee</label>
                    <p class="m-0 font-medium">{{ selectedAssessment.employee?.full_name }}</p>
+                   
+                   <!-- Public Rating Sub-Badge (Combined) -->
+                   <div v-if="selectedAssessment.employee?.public_rating" class="mt-1" title="Combined Score (Official + Public)">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                           ⭐️ {{ ((Number(selectedAssessment.employee.public_rating) + Number(selectedAssessment.total_score)) / 2).toFixed(1) }} / 5.0 (Combined Score)
+                        </span>
+                   </div>
                </div>
                <div>
                    <label class="text-sm font-semibold text-gray-500">Department / Role</label>
@@ -320,7 +342,37 @@
 
            <div>
                <label class="text-sm font-semibold text-gray-500 block mb-1">Recommendation</label>
-               <div class="p-3 bg-blue-50 text-blue-800 rounded border border-blue-200 text-sm font-medium">{{ selectedAssessment.recommendation }}</div>
+               <div class="p-3 bg-blue-50 text-blue-800 rounded border border-blue-200 text-sm font-medium">{{ combinedRecommendation }}</div>
+           </div>
+
+           <!-- Public Feedback History Section -->
+           <div v-if="selectedAssessment.public_feedbacks && selectedAssessment.public_feedbacks.length > 0" class="mt-8">
+               <h3 class="font-bold text-lg border-b pb-2 mb-3 flex items-center gap-2">
+                   <span class="text-amber-500">⭐️</span> Public Guest Feedbacks
+               </h3>
+               
+               <div class="flex flex-col gap-3">
+                   <div v-for="(feedback, idx) in selectedAssessment.public_feedbacks" :key="idx" class="bg-amber-50/50 border border-amber-100 rounded-xl p-3 shadow-sm">
+                       <div class="flex justify-between items-start mb-2">
+                           <div class="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                               <span class="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">{{ feedback.rater_name ? feedback.rater_name.charAt(0).toUpperCase() : 'G' }}</span>
+                               {{ feedback.rater_name || 'Guest User' }}
+                           </div>
+                           <div class="text-xs text-gray-500">{{ new Date(feedback.assessment_date).toLocaleDateString() }}</div>
+                       </div>
+                       
+                       <div class="flex items-center gap-1 mb-2">
+                           <template v-for="n in 5" :key="n">
+                               <svg :class="n <= feedback.total_score ? 'text-amber-400' : 'text-gray-300'" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                               </svg>
+                           </template>
+                           <span class="text-xs font-bold text-gray-600 ml-1">{{ feedback.total_score }}</span>
+                       </div>
+                       
+                       <p class="text-sm text-gray-700 italic m-0 bg-white p-2 rounded border border-gray-100">"{{ feedback.evaluator_notes || 'No feedback provided.' }}"</p>
+                   </div>
+               </div>
            </div>
         </div>
         <div v-else class="p-10 text-center text-gray-500">
@@ -332,6 +384,31 @@
              ✏️ Edit Details
           </router-link>
           <button @click="closeAssessmentModal" class="px-4 py-2 bg-gray-200 border-none rounded font-medium cursor-pointer hover:bg-gray-300 transition-colors text-[#333]">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div v-if="showQrModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-[24px] shadow-2xl w-full max-w-sm flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        
+        <button @click="closeQrModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer transition-colors">&times;</button>
+        
+        <h2 class="text-xl font-black text-gray-800 m-0 mb-1 text-center">Public Rating QR</h2>
+        <p class="text-sm font-medium text-gray-500 mb-6 text-center">Scan to rate {{ employeeForQr?.full_name }}</p>
+
+        <div class="bg-gray-50 border-2 border-dashed border-gray-200 p-4 rounded-3xl mb-6 shadow-inner">
+           <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" alt="QR Code" class="w-48 h-48 mx-auto" />
+           <div v-else class="w-48 h-48 flex items-center justify-center text-gray-400">Loading...</div>
+        </div>
+
+        <div class="w-full flex flex-col gap-3">
+            <a v-if="qrCodeDataUrl" :download="`QR_${employeeForQr?.full_name?.replace(/\s+/g, '_')}.png`" :href="qrCodeDataUrl" class="w-full bg-[#8b5cf6] hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 decoration-none text-center">
+                Download QR Code
+            </a>
+            <button @click="copyQrLink" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center border-none cursor-pointer text-sm">
+                Copy Direct Link
+            </button>
         </div>
       </div>
     </div>
@@ -380,9 +457,48 @@ const selectAll = computed({
 const showAssessmentModal = ref(false);
 const selectedAssessment = ref(null);
 
+const combinedRecommendation = computed(() => {
+    if (!selectedAssessment.value) return '';
+    
+    // Default to the original recommendation if there's no public score
+    if (!selectedAssessment.value.employee?.public_rating) {
+        return selectedAssessment.value.recommendation;
+    }
+
+    const officialScore = Number(selectedAssessment.value.total_score);
+    const publicScore = Number(selectedAssessment.value.employee.public_rating);
+    const combined = (officialScore + publicScore) / 2;
+
+    if (combined >= 4.5) return 'Promosi / Kenaikan Gaji (Promote / Salary Increase)';
+    if (combined >= 4.0) return 'Berikan Bonus / Reward (Give Bonus / Reward)';
+    if (combined >= 3.0) return 'Pertahankan Kinerja (Maintain Performance)';
+    if (combined >= 2.0) return 'Perlu Pelatihan / Coaching (Needs Training / Coaching)';
+    return 'Teguran / SP / Evaluasi Ketat (Warning / Strict Evaluation)';
+});
+
+// QR Logic
+const showQrModal = ref(false);
+const employeeForQr = ref(null);
+const qrCodeDataUrl = ref(null);
+
+const loadQrLibrary = () => {
+    return new Promise((resolve, reject) => {
+        if (window.QRCode) {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+};
+
 onMounted(async () => {
   await loadMasterData();
   await loadEmployees();
+  loadQrLibrary().catch(e => console.error("Failed to load QR library"));
 });
 
 const openAssessmentDetails = async (id) => {
@@ -400,6 +516,53 @@ const openAssessmentDetails = async (id) => {
 
 const closeAssessmentModal = () => {
   showAssessmentModal.value = false;
+};
+
+// --- QR Code Actions ---
+const openQrModal = async (emp) => {
+    employeeForQr.value = emp;
+    showQrModal.value = true;
+    qrCodeDataUrl.value = null; // reset
+
+    if (!emp.public_token) {
+        alert("This employee does not have a public token yet. Please try editing and saving them to generate one.");
+        closeQrModal();
+        return;
+    }
+
+    try {
+        await loadQrLibrary(); // ensure it's loaded
+        const urlOptions = {
+            errorCorrectionLevel: 'H',
+            type: 'image/png',
+            quality: 0.92,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF',
+            },
+            width: 300
+        };
+        const targetUrl = `${window.location.origin}/rate/${emp.public_token}`;
+        qrCodeDataUrl.value = await window.QRCode.toDataURL(targetUrl, urlOptions);
+    } catch (err) {
+        console.error("Failed to generate QR:", err);
+    }
+};
+
+const closeQrModal = () => {
+    showQrModal.value = false;
+};
+
+const copyQrLink = async () => {
+    if(!employeeForQr.value?.public_token) return;
+    const targetUrl = `${window.location.origin}/rate/${employeeForQr.value.public_token}`;
+    try {
+        await navigator.clipboard.writeText(targetUrl);
+        alert("Link copied to clipboard!");
+    } catch (err) {
+        alert("Failed to copy text. Your browser might block this action.");
+    }
 };
 
 const loadMasterData = async () => {

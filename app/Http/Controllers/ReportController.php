@@ -13,7 +13,7 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Assessment::with(['employee', 'template']);
+        $query = Assessment::with(['employee', 'template'])->official();
         $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
@@ -83,7 +83,7 @@ class ReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        $query = Assessment::with(['employee.department', 'employee.position', 'template']);
+        $query = Assessment::with(['employee.department', 'employee.position', 'template'])->official();
         $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
@@ -101,7 +101,7 @@ class ReportController extends Controller
         $category = $request->get('performance_category', 'all');
         $search = $request->get('search', '');
 
-        $query = Assessment::with(['employee.department', 'employee.position', 'template']);
+        $query = Assessment::with(['employee.department', 'employee.position', 'template'])->official();
         $this->applyFilters($query, $request);
 
         $assessments = $query->latest('assessment_date')->get();
@@ -122,6 +122,15 @@ class ReportController extends Controller
             'scores.indicator',
             'evaluator'
         ])->findOrFail($id);
+
+        // Load recent public feedbacks for this employee
+        if ($assessment->employee) {
+            $assessment->public_feedbacks = Assessment::public()
+                ->where('employee_id', $assessment->employee_id)
+                ->latest('assessment_date')
+                ->take(5)
+                ->get(['assessment_date', 'rater_name', 'total_score', 'evaluator_notes']);
+        }
 
         return response()->json($assessment);
     }

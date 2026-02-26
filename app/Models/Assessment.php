@@ -19,10 +19,15 @@ class Assessment extends Model
         'employee_id',
         'template_id',
         'evaluator_id',
+        'is_public',
         'assessment_date',
+        'assessment_period_start',
+        'assessment_period_end',
         'period',
         'total_score',
         'grade',
+        'rater_name',
+        'notes',
         'evaluator_notes',
         'development_plan',
         'recommendation',
@@ -35,6 +40,7 @@ class Assessment extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'is_public' => 'boolean',
         'assessment_date' => 'date',
         'assessment_period_start' => 'date',
         'assessment_period_end' => 'date',
@@ -122,6 +128,22 @@ class Assessment extends Model
     public function scopeCompleted($query)
     {
         return $query->where('status', 'completed');
+    }
+
+    /**
+     * Scope for official assessments (not from public QR)
+     */
+    public function scopeOfficial($query)
+    {
+        return $query->where('is_public', false);
+    }
+
+    /**
+     * Scope for public ratings (from QR)
+     */
+    public function scopePublic($query)
+    {
+        return $query->where('is_public', true);
     }
 
     /**

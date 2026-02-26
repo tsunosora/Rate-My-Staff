@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Employee extends Model
 {
@@ -17,6 +18,7 @@ class Employee extends Model
      */
     protected $fillable = [
         'employee_code',
+        'public_token',
         'full_name',
         'nickname',
         'department_id',
@@ -47,6 +49,7 @@ class Employee extends Model
     protected $appends = [
         'average_score',
         'previous_score',
+        'public_rating',
         'photo_url',
     ];
 
@@ -69,30 +72,32 @@ class Employee extends Model
     }
 
     /**
-     * Get the latest assessment.
+     * Get the latest official assessment.
      */
     public function latestAssessment()
     {
-        return $this->hasOne(Assessment::class)->latestOfMany('assessment_date');
+        return $this->hasOne(Assessment::class)->where('is_public', false)->latestOfMany('assessment_date');
     }
 
     /**
-     * Get average score across all assessments.
+     * Get average score across all official assessments.
      */
     public function getAverageScoreAttribute(): ?float
     {
         return $this->assessments()
             ->where('status', 'completed')
+            ->where('is_public', false)
             ->avg('total_score');
     }
 
     /**
-     * Get previous assessment score for trend tracking.
+     * Get previous assessment score for trend tracking (only official).
      */
     public function getPreviousScoreAttribute(): ?float
     {
         $assessments = $this->assessments()
             ->where('status', 'completed')
+            ->where('is_public', false)
             ->orderBy('assessment_date', 'desc')
             ->take(2)
             ->get();
@@ -102,6 +107,17 @@ class Employee extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Get average public rating (from guests via QR).
+     */
+    public function getPublicRatingAttribute(): ?float
+    {
+        return $this->assessments()
+            ->where('status', 'completed')
+            ->where('is_public', true)
+            ->avg('total_score');
     }
 
     /**
@@ -137,6 +153,28 @@ class Employee extends Model
                 ->orWhereHas('position', function ($pq) use ($search) {
                     $pq->where('name', 'like', "%{$search}%");
                 });
+        });
+    }
+
+    /**
+     * Scope to find by public token.
+     */
+    public function scopeFindByToken($query, $token)
+    {
+        return $query->where('public_token', $token);
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($employee) {
+            if (empty($employee->public_token)) {
+                $employee->public_token = (string) Str::uuid();
+            }
         });
     }
 }

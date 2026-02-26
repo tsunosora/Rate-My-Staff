@@ -20,6 +20,22 @@ Route::get('/api/test-auth', function () {
     ];
 });
 
+// Public Assessment API Routes
+Route::get('/api/public/employee/{token}', [\App\Http\Controllers\PublicAssessmentController::class, 'getEmployeeInfo']);
+Route::post('/api/public/employee/{token}/rate', [\App\Http\Controllers\PublicAssessmentController::class, 'store']);
+
+// Temporary route to fix missing tokens for existing employees Since terminal is blocked
+Route::get('/api/fix-tokens', function () {
+    $employees = \App\Models\Employee::whereNull('public_token')->get();
+    $count = 0;
+    foreach ($employees as $e) {
+        $e->public_token = (string) \Illuminate\Support\Str::uuid();
+        $e->save();
+        $count++;
+    }
+    return "Berhasil membuat token publik untuk {$count} karyawan. Silakan tutup tab ini dan coba tombol QR Code di halaman Admin lagi!";
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('/api/user', function (Illuminate\Http\Request $request) {
         return response()->json($request->user());

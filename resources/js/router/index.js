@@ -61,6 +61,12 @@ const routes = [
         component: () => import('../Pages/Assessment/Templates.vue'),
         meta: { title: 'Assessment Templates' }
     },
+    {
+        path: '/rate/:token',
+        name: 'public.rate',
+        component: () => import('../Pages/Public/RateEmployee.vue'),
+        meta: { title: 'Rate Employee' }
+    },
     // Catch-all route to redirect unknown paths
     {
         path: '/:pathMatch(.*)*',
@@ -85,6 +91,11 @@ router.beforeEach(async (to, from, next) => {
 
         if (to.name === 'login' && isAuthenticated) {
             return next({ name: 'dashboard' });
+        }
+
+        // Allow access to public routes even if unauthenticated
+        if (to.name === 'public.rate') {
+            return next();
         }
 
         if (to.name !== 'login' && !isAuthenticated) {
