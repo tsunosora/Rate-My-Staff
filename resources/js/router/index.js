@@ -73,9 +73,32 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach((to, from, next) => {
+import axios from 'axios';
+
+router.beforeEach(async (to, from, next) => {
     document.title = to.meta.title || 'Employee Assessment Admin';
-    next();
+
+    // Check authentication state
+    try {
+        const authResponse = await axios.get('/api/test-auth');
+        const isAuthenticated = authResponse.data.auth_check;
+
+        if (to.name === 'login' && isAuthenticated) {
+            return next({ name: 'dashboard' });
+        }
+
+        if (to.name !== 'login' && !isAuthenticated) {
+            return next({ name: 'login' });
+        }
+
+        next();
+    } catch (error) {
+        // If API fails (e.g. 401 Unauthorized), redirect to login if not already there
+        if (to.name !== 'login') {
+            return next({ name: 'login' });
+        }
+        next();
+    }
 });
 
 export default router;
