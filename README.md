@@ -284,3 +284,100 @@ For support and questions, please contact your system administrator or developme
 ---
 
 **Voliko Employee Assessment System** - Built with Laravel & Vue.js
+
+---
+
+# Dokumentasi Sistem RateMyStaff (HR & Attendance System)
+
+**RateMyStaff** adalah aplikasi manajemen SDM (Sumber Daya Manusia) dan Sistem Kehadiran (Attendance System) berbasis web yang dirancang khusus untuk memonitor kedisiplinan, mengelola ketidakhadiran, menghitung lembur secara dinamis, dan memberikan laporan analitik kehadiran yang komprehensif.
+
+Berikut adalah dokumentasi lengkap dari seluruh fitur yang tersedia di dalam aplikasi.
+
+---
+
+## 1. Modul Dashboard (Beranda)
+Halaman pertama yang dilihat oleh Admin atau HR, memberikan ringkasan (Overview) harian:
+*   **Today's Overview**: Menampilkan total karyawan yang Present (Hadir), Late (Terlambat), Absent (Tidak Hadir), dan Total Karyawan Aktif pada hari itu.
+*   **Attendance Summary**: Grafik batang/pie chart rekap kehadiran bulan berjalan.
+*   **Recent Latecomers**: Daftar 5 karyawan terakhir yang datang terlambat beserta durasi keterlambatannya (dalam menit) untuk penindakan instan.
+
+## 2. Modul Employee Management (Data Karyawan)
+Sistem penyimpanan data profil karyawan perusahaan.
+*   **CRUD Karyawan**: Menambah, mengedit, dan menghapus (soft-delete) data karyawan.
+*   **Organisasi**: Menghubungkan karyawan dengan **Department** (Departemen), **Position** (Jabatan), dan **Work Schedule** (Jadwal Kerja khusus).
+*   **Status Karyawan (Is Active)**: Kemampuan menonaktifkan karyawan yang sudah *Resign*. Karyawan Resign tidak akan dihitung di Dashboard atau Report, namun historinya tetap tersimpan.
+*   **Smart Identifier**: Setiap karyawan memiliki `employee_code` unik dan NIP untuk mempermudah sinkronisasi dengan Mesin Absen (Fingerspot).
+
+## 3. Modul Attendance Management (Manajemen Kehadiran)
+Inti dari mesin pemrosesan waktu kerja karyawan. Aplikasi ini memisahkan raw data dari mesin dengan data yang sudah diverifikasi HR.
+
+### A. Excel Import Engine (Upload Data Fingerspot)
+Fitur parser pintar untuk membaca file Excel (XLS/XLSX/HTML/CSV) yang di-export dari mesin absen Fingerspot (atau merek lain):
+*   **Auto Data Clean-up**: Membersihkan karakter aneh, blank spaces, dan format korup bawaan mesin.
+*   **Smart Name Matching**: Mencocokkan nama di mesin yang sering salah eja (typo) ke database Karyawan menggunakan *Loose Name Matching* dan NIP/PIN.
+*   **Employee Mapping**: Jika ada nama baru dari mesin yang tidak dikenal, HR dapat melakukan "Mapping" (mencocokkan ke karyawan yang ada) atau "Create New".
+
+### B. Smart Scan Analyzer (Deteksi Anomali)
+Saat meng-import, mesin penganalisa akan mendeteksi:
+*   **Double Scan**: Jika karyawan scan 2x dalam waktu berdekatan (< 60 menit), sistem akan membuang salah satunya.
+*   **Lupa Scan (Missing Scan)**: Jika karyawan hanya ada Jam Masuk tapi tidak ada Jam Pulang, sistem memberikan notifikasi *Warning*.
+*   **Bulk Resolution System**: Saat ada *Missing Scan*, HR bisa langsung memilih secara massal (Bulk) apa alasannya:
+    *   *Set as Long Shift* (Langsung terhitung kerja ekstra panjang).
+    *   *Set as Lupa Scan* (Otomatis mendeteksi apakah yang lupa itu scan masuk atau pulang berdasarkan Work Schedule).
+
+### C. Manual Attendance (Input Manual)
+Bagi karyawan yang dinas luar atau lupa bawa ID Card, HR bisa memasukkan Jam Masuk dan Pulang secara spesifik ke kalender karyawan lewat UI.
+
+### D. Leave Request (Form Izin Publik)
+Alih-alih HR menginput satu-satu ketidakhadiran:
+*   HR dapat meng-klik **"Generate Leave Link"**.
+*   Sistem membuat URL publik (token unik) yang aktif 24 jam.
+*   Link ini disebar ke grup WhatsApp karyawan. Karyawan yang sakit/izin/cuti bisa membuka link tersebut di HP mereka tanpa perlu login, lalu mengisi Form Izin.
+*   Data izin langsung masuk ke kalender absen sistem.
+
+---
+
+## 4. Modul Smart Overtime Engine (Mesin Lembur)
+Sistem RateMyStaff memiliki kalkulator hitungan rupiah lembur yang sangat *Customizable* (bisa dikustomisasi bebas tiap perusahaan).
+
+*   **Overtime Categories**: Anda bisa membuat sebanyak mungkin Kategori Lembur di menu *Settings*. Contoh:
+    *   *Lembur Longshif* (Tipe: Flat Rp 30.000)
+    *   *Lembur Cetak* (Tipe: Hourly / Per-Jam Rp 5.000)
+    *   *Lembur Libur* (Tipe: Flat Rp 50.000)
+*   **Auto-Detection**: 
+    1. Jika nama Shift mengandung kata "Long Shif", sistem otomatis memanggil Kategori "Long Shift" dan mengisi angkanya.
+    2. Jika hari tersebut adalah hari Minggu (dan di-*setting* Hari Libur), sistem langsung memosisikan rekapan ke "Lembur Libur".
+*   **HR Verification Workflow**: Lembur tidak mentah-mentah disahkan oleh mesin. HR bisa mengklik "Edit" pada hari tersebut, lalu merubah/menyesuaikan *Approved Category* dan *Approved Minutes* yang disepakati.
+
+---
+
+## 5. Modul Reporting & Analytics (Laporan Akhir)
+Hasil dari pengolahan data absen, izin, dan lembur untuk eksekusi Payroll (Penggajian).
+
+### A. Detailed Attendance Report (Tampilan Web)
+*   Tabel filterable berdasarkan Tanggal, Department, Status (Present/Late/Absent/Long Shift), dan spesifik 1 Karyawan.
+*   Status warna-warni yang deskriptif.
+
+### B. Export Laporan PDF & Excel (Reguler)
+*   **Generate PDF**: Dokumen A4 Landscape siap cetak berisi Analisis Kedisiplinan Karyawan (Top 5 Paling Rajin, Top 5 Paling Sering Terlambat/Bolos, Rekap Total Telat).
+*   **Generate Excel**: Rekapan Spreadsheet matriks per baris yang memudahkan copy-paste untuk tim Finance.
+
+### C. Export Slip Lembur Khusus (Excel)
+Tiruan persis dari *Mockup Excel Payroll* manual perusahaan HR:
+*   Berisi matriks absen harian 1 Karyawan khusus selama sebulan.
+*   Kolom-kolom Kategori Lembur (Misal: LONG SHIF, CETAK, LIBUR) ter-*generate* dinamis di header secara horizontal.
+*   Otomatis mencentang angka "1" di bawah kolom yang tepat ketika Auto-Detect / Verifikasi menyala.
+*   **Rekapitulasi Gaji (Footer)**: Secara matematis menghitung Total Hari Lembur dikali Rate (Rp) masing-masing kategori, menghasilkan **Grand Total Rupiah** yang wajib dibayarkan ke karyawan bulan itu.
+
+---
+
+## 6. Modul Settings (Pengaturan Inti)
+Aplikasi bersifat fleksibel dan parameternya dapat diubah oleh Administrator.
+
+*   **Work Schedules (Jam Kerja)**: Tempat mendefinisikan Jadwal (Contoh: *Shift Pagi* jam 08:00 - 16:00). Anda dapat mengatur Toleransi Keterlambatan (*Late Tolerance*), misal 15 menit. Jika datang 08:10, tidak dianggap telat (0 menit).
+*   **Departments & Roles**: Pengaturan klasifikasi Divisi.
+*   **Holidays**: Penandaan tanggal merah massal di kalender.
+*   **General Settings**: Pengaturan format jam dan parameter Auto-Sunday Holiday.
+
+---
+*Dokumen ini merupakan referensi teknis dan konseptual dari Sistem RateMyStaff.*
