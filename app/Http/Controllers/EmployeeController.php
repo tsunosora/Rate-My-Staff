@@ -4,15 +4,74 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Attendance;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Get attendance summary for an employee within a specific period (e.g. "October 2023").
+     */
+    public function getAttendanceSummary(Request $request, Employee $employee)
+    {
+        $period = $request->query('period');
+
+        if (!$period) {
+            return response()->json(['error' => 'Period is required'], 400);
+        }
+
+        try {
+            // Attempt to parse "October 2023" or "Q3 2023" into dates
+            // This is a naive parse; assuming standard formats like "Month YYYY"
+            $date = Carbon::parse($period);
+            $start = $date->copy()->startOfMonth();
+            $end = $date->copy()->endOfMonth();
+
+            $summary = Attendance::select('status', DB::raw('count(*) as total'))
+                ->where('employee_id', $employee->id)
+                ->whereBetween('scan_date', [$start, $end])
+                ->where('scan_type', 'in') // Only count "In" scans for tardiness to avoid double counting
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+
+            $late = $summary['late'] ?? 0;
+            $onTime = $summary['on_time'] ?? 0;
+
+            // Very rough estimate of absents for the month (working days - (late + on time))
+            // Assuming 22 working days max for a simple demo calculation. 
+            // Real apps would use a calendar calendar table.
+            $workingDays = 22;
+            $absent = max(0, $workingDays - ($late + $onTime));
+
+            return response()->json([
+                'period' => $period,
+                'late_days' => $late,
+                'absent_days' => $absent,
+                'on_time_days' => $onTime,
+                'total_scans_in' => $late + $onTime,
+                'estimated_working_days' => $workingDays
+            ]);
+
+        } catch (\Exception $e) {
+            // If period string is "Q3 2023" Carbon parse might fail, fallback gracefully
+            return response()->json([
+                'period' => $period,
+                'late_days' => 0,
+                'absent_days' => 0,
+                'on_time_days' => 0,
+                'error' => 'Could not parse period correctly. Manual checking required.'
+            ]);
+        }
+    }
     /**
      * Display a listing of the employees.
      */
     public function index(Request $request)
     {
-        $query = Employee::with(['latestAssessment', 'department', 'position']);
+        $query = Employee::with(['latestAssessment', 'department', 'position', 'workSchedule']);
 
         if ($request->filled('search')) {
             $query->search($request->search);
@@ -40,6 +99,7 @@ class EmployeeController extends Controller
             'phone' => 'nullable|string|max:20',
             'join_date' => 'required|date',
             'salary' => 'required|numeric|min:0',
+            'work_schedule_id' => 'nullable|exists:work_schedules,id',
         ]);
 
         $baseCode = 'EMP-' . strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $request->nickname ?? \Str::words($request->full_name, 1, '')));
@@ -83,6 +143,7 @@ class EmployeeController extends Controller
             'join_date' => 'required|date',
             'salary' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
+            'work_schedule_id' => 'nullable|exists:work_schedules,id',
         ]);
 
         $employee->update($validated);

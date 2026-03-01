@@ -25,3 +25,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('dashboard/stats', [\App\Http\Controllers\Api\DashboardApiController::class, 'stats']);
     // Route::get('dashboard/recent-activities', [\App\Http\Controllers\Api\DashboardApiController::class, 'recentActivities']);
 });
+
+// Fingerspot Webhook Receiver
+Route::post('/fingerspot/webhook', [\App\Http\Controllers\AttendanceController::class, 'webhook']);

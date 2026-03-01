@@ -37,12 +37,53 @@
               </div>
               <span v-if="isSidebarOpen" class="ml-3 text-sm whitespace-nowrap">Dashboard</span>
               
-              <!-- Tooltip when collapsed -->
               <div v-if="!isSidebarOpen" class="absolute left-[72px] bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-[100] font-medium shadow-xl">
                  Dashboard
                  <div class="absolute w-2 h-2 bg-gray-800 rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
               </div>
             </router-link>
+
+            <!-- Attendance Menu (Dropdown) -->
+            <div class="relative group">
+              <button @click="toggleAttendanceMenu" class="w-full flex items-center justify-between px-3 py-3 rounded-2xl transition-all hover:bg-[#f5f7ff] hover:text-[#6366f1] text-gray-500 font-medium focus:outline-none relative" :class="{ 'bg-[#f5f7ff] !text-[#6366f1]': isAttendanceMenuOpen && isSidebarOpen, '!text-[#6366f1]': isAttendanceActive && !isSidebarOpen }">
+                <div class="flex items-center">
+                  <div class="flex items-center justify-center relative w-6 h-6 flex-shrink-0">
+                      <!-- Fingerprint/Clock Icon indicating Attendance -->
+                      <svg class="w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                  </div>
+                  <span v-if="isSidebarOpen" class="ml-3 text-sm whitespace-nowrap">Attendance</span>
+                </div>
+                <svg v-if="isSidebarOpen" class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isAttendanceMenuOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+                
+                <div v-if="!isSidebarOpen && isAttendanceActive" class="absolute w-1.5 h-1.5 rounded-full bg-[#6366f1] right-1 top-2"></div>
+              </button>
+
+              <div v-show="isSidebarOpen ? isAttendanceMenuOpen : true" 
+                   :class="[
+                     isSidebarOpen 
+                       ? 'pl-2 mt-1 overflow-hidden transition-all duration-300' 
+                       : 'absolute left-full top-0 ml-4 w-56 bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] rounded-2xl border border-gray-100 py-3 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200'
+                   ]">
+                
+                <div v-if="!isSidebarOpen" class="absolute w-3 h-3 bg-white border-l border-b border-gray-100 rotate-45 -left-[7px] top-4"></div>
+                <div v-if="!isSidebarOpen" class="px-5 py-2 text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 mb-2 whitespace-nowrap">Attendance</div>
+                
+                <div class="flex flex-col gap-1 relative" :class="{ 'before:absolute before:left-4 before:top-2 before:bottom-4 before:w-px before:bg-gray-200': isSidebarOpen }">
+                  <router-link to="/attendance" class="flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-[#6366f1] hover:bg-[#f5f7ff] rounded-xl relative z-10 transition-colors mx-2 font-medium" :class="{ '!text-[#6366f1] bg-[#f5f7ff]': $route.path === '/attendance' }">
+                    <span v-if="isSidebarOpen" class="absolute left-[-23px] top-1/2 -translate-y-1/2 w-[15px] h-px bg-gray-200"></span>
+                    <span :class="isSidebarOpen ? 'ml-6' : 'ml-1'">Dashboard</span>
+                  </router-link>
+                  <router-link to="/attendance/report" class="flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-[#6366f1] hover:bg-[#f5f7ff] rounded-xl relative z-10 transition-colors mx-2 font-medium" active-class="!text-[#6366f1] bg-[#f5f7ff]">
+                    <span v-if="isSidebarOpen" class="absolute left-[-23px] top-1/2 -translate-y-1/2 w-[15px] h-px bg-gray-200"></span>
+                    <span :class="isSidebarOpen ? 'ml-6' : 'ml-1'">Detailed Report</span>
+                  </router-link>
+                </div>
+              </div>
+            </div>
 
             <!-- Regular Sub Menu / Directory -->
             <router-link to="/employees" class="group flex items-center px-3 py-3 rounded-2xl transition-all hover:bg-[#f5f7ff] hover:text-[#6366f1] text-gray-500 font-medium relative" active-class="bg-[#f5f7ff] !text-[#6366f1]">
@@ -129,21 +170,52 @@
         
         <!-- SETTINGS SECTION -->
         <div class="mt-auto">
-          <nav class="flex flex-col gap-1.5 relative">
-             <router-link to="/settings" class="group flex items-center px-3 py-3 rounded-2xl transition-all hover:bg-[#f5f7ff] hover:text-[#6366f1] text-gray-500 font-medium relative" active-class="bg-[#f5f7ff] !text-[#6366f1]">
-              <div class="flex items-center justify-center relative w-6 h-6 flex-shrink-0">
-                  <svg class="w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-              </div>
-              <span v-if="isSidebarOpen" class="ml-3 text-sm whitespace-nowrap">Settings</span>
+          <p v-if="isSidebarOpen" class="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider mb-3 px-3">System</p>
+          <div v-else class="h-4 border-b border-white mb-3"></div>
 
-              <div v-if="!isSidebarOpen" class="absolute left-[72px] bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-[100] font-medium shadow-xl">
-                 Settings
-                 <div class="absolute w-2 h-2 bg-gray-800 rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
+          <nav class="flex flex-col gap-1.5 relative">
+            <div class="relative group">
+              <button @click="toggleSettingsMenu" class="w-full flex items-center justify-between px-3 py-3 rounded-2xl transition-all hover:bg-[#f5f7ff] hover:text-[#6366f1] text-gray-500 font-medium focus:outline-none relative" :class="{ 'bg-[#f5f7ff] !text-[#6366f1]': isSettingsMenuOpen && isSidebarOpen, '!text-[#6366f1]': isSettingsActive && !isSidebarOpen }">
+                <div class="flex items-center">
+                   <div class="flex items-center justify-center relative w-6 h-6 flex-shrink-0">
+                      <svg class="w-5 h-5 absolute" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                   </div>
+                   <span v-if="isSidebarOpen" class="ml-3 text-sm whitespace-nowrap">Settings</span>
+                </div>
+                <svg v-if="isSidebarOpen" class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isSettingsMenuOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+
+                <div v-if="!isSidebarOpen && isSettingsActive" class="absolute w-1.5 h-1.5 rounded-full bg-[#6366f1] right-1 top-2"></div>
+              </button>
+
+              <div v-show="isSidebarOpen ? isSettingsMenuOpen : true" 
+                   :class="[
+                     isSidebarOpen 
+                       ? 'pl-2 mt-1 overflow-hidden transition-all duration-300' 
+                       : 'absolute left-full bottom-0 ml-4 w-56 bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] rounded-2xl border border-gray-100 py-3 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200'
+                   ]">
+                
+                <div v-if="!isSidebarOpen" class="absolute w-3 h-3 bg-white border-l border-b border-gray-100 rotate-45 -left-[7px] bottom-6"></div>
+                <div v-if="!isSidebarOpen" class="px-5 py-2 text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 mb-2 whitespace-nowrap">Settings</div>
+
+                <div class="flex flex-col gap-1 relative" :class="{ 'before:absolute before:left-4 before:top-2 before:bottom-4 before:w-px before:bg-gray-200': isSidebarOpen }">
+                   <router-link to="/settings/work-schedules" class="flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-[#6366f1] hover:bg-[#f5f7ff] rounded-xl relative z-10 transition-colors mx-2 font-medium" active-class="!text-[#6366f1] bg-[#f5f7ff]">
+                    <span v-if="isSidebarOpen" class="absolute left-[-23px] top-1/2 -translate-y-1/2 w-[15px] h-px bg-gray-200"></span>
+                    <span :class="isSidebarOpen ? 'ml-6' : 'ml-1'">Schedules</span>
+                   </router-link>
+                   
+                   <router-link to="/settings" class="flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-[#6366f1] hover:bg-[#f5f7ff] rounded-xl relative z-10 transition-colors mx-2 font-medium" active-class="!text-[#6366f1] bg-[#f5f7ff]">
+                    <span v-if="isSidebarOpen" class="absolute left-[-23px] top-1/2 -translate-y-1/2 w-[15px] h-px bg-gray-200"></span>
+                    <span :class="isSidebarOpen ? 'ml-6' : 'ml-1'">General</span>
+                   </router-link>
+
+                </div>
               </div>
-            </router-link>
+            </div>
           </nav>
         </div>
       </div>
@@ -266,9 +338,20 @@ const userName = ref('Admin');
 
 const isSidebarOpen = ref(true);
 const isEmployeeMenuOpen = ref(true);
+const isSettingsMenuOpen = ref(false);
+const isAttendanceMenuOpen = ref(false);
 
 const toggleSidebar = () => {
     isSidebarOpen.value = !isSidebarOpen.value;
+};
+
+const toggleSettingsMenu = () => {
+    if (!isSidebarOpen.value) {
+        isSidebarOpen.value = true;
+        isSettingsMenuOpen.value = true;
+    } else {
+        isSettingsMenuOpen.value = !isSettingsMenuOpen.value;
+    }
 };
 
 const toggleEmployeeMenu = () => {
@@ -281,6 +364,15 @@ const toggleEmployeeMenu = () => {
     }
 };
 
+const toggleAttendanceMenu = () => {
+    if (!isSidebarOpen.value) {
+        isSidebarOpen.value = true;
+        isAttendanceMenuOpen.value = true;
+    } else {
+        isAttendanceMenuOpen.value = !isAttendanceMenuOpen.value;
+    }
+};
+
 const isEmployeeActive = computed(() => {
     const parentRoutes = [
         '/assessments/create/single', 
@@ -289,6 +381,14 @@ const isEmployeeActive = computed(() => {
         '/reports'
     ];
     return parentRoutes.includes(route.path);
+});
+
+const isAttendanceActive = computed(() => {
+    return route.path.startsWith('/attendance');
+});
+
+const isSettingsActive = computed(() => {
+    return route.path.startsWith('/settings');
 });
 
 const pageTitle = computed(() => {

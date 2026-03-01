@@ -165,6 +165,14 @@
               <input v-model="form.salary" required type="number" min="0" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
             </div>
 
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Jadwal Kerja (Work Schedule)</label>
+              <select v-model="form.work_schedule_id" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+                <option value="">No Schedule</option>
+                <option v-for="ws in workSchedules" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
+              </select>
+            </div>
+
           </form>
         </div>
 
@@ -227,6 +235,14 @@
             <div class="flex flex-col gap-1">
               <label class="text-sm font-semibold">Gaji (Salary)</label>
               <input v-model="editForm.salary" type="number" min="0" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-semibold">Jadwal Kerja (Work Schedule)</label>
+              <select v-model="editForm.work_schedule_id" class="p-2 border border-gray-300 rounded focus:border-[#3498db] outline-none">
+                <option value="">No Schedule</option>
+                <option v-for="ws in workSchedules" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
+              </select>
             </div>
             
             <div class="flex flex-col gap-1 col-span-2 relative top-2">
@@ -438,6 +454,7 @@ import AppLayout from '../../Layouts/AppLayout.vue';
 const employees = ref([]);
 const departments = ref([]);
 const positions = ref([]);
+const workSchedules = ref([]);
 const loading = ref(true);
 
 const filters = reactive({
@@ -608,12 +625,14 @@ const copyQrLink = async () => {
 
 const loadMasterData = async () => {
     try {
-        const [resDepts, resPos] = await Promise.all([
+        const [resDepts, resPos, resSchedules] = await Promise.all([
             axios.get('/api/departments'),
-            axios.get('/api/positions')
+            axios.get('/api/positions'),
+            axios.get('/api/work-schedules')
         ]);
         departments.value = resDepts.data;
         positions.value = resPos.data;
+        workSchedules.value = resSchedules.data.data;
     } catch(e) {
         console.error("Failed to load master data", e);
     }
@@ -662,7 +681,8 @@ const form = reactive({
   department_id: '',
   position_id: '',
   join_date: '',
-  salary: ''
+  salary: '',
+  work_schedule_id: ''
 });
 
 const filteredPositions = computed(() => {
@@ -702,7 +722,8 @@ const editForm = reactive({
   position_id: '',
   join_date: '',
   salary: '',
-  is_active: true
+  is_active: true,
+  work_schedule_id: ''
 });
 
 const editFilteredPositions = computed(() => {
@@ -720,6 +741,7 @@ const openEditModal = (emp) => {
   editForm.join_date = emp.join_date;
   editForm.salary = emp.salary;
   editForm.is_active = emp.is_active;
+  editForm.work_schedule_id = emp.work_schedule_id || '';
   showEditModal.value = true;
 };
 

@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-B9s4eI24.css",
+    "file": "assets/app-Cr_hES1_.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/Pages/Assessment/CreateBulk.vue": {
-    "file": "assets/CreateBulk-CESt-Dmy.js",
+    "file": "assets/CreateBulk-BNvQwQLg.js",
     "name": "CreateBulk",
     "src": "resources/js/Pages/Assessment/CreateBulk.vue",
     "isDynamicEntry": true,
@@ -14,7 +14,7 @@
     ]
   },
   "resources/js/Pages/Assessment/EditSingle.vue": {
-    "file": "assets/EditSingle-BEnikF6V.js",
+    "file": "assets/EditSingle-CSTYpUkJ.js",
     "name": "EditSingle",
     "src": "resources/js/Pages/Assessment/EditSingle.vue",
     "isDynamicEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "resources/js/Pages/Assessment/Templates.vue": {
-    "file": "assets/Templates-Bw-cS-iS.js",
+    "file": "assets/Templates-BIpHfIgS.js",
     "name": "Templates",
     "src": "resources/js/Pages/Assessment/Templates.vue",
     "isDynamicEntry": true,
@@ -31,8 +31,38 @@
       "resources/js/app.js"
     ]
   },
+  "resources/js/Pages/Attendance/Index.vue": {
+    "file": "assets/Index-DhdNKOYC.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Attendance/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Attendance/Report.vue": {
+    "file": "assets/Report-Cxfo9Nvx.js",
+    "name": "Report",
+    "src": "resources/js/Pages/Attendance/Report.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "resources/js/Pages/Public/AbsenceForm.vue": {
+    "file": "assets/AbsenceForm-DsB4G7Qf.js",
+    "name": "AbsenceForm",
+    "src": "resources/js/Pages/Public/AbsenceForm.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "css": [
+      "assets/AbsenceForm-IL_IGphd.css"
+    ]
+  },
   "resources/js/Pages/Public/RateEmployee.vue": {
-    "file": "assets/RateEmployee-zRtjD8Yg.js",
+    "file": "assets/RateEmployee-BuP5f_0U.js",
     "name": "RateEmployee",
     "src": "resources/js/Pages/Public/RateEmployee.vue",
     "isDynamicEntry": true,
@@ -44,7 +74,7 @@
     ]
   },
   "resources/js/Pages/Report/Index.vue": {
-    "file": "assets/Index-yu4Olo8u.js",
+    "file": "assets/Index-BmWYvVC3.js",
     "name": "Index",
     "src": "resources/js/Pages/Report/Index.vue",
     "isDynamicEntry": true,
@@ -53,7 +83,7 @@
     ]
   },
   "resources/js/Pages/Setting/Index.vue": {
-    "file": "assets/Index-mU9dg74U.js",
+    "file": "assets/Index-CxRjmGN1.js",
     "name": "Index",
     "src": "resources/js/Pages/Setting/Index.vue",
     "isDynamicEntry": true,
@@ -61,18 +91,34 @@
       "resources/js/app.js"
     ]
   },
+  "resources/js/Pages/Setting/WorkSchedules.vue": {
+    "file": "assets/WorkSchedules-Ca2XBYns.js",
+    "name": "WorkSchedules",
+    "src": "resources/js/Pages/Setting/WorkSchedules.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "css": [
+      "assets/WorkSchedules-BpsGQ9QY.css"
+    ]
+  },
   "resources/js/app.js": {
-    "file": "assets/app-Cz8nODzj.js",
+    "file": "assets/app-DudExxI4.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "dynamicImports": [
       "resources/js/Pages/Report/Index.vue",
       "resources/js/Pages/Setting/Index.vue",
+      "resources/js/Pages/Setting/WorkSchedules.vue",
       "resources/js/Pages/Assessment/EditSingle.vue",
       "resources/js/Pages/Assessment/CreateBulk.vue",
+      "resources/js/Pages/Attendance/Index.vue",
+      "resources/js/Pages/Attendance/Report.vue",
       "resources/js/Pages/Assessment/Templates.vue",
-      "resources/js/Pages/Public/RateEmployee.vue"
+      "resources/js/Pages/Public/RateEmployee.vue",
+      "resources/js/Pages/Public/AbsenceForm.vue"
     ]
   }
 }

@@ -15,6 +15,8 @@
         "laravel/tinker": "^2.9",
         "laravel/ui": "*",
         "maatwebsite/excel": "^3.1",
+        "phpoffice/phpspreadsheet": "^1.30",
+        "shuchkin/simplexls": "^1.0",
         "spatie/laravel-permission": "^6.0"
     },
     "require-dev": {

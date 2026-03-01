@@ -84,6 +84,17 @@
                 </div>
             </div>
 
+            <!-- Attendance Statistics Chart -->
+            <div class="bg-white p-6 justify-between rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex flex-col">
+                <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-5 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+                    <h2 class="mt-0 text-[1.1rem] m-0 font-bold text-gray-800">Attendance Statistics</h2>
+                </div>
+                <div v-if="loading" class="text-gray-400 animate-pulse h-[300px] flex items-center justify-center bg-gray-50 rounded-xl">Loading chart...</div>
+                <div v-else class="relative h-[300px] w-full">
+                    <Bar v-if="attendanceChartLoaded" :data="attendanceChartData" :options="attendanceChartOptions" />
+                </div>
+            </div>
+
             <!-- Recent Activity -->
             <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 h-full">
             <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-5 font-bold text-gray-800">Recent Activity</h2>
@@ -101,7 +112,49 @@
             </div>
         </div>
 
-        <!-- System Alerts -->
+        <!-- Sidebar Column: Summary & Alerts -->
+        <div class="flex flex-col gap-6 h-fit">
+
+          <!-- Attendance Summary Card -->
+          <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50">
+            <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 mb-5">
+              <h2 class="mt-0 text-[1.1rem] font-bold text-gray-800 m-0">Attendance Summary</h2>
+              
+              <div class="flex flex-wrap gap-2 items-center">
+                  <select v-model="summaryFilters.employee_id" @change="fetchSummaryData" class="text-sm border-gray-200 rounded-lg bg-gray-50 py-1 focus:ring-blue-500 focus:border-blue-500 flex-grow max-w-[140px]">
+                      <option value="all">All Employees</option>
+                      <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.full_name }}</option>
+                  </select>
+                  <input type="date" v-model="summaryFilters.start_date" @change="fetchSummaryData" class="text-sm border-gray-200 rounded-lg bg-gray-50 py-1 px-2 focus:ring-blue-500 max-w-[130px]" title="Start Date" />
+                  <span class="text-gray-400 text-sm">-</span>
+                  <input type="date" v-model="summaryFilters.end_date" @change="fetchSummaryData" class="text-sm border-gray-200 rounded-lg bg-gray-50 py-1 px-2 focus:ring-blue-500 max-w-[130px]" title="End Date" />
+              </div>
+            </div>
+            
+            <div v-if="loadingSummary" class="text-gray-400 animate-pulse text-center py-8">Loading summary...</div>
+            <div v-else class="grid grid-cols-2 gap-4">
+              <div class="bg-emerald-50 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
+                <span class="text-xs text-emerald-600 font-bold uppercase tracking-wide mb-1">Tepat Waktu</span>
+                <span class="text-2xl font-extrabold text-emerald-700">{{ attendanceSummary.on_time }}</span>
+              </div>
+              <div class="bg-amber-50 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
+                <span class="text-xs text-amber-600 font-bold uppercase tracking-wide mb-1">Telat</span>
+                <span class="text-2xl font-extrabold text-amber-700">{{ attendanceSummary.late }}</span>
+              </div>
+              <div class="bg-red-50 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
+                <span class="text-xs text-red-600 font-bold uppercase tracking-wide mb-1">Izin/Alpha</span>
+                <span class="text-2xl font-extrabold text-red-700">{{ attendanceSummary.absent }}</span>
+              </div>
+              <div class="bg-blue-50 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
+                <span class="text-xs text-blue-600 font-bold uppercase tracking-wide mb-1">Nilai Total</span>
+                <span class="text-2xl font-extrabold text-blue-700 flex items-baseline gap-1">
+                  {{ attendanceSummary.total_score }}<span class="text-sm">%</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Alerts -->
         <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 h-fit">
           <h2 class="mt-0 text-[1.1rem] border-b border-gray-100 pb-3 mb-4 font-bold text-gray-800">System Alerts</h2>
           
@@ -123,6 +176,7 @@
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   </AppLayout>
@@ -140,36 +194,52 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend
 } from 'chart.js';
-import { Line } from 'vue-chartjs';
+import { Line, Bar } from 'vue-chartjs';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend
 );
 
 const loading = ref(true);
+const loadingSummary = ref(true);
 const metrics = ref({ total_employees: 0, pending_reviews: 0, avg_score: 0, notifications: 0 });
 const recentActivity = ref([]);
 const alerts = ref([]);
 const employees = ref([]);
+const attendanceSummary = ref({ on_time: 0, late: 0, absent: 0, total_score: 0 });
 
 const filters = ref({
     timeframe: 'monthly',
     employee_id: 'all'
 });
 
+const summaryFilters = ref({
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10), // start of month
+    end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().substring(0, 10), // end of month
+    employee_id: 'all'
+});
+
 // Chart configuration
 const chartDataLoaded = ref(false);
 const chartCanvasData = ref({
+  labels: [],
+  datasets: []
+});
+
+const attendanceChartLoaded = ref(false);
+const attendanceChartData = ref({
   labels: [],
   datasets: []
 });
@@ -189,6 +259,27 @@ const chartOptions = ref({
     y: {
       beginAtZero: true,
       suggestedMax: 5 // Assuming max score is 5 based on early average (2.7)
+    }
+  }
+});
+
+const attendanceChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+    title: {
+      display: false,
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+          stepSize: 1
+      }
     }
   }
 });
@@ -231,6 +322,38 @@ const fetchDashboardData = async () => {
         }, 50);
     }
 
+    // Load Attendance Data for charts
+    if (response.data.attendance_chart_data) {
+        attendanceChartLoaded.value = false;
+        
+        setTimeout(() => {
+            attendanceChartData.value = {
+                labels: response.data.attendance_chart_data.labels,
+                datasets: [
+                    {
+                        label: 'Tepat Waktu',
+                        backgroundColor: '#10b981',
+                        borderRadius: 4,
+                        data: response.data.attendance_chart_data.on_time,
+                    },
+                    {
+                        label: 'Telat',
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4,
+                        data: response.data.attendance_chart_data.late,
+                    },
+                    {
+                        label: 'Izin/Sakit/Alpha',
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4,
+                        data: response.data.attendance_chart_data.absent,
+                    }
+                ]
+            };
+            attendanceChartLoaded.value = true;
+        }, 50);
+    }
+
   } catch (error) {
     if (error.response && error.response.status === 401) {
       window.location.href = '/login';
@@ -240,7 +363,30 @@ const fetchDashboardData = async () => {
   }
 };
 
+const fetchSummaryData = async () => {
+    loadingSummary.value = true;
+    try {
+        const payload = {
+            summary_start_date: summaryFilters.value.start_date,
+            summary_end_date: summaryFilters.value.end_date,
+            summary_employee_id: summaryFilters.value.employee_id
+        };
+        const response = await axios.get('/api/dashboard', { params: payload });
+        
+        if (response.data.attendance_summary) {
+            attendanceSummary.value = response.data.attendance_summary;
+        }
+
+    } catch (error) {
+        console.error("Error fetching summary data");
+    } finally {
+        loadingSummary.value = false;
+    }
+};
+
 onMounted(() => {
     fetchDashboardData();
+    fetchSummaryData();
 });
 </script>
+

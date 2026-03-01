@@ -38,6 +38,13 @@ const routes = [
         meta: { title: 'Settings & User Management' }
     },
     {
+        path: '/settings/work-schedules',
+        name: 'settings.schedules',
+        component: () => import('../Pages/Setting/WorkSchedules.vue'),
+        meta: { title: 'Work Schedules Configuration' }
+    },
+
+    {
         path: '/assessments/create/single',
         name: 'assessments.create.single',
         component: CreateSingleAssessment,
@@ -56,6 +63,18 @@ const routes = [
         meta: { title: 'Bulk Assessment' }
     },
     {
+        path: '/attendance',
+        name: 'attendance',
+        component: () => import('../Pages/Attendance/Index.vue'),
+        meta: { title: 'Attendance Dashboard' }
+    },
+    {
+        path: '/attendance/report',
+        name: 'attendance.report',
+        component: () => import('../Pages/Attendance/Report.vue'),
+        meta: { title: 'Detailed Attendance Report' }
+    },
+    {
         path: '/assessments/templates',
         name: 'assessments.templates',
         component: () => import('../Pages/Assessment/Templates.vue'),
@@ -66,6 +85,12 @@ const routes = [
         name: 'public.rate',
         component: () => import('../Pages/Public/RateEmployee.vue'),
         meta: { title: 'Rate Employee' }
+    },
+    {
+        path: '/public/absence-form/:token',
+        name: 'public.absence.form',
+        component: () => import('../Pages/Public/AbsenceForm.vue'),
+        meta: { title: 'Formulir Ketidakhadiran' }
     },
     // Catch-all route to redirect unknown paths
     {
@@ -94,7 +119,7 @@ router.beforeEach(async (to, from, next) => {
         }
 
         // Allow access to public routes even if unauthenticated
-        if (to.name === 'public.rate') {
+        if (to.name === 'public.rate' || to.name === 'public.absence.form') {
             return next();
         }
 

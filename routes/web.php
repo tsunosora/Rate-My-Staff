@@ -37,6 +37,9 @@ Route::get('/api/fix-tokens', function () {
     return "Berhasil membuat token publik untuk {$count} karyawan. Silakan tutup tab ini dan coba tombol QR Code di halaman Admin lagi!";
 });
 
+Route::get('/api/public/absence-form/{token}', [\App\Http\Controllers\PublicAbsenceController::class, 'show']);
+Route::post('/api/public/absence-form/{token}', [\App\Http\Controllers\PublicAbsenceController::class, 'submit']);
+
 Route::middleware('auth')->group(function () {
     Route::get('/api/user', function (Illuminate\Http\Request $request) {
         return response()->json($request->user());
@@ -64,6 +67,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/employees', [\App\Http\Controllers\EmployeeController::class, 'index']);
     Route::post('/api/employees', [\App\Http\Controllers\EmployeeController::class, 'store']);
     Route::get('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'show']);
+    Route::get('/api/employees/{employee}/attendance-summary', [\App\Http\Controllers\EmployeeController::class, 'getAttendanceSummary']);
+    Route::put('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update']);
+    Route::delete('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'destroy']);
+    Route::post('/api/employees', [\App\Http\Controllers\EmployeeController::class, 'store']);
+    Route::get('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'show']);
     Route::put('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update']);
     Route::delete('/api/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'destroy']);
 
@@ -87,9 +95,14 @@ Route::middleware('auth')->group(function () {
     Route::put('/api/positions/{id}', [\App\Http\Controllers\MasterDataController::class, 'updatePosition']);
     Route::delete('/api/positions/{id}', [\App\Http\Controllers\MasterDataController::class, 'destroyPosition']);
 
+    // Work Schedules API
+    Route::apiResource('/api/work-schedules', \App\Http\Controllers\WorkScheduleController::class);
+
     // Settings API
     Route::get('/api/settings', [\App\Http\Controllers\SettingController::class, 'index']);
     Route::post('/api/settings', [\App\Http\Controllers\SettingController::class, 'store']);
+    Route::post('/api/settings/holidays', [\App\Http\Controllers\SettingController::class, 'storeHoliday']);
+    Route::delete('/api/settings/holidays/{id}', [\App\Http\Controllers\SettingController::class, 'destroyHoliday']);
 
     // Notifications API
     Route::get('/api/notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
@@ -97,6 +110,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
     Route::post('/api/notifications/test', [\App\Http\Controllers\NotificationController::class, 'sendTestNotification']);
     Route::post('/api/notifications/broadcast', [\App\Http\Controllers\NotificationController::class, 'broadcastNotification']);
+
+    // Attendance API
+    Route::get('/api/attendances', [\App\Http\Controllers\AttendanceController::class, 'index']);
+    Route::post('/api/attendances/sync', [\App\Http\Controllers\AttendanceController::class, 'sync']);
+    Route::post('/api/attendances/import', [\App\Http\Controllers\AttendanceController::class, 'import']);
+    Route::post('/api/attendances/import/finalize', [\App\Http\Controllers\AttendanceController::class, 'finalizeImport']);
+    Route::post('/api/attendances/store-manual', [\App\Http\Controllers\AttendanceController::class, 'storeManual']);
+    Route::get('/api/attendances/dashboard-stats', [\App\Http\Controllers\AttendanceController::class, 'dashboardStats']);
+
+    // Leave Link endpoints
+    Route::get('/api/attendances/leave-link', [\App\Http\Controllers\AttendanceController::class, 'getActiveLeaveLink']);
+    Route::post('/api/attendances/leave-link', [\App\Http\Controllers\AttendanceController::class, 'generateLeaveLink']);
+    Route::post('/api/attendances/update-report', [\App\Http\Controllers\AttendanceReportController::class, 'updateReport']);
+    Route::get('/api/attendance-reports', [\App\Http\Controllers\AttendanceReportController::class, 'index']);
+    Route::get('/api/attendance-reports/export/excel', [\App\Http\Controllers\AttendanceReportController::class, 'exportExcel']);
+    Route::get('/api/attendance-reports/export/pdf', [\App\Http\Controllers\AttendanceReportController::class, 'exportPdf']);
 });
 
 // Catch-all route for Vue SPA

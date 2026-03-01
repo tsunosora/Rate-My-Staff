@@ -121,6 +121,49 @@
             </ul>
           </div>
         </div>
+
+        <!-- Attendance & Holidays -->
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 col-span-2">
+          <h2 class="text-[1.1rem] font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100">Attendance & Holidays</h2>
+          
+          <div class="flex items-center gap-3 mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+            <input type="checkbox" id="autoSunday" v-model="settings.attendance.auto_sunday_holiday" class="w-5 h-5 cursor-pointer accent-blue-600 rounded">
+            <label for="autoSunday" class="text-sm font-semibold text-gray-700 cursor-pointer select-none mb-0">
+              Set Hari Minggu sebagai Hari Libur Otomatis
+              <span class="block text-xs font-normal text-gray-500 mt-1">Jika diaktifkan, karyawan yang tidak absen pada hari Minggu akan otomatis dilabeli "Libur" alih-alih "Absent".</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6 max-md:grid-cols-1">
+            <div>
+              <h3 class="text-md font-bold text-gray-700 m-0 mb-3">Tanggal Merah / Libur Nasional</h3>
+              <p class="text-xs text-gray-500 mb-4">Tambahkan tanggal libur manual. Sistem akan melabeli "Libur" jika karyawan tidak absen pada tanggal ini.</p>
+              
+              <div class="flex gap-2 mb-4">
+                <input type="date" v-model="newHoliday.date" class="p-2.5 border border-[#ddd] rounded-lg focus:outline-none focus:border-[#3498db] text-sm">
+                <input type="text" v-model="newHoliday.name" placeholder="Nama Libur (Cth: Idul Fitri)" class="w-full p-2.5 border border-[#ddd] rounded-lg focus:outline-none focus:border-[#3498db] text-sm">
+                <button @click="saveHoliday" :disabled="!newHoliday.date || !newHoliday.name" class="bg-[#2ecc71] text-white flex-shrink-0 px-4 py-2.5 rounded-lg font-bold hover:bg-[#27ae60] disabled:opacity-50 transition-colors text-sm border-none cursor-pointer">
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <ul class="list-none p-0 m-0 border border-gray-200 rounded-xl max-h-48 overflow-y-auto bg-gray-50/30">
+                <li v-for="hol in holidays" :key="hol.id" class="flex justify-between items-center p-3.5 border-b border-gray-100 last:border-b-0 text-sm">
+                  <div>
+                    <strong class="text-gray-800">{{ hol.date }}</strong><br>
+                    <span class="text-gray-500 text-xs">{{ hol.name }}</span>
+                  </div>
+                  <button @click="deleteHoliday(hol.id)" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded p-1.5 transition-colors cursor-pointer border-none" title="Hapus Libur">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </li>
+                <li v-if="holidays.length === 0" class="p-5 text-center text-gray-400 text-sm italic">Belum ada tanggal merah yang ditambahkan.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
         
       </div>
 
@@ -220,10 +263,17 @@ const showPosModal = ref(false);
 const newDeptName = ref('');
 const newPosData = reactive({ department_id: '', name: '' });
 
+// --- Holidays State ---
+const holidays = ref([]);
+const newHoliday = reactive({ date: '', name: '' });
+
 const settings = reactive({
   branding: {
     subdomain: 'megacorp',
     primary_color: '#3498db'
+  },
+  attendance: {
+    auto_sunday_holiday: false
   }
 });
 
@@ -238,6 +288,13 @@ onMounted(async () => {
         
         if (resSettings.data.settings) {
             Object.assign(settings.branding, resSettings.data.settings.branding);
+            if (resSettings.data.settings.attendance) {
+                settings.attendance.auto_sunday_holiday = resSettings.data.settings.attendance.auto_sunday_holiday;
+            }
+        }
+        
+        if (resSettings.data.holidays) {
+            holidays.value = resSettings.data.holidays;
         }
 
         departments.value = resDepts.data;
@@ -301,6 +358,29 @@ const deletePosition = async (id) => {
     positions.value = positions.value.filter(p => p.id !== id);
   } catch (error) {
     alert("Error deleting position");
+  }
+};
+
+// --- Holiday Methods ---
+const saveHoliday = async () => {
+  if(!newHoliday.date || !newHoliday.name) return;
+  try {
+    const res = await axios.post('/api/settings/holidays', newHoliday);
+    holidays.value.unshift(res.data);
+    newHoliday.date = '';
+    newHoliday.name = '';
+  } catch (error) {
+    alert("Error saving holiday: " + (error.response?.data?.message || ''));
+  }
+};
+
+const deleteHoliday = async (id) => {
+  if(!confirm("Hapus tanggal merah ini?")) return;
+  try {
+    await axios.delete(`/api/settings/holidays/${id}`);
+    holidays.value = holidays.value.filter(h => h.id !== id);
+  } catch (error) {
+    alert("Error deleting holiday");
   }
 };
 

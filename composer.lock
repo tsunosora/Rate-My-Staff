@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1f34f56543d7e7976c17c5e4f425cc3f",
+    "content-hash": "e3b060e31ee8420bcdba98f216c6c331",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -4815,6 +4815,56 @@
                 "source": "https://github.com/MyIntervals/PHP-CSS-Parser/tree/v9.2.0"
             },
             "time": "2026-02-21T17:12:03+00:00"
+        },
+        {
+            "name": "shuchkin/simplexls",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/shuchkin/simplexls.git",
+                "reference": "0aad1dd0c8703c8fcc3234eda9d22d08e25b6579"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/shuchkin/simplexls/zipball/0aad1dd0c8703c8fcc3234eda9d22d08e25b6579",
+                "reference": "0aad1dd0c8703c8fcc3234eda9d22d08e25b6579",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": ">=5.5"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/SimpleXLS.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Sergey Shuchkin (SMSPILOT)",
+                    "email": "sergey.shuchkin@gmail.com",
+                    "homepage": "https://shuchkin.ru"
+                }
+            ],
+            "description": "Parse and retrieve data from old format Excel XLS files. MS Excel 97 workbooks PHP reader.",
+            "homepage": "https://github.com/shuchkin/simplexls",
+            "keywords": [
+                "backend",
+                "excel",
+                "parser",
+                "php",
+                "xls"
+            ],
+            "support": {
+                "issues": "https://github.com/shuchkin/simplexls/issues",
+                "source": "https://github.com/shuchkin/simplexls/tree/1.0.0"
+            },
+            "time": "2025-03-03T21:58:30+00:00"
         },
         {
             "name": "spatie/laravel-permission",

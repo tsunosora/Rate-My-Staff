@@ -29,6 +29,7 @@ class Employee extends Model
         'email',
         'phone',
         'is_active',
+        'work_schedule_id',
     ];
 
     /**
@@ -61,6 +62,19 @@ class Employee extends Model
     public function position()
     {
         return $this->belongsTo(Position::class);
+    }
+
+    public function workSchedule()
+    {
+        return $this->belongsTo(WorkSchedule::class);
+    }
+
+    /**
+     * Get attendances for this employee.
+     */
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     /**

@@ -38,10 +38,41 @@
           </div>
           <div>
              <label class="block font-bold text-sm text-gray-700 mb-2">Assessment Period</label>
-             <input type="text" v-model="form.period" placeholder="e.g. Q3 2023 or October 2023" class="w-full p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] bg-gray-50/50 transition-colors" required>
+             <input type="text" v-model="form.period" @blur="fetchAttendanceStats" placeholder="e.g. Q3 2023 or October 2023" class="w-full p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] bg-gray-50/50 transition-colors" required>
           </div>
         </div>
       </div>
+
+      <!-- Attendance Summary Insight (Value Add) -->
+      <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform opacity-0 -translate-y-4" enter-to-class="transform opacity-100 translate-y-0" leave-active-class="transition duration-200 ease-in" leave-from-class="transform opacity-100 translate-y-0" leave-to-class="transform opacity-0 -translate-y-4">
+          <div v-if="attendanceStats" class="bg-blue-50 border border-blue-100 rounded-3xl p-6 shadow-sm flex items-start gap-4">
+              <div class="text-3xl mt-1 hidden sm:block">💡</div>
+              <div class="flex-1">
+                  <h3 class="font-bold text-blue-800 m-0 mb-1 flex items-center gap-2">
+                       Attendance Insights for {{ form.period }}
+                       <span class="text-[0.65rem] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Auto-Synced</span>
+                  </h3>
+                  <p class="text-sm text-blue-700 mb-4 m-0 leading-relaxed">
+                      Rate My Staff automatically analyzed Fingerspot records for this employee during <strong>{{ form.period }}</strong> to help you evaluate their Punctuality/Discipline indicator.
+                  </p>
+                  
+                  <div class="flex flex-wrap gap-4 mt-2">
+                      <div class="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
+                          <span class="block text-xs font-bold text-blue-500 uppercase">On Time</span>
+                          <strong class="text-2xl text-blue-800">{{ attendanceStats.on_time_days }}</strong><span class="text-blue-600/60 text-sm ml-1">days</span>
+                      </div>
+                      <div class="bg-white/80 backdrop-blur-sm border border-orange-100/50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
+                          <span class="block text-xs font-bold text-orange-500 uppercase">Late</span>
+                          <strong class="text-2xl text-orange-600">{{ attendanceStats.late_days }}</strong><span class="text-orange-600/60 text-sm ml-1">days</span>
+                      </div>
+                      <div class="bg-white/80 backdrop-blur-sm border border-red-100/50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
+                          <span class="block text-xs font-bold text-red-500 uppercase">Absent</span>
+                          <strong class="text-2xl text-red-600">{{ attendanceStats.absent_days }}</strong><span class="text-red-600/60 text-sm ml-1">days</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </transition>
 
       <!-- Assessment Indicators -->
       <div v-if="currentTemplate" class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 overflow-hidden">
@@ -120,6 +151,7 @@ const employees = ref([]);
 const templates = ref([]);
 const currentTemplate = ref(null);
 const saving = ref(false);
+const attendanceStats = ref(null);
 
 const form = ref({
   employee_id: '',
@@ -185,6 +217,28 @@ const loadTemplate = async () => {
   } catch (error) {
     console.error("Error loading template details", error);
   }
+};
+
+const fetchAttendanceStats = async () => {
+    if (!form.value.employee_id || !form.value.period) {
+        attendanceStats.value = null;
+        return;
+    }
+    
+    try {
+        const res = await axios.get(`/api/employees/${form.value.employee_id}/attendance-summary`, {
+            params: { period: form.value.period }
+        });
+        
+        if (res.data && !res.data.error) {
+            attendanceStats.value = res.data;
+        } else {
+            attendanceStats.value = null;
+        }
+    } catch (e) {
+        console.error("Could not fetch attendance stats", e);
+        attendanceStats.value = null;
+    }
 };
 
 const submitAssessment = async (status) => {

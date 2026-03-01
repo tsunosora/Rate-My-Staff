@@ -25,6 +25,11 @@ zip_extracted
 l11-tmp
 cookie.txt
 
+# Testing & Temporary Scripts
+test_*.php
+test_*.js
+*.sqlite
+
 /storage/framework/sessions/*
 !/storage/framework/sessions/.gitignore
 /storage/framework/views/*

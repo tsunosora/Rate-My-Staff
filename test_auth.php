@@ -1,46 +1,39 @@
 <?php
-require 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
-// Get CSRF Token First
-$req0 = Illuminate\Http\Request::create('/sanctum/csrf-cookie', 'GET');
-$res0 = $kernel->handle($req0);
-$csrfToken = null;
-foreach ($res0->headers->getCookies() as $c) {
-    if ($c->getName() === 'XSRF-TOKEN') {
-        $csrfToken = $c->getValue();
+require __DIR__ . '/vendor/autoload.php';
+$app = require_once __DIR__ . '/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+
+$cloudId = 'C2630451070F2923';
+$apiKey = '5LYDNGIT6BDI4UUV';
+
+$startDateObj = Carbon::parse('2024-10-01'); // Choose a wider range or recent date
+$endDateObj = Carbon::parse('2024-10-02');
+$baseUrl = 'https://api.fingerspot.io/api';
+
+while ($startDateObj->lte($endDateObj)) {
+    $attendanceUpload = $startDateObj->format('Y-m-d');
+    $currentTime = Carbon::now()->format('YmdHis'); // yyyyMMddhhmmss
+
+    // Auth token logic: MD5(Cloud_ID + attendance_upload + current_time + API_KEY)
+    $authString = $cloudId . $attendanceUpload . $currentTime . $apiKey;
+    $auth = md5($authString);
+
+    $url = "{$baseUrl}/download/attendance_log/{$cloudId}/{$attendanceUpload}/6/date_time/asc/JSON/{$auth}/{$currentTime}";
+    echo "Requesting URL for {$attendanceUpload}: {$url}\n";
+
+    $response = Http::timeout(30)->get($url);
+
+    if ($response->successful()) {
+        echo "Success!\n";
+        print_r($response->json());
+    } else {
+        echo "Error ({$response->status()}): " . $response->body() . "\n";
     }
-}
-$sessionCookie = $res0->headers->getCookies()[0];
 
-// Login
-$req1 = Illuminate\Http\Request::create('/login', 'POST', ['email' => 'admin@voliko.com', 'password' => 'password']);
-$req1->headers->set('X-XSRF-TOKEN', $csrfToken);
-$req1->cookies->set($sessionCookie->getName(), $sessionCookie->getValue());
-$res1 = $kernel->handle($req1);
-echo "LOGIN STATUS: " . $res1->getStatusCode() . "\n";
-echo "LOGIN CONTENT: " . substr($res1->getContent(), 0, 100) . "\n";
-$cookies = $res1->headers->getCookies();
-$cookie = null;
-foreach ($cookies as $c) {
-    if ($c->getName() === config('session.cookie')) {
-        $cookie = $c;
-        break;
-    }
+    $startDateObj->addDay();
 }
-
-if (!$cookie) {
-    echo "NO SESSION COOKIE FOUND!\n";
-    exit(1);
-}
-
-// Test Auth
-$req2 = Illuminate\Http\Request::create('/api/test-auth', 'GET');
-$req2->cookies->set($cookie->getName(), $cookie->getValue());
-$res2 = $kernel->handle($req2);
-echo "RESPONSE FROM /api/test-auth:\n";
-echo $res2->getContent() . "\n";
-echo "\nSession Data:\n";
-print_r(session()->all());
-var_dump(auth()->check());
