@@ -28,6 +28,11 @@
                     <span>📄</span>
                     Export PDF
                 </button>
+                <div class="h-8 w-px bg-gray-200 mx-1"></div>
+                <button @click="exportOvertimeSlip" :disabled="filters.employee_id === 'all'" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors shadow-sm flex items-center gap-2 text-sm border-none cursor-pointer" title="Export Slip Lembur (Excel)">
+                    <span>💰</span>
+                    Slip Lembur
+                </button>
             </div>
         </div>
       </div>
@@ -39,6 +44,16 @@
               <select v-model="filters.department_id" @change="fetchData(1)" class="w-full text-sm bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-blue-500">
                   <option value="all">All Departments</option>
                   <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+              </select>
+          </div>
+          <div class="flex-1 min-w-[200px]">
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Status</label>
+              <select v-model="filters.status" @change="fetchData(1)" class="w-full text-sm bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-blue-500">
+                  <option value="all">All Statuses</option>
+                  <option value="present">Present / On-Time</option>
+                  <option value="late">Late</option>
+                  <option value="absent">Absent (Izin/Sakit/Cuti/Alpha)</option>
+                  <option value="long_shift">Long Shift / Lembur</option>
               </select>
           </div>
           <div class="flex-1 min-w-[200px]">
@@ -185,9 +200,27 @@
                 </div>
             </div>
 
-            <div v-if="editForm.overtime_minutes > 0">
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Overtime Reason</label>
-                <textarea v-model="editForm.overtime_reason" rows="2" placeholder="What task was completed during this overtime?" class="w-full text-sm bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+            <div v-if="editForm.overtime_minutes > 0" class="border p-4 rounded-xl border-purple-200 bg-purple-50/30 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Overtime Reason</label>
+                    <textarea v-model="editForm.overtime_reason" rows="2" placeholder="What task was completed during this overtime?" class="w-full text-sm bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-purple-500 resize-none"></textarea>
+                </div>
+                
+                <!-- HR Verification Fields -->
+                <div class="pt-2 border-t border-purple-100 flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"><span class="text-purple-600">★</span> Approved Category</label>
+                        <select v-model="editForm.overtime_category_id" class="w-full text-sm bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-purple-500">
+                            <option value="">No Overtime Pay</option>
+                            <option v-for="cat in overtimeCategories" :key="cat.id" :value="cat.id">{{ cat.name }} (Rp{{ Number(cat.rate).toLocaleString('id-ID') }})</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"><span class="text-purple-600">★</span> Approved Minutes</label>
+                        <input type="number" min="0" v-model="editForm.approved_overtime_minutes" class="w-full text-sm bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-gray-800 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 m-0 leading-tight">By selecting a category and minutes, the system will automatically calculate the final monetary value for this day based on active Rules Engine.</p>
             </div>
 
             <div>
@@ -228,6 +261,7 @@ const loading = ref(true);
 const reports = ref([]);
 const departments = ref([]);
 const employees = ref([]);
+const overtimeCategories = ref([]);
 
 // Default to past 7 days
 const end = new Date();
@@ -238,7 +272,8 @@ const filters = reactive({
     start_date: start.toISOString().split('T')[0],
     end_date: end.toISOString().split('T')[0],
     department_id: 'all',
-    employee_id: 'all'
+    employee_id: 'all',
+    status: 'all'
 });
 
 const pagination = ref({ current_page: 1, last_page: 1, total: 0, per_page: 50 });
@@ -250,12 +285,14 @@ onMounted(() => {
 
 const fetchOptions = async () => {
     try {
-        const [deptRes, empRes] = await Promise.all([
+        const [deptRes, empRes, otRes] = await Promise.all([
             axios.get('/api/departments'),
-            axios.get('/api/employees', { params: { limit: 1000 } })
+            axios.get('/api/employees', { params: { limit: 1000 } }),
+            axios.get('/api/overtime-categories')
         ]);
         departments.value = deptRes.data;
         employees.value = empRes.data.data ? empRes.data.data : empRes.data;
+        overtimeCategories.value = otRes.data;
     } catch (e) {
         console.error("Failed to fetch filter options", e);
     }
@@ -296,6 +333,7 @@ const exportExcel = () => {
         end_date: filters.end_date,
         department_id: filters.department_id,
         employee_id: filters.employee_id,
+        status: filters.status
     });
     
     window.location.href = `/api/attendance-reports/export/excel?${params.toString()}`;
@@ -307,9 +345,24 @@ const exportPdf = () => {
         end_date: filters.end_date,
         department_id: filters.department_id,
         employee_id: filters.employee_id,
+        status: filters.status
     });
     
     window.open(`/api/attendance-reports/export/pdf?${params.toString()}`, '_blank');
+};
+
+const exportOvertimeSlip = () => {
+    if (filters.employee_id === 'all') {
+        alert('Silakan pilih spesifik satu Karyawan terlebih dahulu lewat Filter Employee.');
+        return;
+    }
+    const params = new URLSearchParams({
+        start_date: filters.start_date,
+        end_date: filters.end_date,
+        employee_id: filters.employee_id
+    });
+    
+    window.location.href = `/api/attendance-reports/export/overtime-slip?${params.toString()}`;
 };
 
 const formatDuration = (minutes) => {
@@ -339,6 +392,8 @@ const editForm = reactive({
     late_minutes: 0,
     overtime_minutes: 0,
     overtime_reason: '',
+    overtime_category_id: '',
+    approved_overtime_minutes: 0,
     status: 'Present'
 });
 
@@ -357,7 +412,9 @@ const openEditModal = (row) => {
         late_minutes: row.late_minutes || 0,
         overtime_minutes: row.overtime_minutes || 0,
         overtime_reason: row.overtime_reason || '',
-        status: row.status
+        status: row.status,
+        overtime_category_id: row.overtime_category_id || '',
+        approved_overtime_minutes: row.approved_overtime_minutes || row.overtime_minutes || 0
     });
     
     showEditModal.value = true;
@@ -380,7 +437,9 @@ const submitEdit = async () => {
             late_minutes: editForm.late_minutes,
             overtime_minutes: editForm.overtime_minutes,
             overtime_reason: editForm.overtime_reason,
-            status: editForm.status
+            status: editForm.status,
+            overtime_category_id: editForm.overtime_category_id,
+            approved_overtime_minutes: editForm.approved_overtime_minutes
         });
         
         closeEditModal();

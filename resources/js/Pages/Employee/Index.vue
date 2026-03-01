@@ -21,6 +21,11 @@
           <option value="">All Departments</option>
           <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
+        <select v-model="filters.is_active" @change="loadEmployees" class="p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#3b82f6] transition-colors bg-gray-50/50 min-w-[150px]">
+          <option value="1">Active Employees</option>
+          <option value="0">Resigned / Inactive</option>
+          <option value="all">All Statuses</option>
+        </select>
         <button @click="loadEmployees" class="bg-gray-800 text-white border-none px-6 py-3 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-700 transition-colors shadow-sm">Apply Filters</button>
       </div>
 
@@ -47,8 +52,11 @@
                <tr v-else v-for="emp in employees" :key="emp.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                  <td class="px-3 py-3 text-center"><input type="checkbox" v-model="selectedEmployees" :value="emp.id"></td>
                  <td class="px-3 py-3 text-center">
-                    <strong class="text-gray-800 text-[15px]">{{ emp.full_name }}</strong><br>
-                    <span class="text-xs text-gray-500 mt-1 inline-block">ID: {{ emp.employee_code }}</span>
+                    <strong class="text-gray-800 text-[15px]" :class="{'line-through text-gray-400': !emp.is_active}">{{ emp.full_name }}</strong><br>
+                    <div class="flex items-center justify-center gap-2 mt-1">
+                        <span class="text-xs text-gray-500 inline-block">ID: {{ emp.employee_code }}</span>
+                        <span v-if="!emp.is_active" class="bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Resigned</span>
+                    </div>
                  </td>
                  <td class="px-3 py-3 text-sm text-gray-600 font-medium text-center">{{ emp.department ? emp.department.name : '-' }}</td>
                  <td class="px-3 py-3 text-sm text-gray-600 text-center">{{ emp.position ? emp.position.name : '-' }}</td>
@@ -459,7 +467,8 @@ const loading = ref(true);
 
 const filters = reactive({
   search: '',
-  department_id: ''
+  department_id: '',
+  is_active: '1'
 });
 
 const pagination = reactive({
@@ -644,7 +653,8 @@ const loadEmployees = async (page = 1) => {
     const params = {
         page: page,
         search: filters.search,
-        department_id: filters.department_id
+        department_id: filters.department_id,
+        is_active: filters.is_active
     };
     
     // We update the controller to return latest_assessment relation if needed. 
@@ -827,10 +837,7 @@ const handleFileImport = async (event) => {
 };
 
 const exportPdf = () => {
-    const params = new URLSearchParams({
-        search: filters.search,
-        department_id: filters.department_id
-    }).toString();
-    window.open(`/api/employees/export-pdf?${params}`, '_blank');
+    const url = `/api/employees/export-pdf?search=${filters.search}&department_id=${filters.department_id}&is_active=${filters.is_active}`;
+    window.open(url, '_blank');
 };
 </script>

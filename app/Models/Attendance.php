@@ -17,6 +17,9 @@ class Attendance extends Model
         'late_minutes',
         'overtime_minutes',
         'overtime_reason',
+        'overtime_category_id',
+        'approved_overtime_minutes',
+        'overtime_amount',
     ];
 
     protected $casts = [
@@ -29,5 +32,10 @@ class Attendance extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function overtimeCategory()
+    {
+        return $this->belongsTo(OvertimeCategory::class);
     }
 }

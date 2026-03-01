@@ -9,6 +9,8 @@ use App\Models\Setting;
 use App\Models\Holiday;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use App\Services\Overtime\OvertimeCalculatorFactory;
+use App\Models\OvertimeCategory;
 
 class AttendanceReportController extends Controller
 {
@@ -18,7 +20,12 @@ class AttendanceReportController extends Controller
         $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
         $departmentId = $request->get('department_id', 'all');
         $employeeId = $request->get('employee_id', 'all');
+        $status = $request->get('status', 'all');
         $reportData = $this->getReportData($startDate, $endDate, $departmentId, $employeeId);
+
+        if ($status !== 'all') {
+            $reportData = $this->filterByStatus($reportData, $status);
+        }
 
         // Sort by date desc, then employee name
         usort($reportData, function ($a, $b) {
@@ -51,8 +58,13 @@ class AttendanceReportController extends Controller
         $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
         $departmentId = $request->get('department_id', 'all');
         $employeeId = $request->get('employee_id', 'all');
+        $status = $request->get('status', 'all');
 
         $reportData = $this->getReportData($startDate, $endDate, $departmentId, $employeeId);
+
+        if ($status !== 'all') {
+            $reportData = $this->filterByStatus($reportData, $status);
+        }
 
         // Sort specifically for Excel (maybe Name ascending, Date ascending is cleaner)
         usort($reportData, function ($a, $b) {
@@ -75,9 +87,15 @@ class AttendanceReportController extends Controller
         $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
         $departmentId = $request->get('department_id', 'all');
         $employeeId = $request->get('employee_id', 'all');
+        $status = $request->get('status', 'all');
 
         $reportData = $this->getReportData($startDate, $endDate, $departmentId, $employeeId);
-        $analysisData = $this->getAnalysisData($startDate, $endDate, $departmentId, $employeeId);
+
+        if ($status !== 'all') {
+            $reportData = $this->filterByStatus($reportData, $status);
+        }
+
+        $analysisData = $this->getAnalysisData($startDate, $endDate, $departmentId, $employeeId, $status);
 
         $stats = $this->calculateStats($reportData);
 
@@ -102,9 +120,63 @@ class AttendanceReportController extends Controller
         return $pdf->download($fileName);
     }
 
-    private function getAnalysisData($startDate, $endDate, $departmentId, $employeeId)
+    public function exportOvertimeSlip(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
+
+        // This export requires a specific employee. If 'all', we could generate a zip, but for now require 1 employee.
+        $employeeId = $request->get('employee_id');
+
+        if (!$employeeId || $employeeId === 'all') {
+            return response()->json(['message' => 'Silahkan pilih satu Karyawan spesifik untuk mencetak Slip Lembur.'], 400);
+        }
+
+        $employee = Employee::findOrFail($employeeId);
+
+        // Fetch raw report data for this specific employee
+        $reportData = $this->getReportData($startDate, $endDate, 'all', $employeeId);
+
+        // Ensure data is sorted by date
+        usort($reportData, function ($a, $b) {
+            return strcmp($a['date'], $b['date']);
+        });
+
+        // Fetch active overtime categories
+        $categories = \App\Models\OvertimeCategory::orderBy('created_at')->get();
+
+        $fileName = 'Slip_Lembur_' . str_replace(' ', '_', $employee->full_name) . '_' . $startDate . '_sd_' . $endDate . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\OvertimeSlipExport($reportData, $employee->full_name, $categories, $startDate, $endDate),
+            $fileName
+        );
+    }
+
+    private function filterByStatus(array $data, string $filter): array
+    {
+        return array_values(array_filter($data, function ($row) use ($filter) {
+            $st = $row['status'];
+            if ($filter === 'late') {
+                return ($st === 'Late' || $row['late_minutes'] > 0);
+            } elseif ($filter === 'present') {
+                return (in_array($st, ['Present', 'on_time']) && $row['late_minutes'] == 0);
+            } elseif ($filter === 'absent') {
+                return in_array($st, ['Absent', 'Izin', 'Sakit', 'Cuti', 'alpha']);
+            } elseif ($filter === 'long_shift') {
+                return str_contains(strtolower($st), 'long shift') || str_contains(strtolower($st), 'lembur');
+            }
+            return true;
+        }));
+    }
+
+    private function getAnalysisData($startDate, $endDate, $departmentId, $employeeId, $statusFilter = 'all')
     {
         $reportData = $this->getReportData($startDate, $endDate, $departmentId, $employeeId);
+
+        if ($statusFilter !== 'all') {
+            $reportData = $this->filterByStatus($reportData, $statusFilter);
+        }
 
         $analysis = [];
 
@@ -192,6 +264,7 @@ class AttendanceReportController extends Controller
 
         // Pre-fetch all available schedules for dynamic matching
         $allWorkSchedules = \App\Models\WorkSchedule::all();
+        $allOvertimeCategories = \App\Models\OvertimeCategory::all();
 
         // Fetch holiday config
         $autoSundayHoliday = Setting::get('auto_sunday_holiday', 'false') === 'true';
@@ -236,17 +309,29 @@ class AttendanceReportController extends Controller
                 if ($clockIn) {
                     // Find actual closest schedule from all available schedules
                     $actualIn = Carbon::parse($clockIn->scan_date);
+                    $actualOut = $clockOut ? Carbon::parse($clockOut->scan_date) : null;
+
                     $closestSchedule = null;
                     $minDiff = PHP_INT_MAX;
 
                     foreach ($allWorkSchedules as $ws) {
                         if (!$ws->start_time)
                             continue;
-                        $wsStart = Carbon::parse($dateStr . ' ' . $ws->start_time);
-                        $diff = abs($actualIn->diffInMinutes($wsStart, false)); // absolute difference in minutes
 
-                        if ($diff < $minDiff) {
-                            $minDiff = $diff;
+                        $wsStart = Carbon::parse($dateStr . ' ' . $ws->start_time);
+                        $diffIn = abs($actualIn->diffInMinutes($wsStart, false)); // absolute diff in minutes
+
+                        $diffOut = 0;
+                        if ($actualOut && $ws->end_time) {
+                            $wsEnd = Carbon::parse($dateStr . ' ' . $ws->end_time);
+                            $diffOut = abs($actualOut->diffInMinutes($wsEnd, false));
+                        }
+
+                        // Total difference across both ends ensures better matching for overlapping start times
+                        $totalDiff = $diffIn + $diffOut;
+
+                        if ($totalDiff < $minDiff) {
+                            $minDiff = $totalDiff;
                             $closestSchedule = $ws;
                         }
                     }
@@ -291,7 +376,9 @@ class AttendanceReportController extends Controller
                 $overtimeMinutes = 0;
 
                 if ($clockIn) {
-                    if ($clockIn->status === 'long_shift') {
+                    $isAutoLongShift = stripos($shiftName, 'long') !== false && stripos($shiftName, 'shif') !== false;
+
+                    if ($clockIn->status === 'long_shift' || $isAutoLongShift) {
                         $status = 'Long Shift / Lembur';
                     } elseif ($clockIn->status === 'forgot_scan') {
                         $status = 'Lupa Scan Pulang';
@@ -328,12 +415,22 @@ class AttendanceReportController extends Controller
 
                 $storedOvertime = 0;
                 $overtimeReason = null;
+                $overtimeCategoryId = null;
+                $approvedOvertimeMinutes = 0;
+                $overtimeAmount = 0;
+
                 if ($clockIn && $clockIn->overtime_minutes > 0) {
                     $storedOvertime = intval(abs($clockIn->overtime_minutes));
                     $overtimeReason = $clockIn->overtime_reason;
+                    $overtimeCategoryId = $clockIn->overtime_category_id;
+                    $approvedOvertimeMinutes = $clockIn->approved_overtime_minutes;
+                    $overtimeAmount = $clockIn->overtime_amount;
                 } elseif ($clockOut && $clockOut->overtime_minutes > 0) {
                     $storedOvertime = intval(abs($clockOut->overtime_minutes));
                     $overtimeReason = $clockOut->overtime_reason;
+                    $overtimeCategoryId = $clockOut->overtime_category_id;
+                    $approvedOvertimeMinutes = $clockOut->approved_overtime_minutes;
+                    $overtimeAmount = $clockOut->overtime_amount;
                 }
 
                 if ($storedOvertime > 0) {
@@ -346,6 +443,26 @@ class AttendanceReportController extends Controller
                         $diff = intval(abs($actualOut->diffInMinutes($expectedOut, false)));
                         if ($diff >= 60) {
                             $overtimeMinutes = $diff;
+                        }
+                    }
+                }
+
+                // Auto-Match Overtime Category if not manually set
+                if (empty($overtimeCategoryId)) {
+                    $isAutoLongShift = ($status === 'Long Shift / Lembur' || stripos($shiftName, 'long') !== false);
+                    $isAutoLibur = ($isSunday && ($clockIn || $clockOut));
+
+                    if ($isAutoLongShift) {
+                        $cat = $allOvertimeCategories->first(fn($c) => stripos($c->name, 'long') !== false);
+                        if ($cat) {
+                            $overtimeCategoryId = $cat->id;
+                            $overtimeAmount = $cat->rate; // Flat rate for Long Shift
+                        }
+                    } elseif ($isAutoLibur) {
+                        $cat = $allOvertimeCategories->first(fn($c) => stripos($c->name, 'libur') !== false);
+                        if ($cat) {
+                            $overtimeCategoryId = $cat->id;
+                            $overtimeAmount = $cat->rate; // Flat rate for Lembur Libur
                         }
                     }
                 }
@@ -363,6 +480,9 @@ class AttendanceReportController extends Controller
                     'late_minutes' => $lateMinutes,
                     'overtime_minutes' => $overtimeMinutes,
                     'overtime_reason' => $overtimeReason,
+                    'overtime_category_id' => $overtimeCategoryId,
+                    'approved_overtime_minutes' => $approvedOvertimeMinutes,
+                    'overtime_amount' => $overtimeAmount ?? 0,
                     'absence_reason' => $absenceReason,
                     'status' => $status
                 ];
@@ -385,6 +505,8 @@ class AttendanceReportController extends Controller
             'late_minutes' => 'nullable|integer',
             'overtime_minutes' => 'nullable|integer',
             'overtime_reason' => 'nullable|string',
+            'overtime_category_id' => 'nullable|exists:overtime_categories,id',
+            'approved_overtime_minutes' => 'nullable|integer',
             'status' => 'nullable|string'
         ]);
 
@@ -395,6 +517,8 @@ class AttendanceReportController extends Controller
         $lateMins = $request->input('late_minutes', 0);
         $overtimeMins = $request->input('overtime_minutes', 0);
         $overtimeReason = $request->input('overtime_reason', null);
+        $overtimeCategoryId = $request->input('overtime_category_id', null);
+        $approvedOvertimeMinutes = $request->input('approved_overtime_minutes', null) ?? $overtimeMins;
         $displayStatus = $request->input('status', 'Present');
 
         $dbStatus = 'on_time';
@@ -411,6 +535,18 @@ class AttendanceReportController extends Controller
 
         // Note: Time is expected to be H:i
 
+        $overtimeAmount = 0;
+        if ($overtimeCategoryId && $approvedOvertimeMinutes > 0) {
+            $category = OvertimeCategory::find($overtimeCategoryId);
+
+            // Dummy attendance instance just for calculation interface
+            $dummyAttendance = new Attendance();
+            $dummyAttendance->approved_overtime_minutes = $approvedOvertimeMinutes;
+
+            $calculator = OvertimeCalculatorFactory::make();
+            $overtimeAmount = $calculator->calculate($dummyAttendance, $category);
+        }
+
         // Handle Clock In
         if ($clockInTime) {
             $inDateTime = Carbon::parse($dateStr . ' ' . $clockInTime);
@@ -425,7 +561,10 @@ class AttendanceReportController extends Controller
                     'status' => $dbStatus,
                     'late_minutes' => $lateMins,
                     'overtime_minutes' => $overtimeMins,
-                    'overtime_reason' => $overtimeReason
+                    'overtime_reason' => $overtimeReason,
+                    'overtime_category_id' => $overtimeCategoryId,
+                    'approved_overtime_minutes' => $approvedOvertimeMinutes,
+                    'overtime_amount' => $overtimeAmount
                 ]);
             } else {
                 \App\Models\Attendance::create([
@@ -436,7 +575,10 @@ class AttendanceReportController extends Controller
                     'status' => $dbStatus,
                     'late_minutes' => $lateMins,
                     'overtime_minutes' => $overtimeMins,
-                    'overtime_reason' => $overtimeReason
+                    'overtime_reason' => $overtimeReason,
+                    'overtime_category_id' => $overtimeCategoryId,
+                    'approved_overtime_minutes' => $approvedOvertimeMinutes,
+                    'overtime_amount' => $overtimeAmount
                 ]);
             }
         }
@@ -455,7 +597,10 @@ class AttendanceReportController extends Controller
                     'status' => $dbStatus,
                     'late_minutes' => $lateMins,
                     'overtime_minutes' => $overtimeMins,
-                    'overtime_reason' => $overtimeReason
+                    'overtime_reason' => $overtimeReason,
+                    'overtime_category_id' => $overtimeCategoryId,
+                    'approved_overtime_minutes' => $approvedOvertimeMinutes,
+                    'overtime_amount' => $overtimeAmount
                 ]);
             } else {
                 \App\Models\Attendance::create([
@@ -466,7 +611,10 @@ class AttendanceReportController extends Controller
                     'status' => $dbStatus,
                     'late_minutes' => $lateMins,
                     'overtime_minutes' => $overtimeMins,
-                    'overtime_reason' => $overtimeReason
+                    'overtime_reason' => $overtimeReason,
+                    'overtime_category_id' => $overtimeCategoryId,
+                    'approved_overtime_minutes' => $approvedOvertimeMinutes,
+                    'overtime_amount' => $overtimeAmount
                 ]);
             }
         }

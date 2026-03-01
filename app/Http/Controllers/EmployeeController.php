@@ -81,6 +81,16 @@ class EmployeeController extends Controller
             $query->where('department_id', $request->department_id);
         }
 
+        // Apply is_active filter
+        $isActiveFilter = $request->query('is_active', '1'); // Default to '1' (Active)
+
+        if ($isActiveFilter === '0' || $isActiveFilter === 'false') {
+            $query->where('is_active', false);
+        } elseif ($isActiveFilter === '1' || $isActiveFilter === 'true') {
+            $query->where('is_active', true);
+        }
+        // If 'all', do nothing, return everyone
+
         // Return paginated results for SPA
         return response()->json($query->latest()->paginate(10));
     }
@@ -175,6 +185,15 @@ class EmployeeController extends Controller
         }
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+
+        // Apply is_active filter for exports as well
+        $isActiveFilter = $request->query('is_active', '1');
+
+        if ($isActiveFilter === '0' || $isActiveFilter === 'false') {
+            $query->where('is_active', false);
+        } elseif ($isActiveFilter === '1' || $isActiveFilter === 'true') {
+            $query->where('is_active', true);
         }
 
         $employees = $query->latest()->get();

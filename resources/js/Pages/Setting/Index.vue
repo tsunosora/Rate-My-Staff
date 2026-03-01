@@ -165,6 +165,57 @@
           </div>
         </div>
         
+        <!-- Overtime Configuration -->
+        <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 col-span-2">
+          <div class="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+             <h2 class="text-[1.1rem] font-bold text-gray-800 m-0">Overtime Rules & Categories</h2>
+             <div class="flex items-center gap-3">
+                <span class="text-sm font-semibold text-gray-600">Calculation Engine:</span>
+                <select v-model="settings.overtime.engine_context" class="p-2 border border-gray-300 rounded focus:border-[#3b82f6] outline-none text-sm font-medium">
+                   <option value="default">Generic (Standard Hourly)</option>
+                   <option value="rate_my_staff_custom">Custom (Lembur Libur, Longshift, Cetak)</option>
+                </select>
+             </div>
+          </div>
+          
+          <div class="flex justify-between items-center mb-3">
+             <p class="text-sm text-gray-500 m-0">Define the rates and types for overtime calculations below.</p>
+             <button @click="openAddOtModal" class="bg-[#8b5cf6] text-white text-xs px-4 py-2 rounded-lg font-bold hover:bg-[#7c3aed] transition-colors shadow-sm">+ Add Overtime Category</button>
+          </div>
+          
+          <div class="overflow-x-auto mt-4">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th class="text-left p-3 border-b border-gray-200 text-gray-500 font-semibold text-sm">Category Name</th>
+                  <th class="text-left p-3 border-b border-gray-200 text-gray-500 font-semibold text-sm">Calculation Type</th>
+                  <th class="text-right p-3 border-b border-gray-200 text-gray-500 font-semibold text-sm">Rate (Rp)</th>
+                  <th class="text-center p-3 border-b border-gray-200 text-gray-500 font-semibold text-sm">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ot in overtimeCategories" :key="ot.id" class="border-b border-gray-100 hover:bg-gray-50">
+                  <td class="p-3 font-medium text-gray-800 text-sm">{{ ot.name }}</td>
+                  <td class="p-3 text-sm">
+                    <span v-if="ot.type === 'flat'" class="bg-purple-100 text-purple-700 px-2.5 py-1 rounded text-xs font-bold uppercase">Flat Rate</span>
+                    <span v-else-if="ot.type === 'hourly'" class="bg-blue-100 text-blue-700 px-2.5 py-1 rounded text-xs font-bold uppercase">Per Hour</span>
+                    <span v-else class="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded text-xs font-bold uppercase">Hybrid</span>
+                  </td>
+                  <td class="p-3 text-right text-sm font-mono text-gray-700 whitespace-nowrap">Rp {{ Number(ot.rate).toLocaleString('id-ID') }}</td>
+                  <td class="p-3 text-center">
+                    <button @click="deleteOtCategory(ot.id)" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded p-1.5 transition-colors cursor-pointer border-none" title="Delete">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="overtimeCategories.length === 0">
+                  <td colspan="4" class="p-5 text-center text-gray-400 text-sm italic">No overtime categories found. Add one to start tracking OT.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
       </div>
 
       <!-- System Announcements -->
@@ -239,6 +290,38 @@
       </div>
     </div>
 
+    <!-- Add Overtime Modal -->
+    <div v-if="showOtModal" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-sm flex flex-col">
+        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-lg font-bold m-0 text-gray-800">New Category</h2>
+          <button @click="showOtModal = false" class="text-gray-500 hover:text-gray-800 bg-transparent border-none text-xl font-bold cursor-pointer">&times;</button>
+        </div>
+        <div class="p-4 flex flex-col gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-gray-700">Category Name</label>
+            <input v-model="newOtData.name" type="text" class="w-full p-2 border border-gray-300 rounded focus:border-[#8b5cf6] outline-none text-sm" placeholder="e.g. Lembur Cetak">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-gray-700">Calculation Type</label>
+            <select v-model="newOtData.type" class="w-full p-2 border border-gray-300 rounded focus:border-[#8b5cf6] outline-none text-sm">
+              <option value="hourly">Per Jam (Hourly)</option>
+              <option value="flat">Sekali Jalan (Flat Rate)</option>
+              <option value="hybrid">Kombinasi (Hybrid)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1 text-gray-700">Rate / Amount (Rp)</label>
+            <input v-model="newOtData.rate" type="number" min="0" class="w-full p-2 border border-gray-300 rounded focus:border-[#8b5cf6] outline-none text-sm" placeholder="e.g. 10000">
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-200 flex justify-end gap-2 bg-gray-50 rounded-b-lg">
+          <button @click="showOtModal = false" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 cursor-pointer">Cancel</button>
+          <button @click="saveOtCategory" class="px-4 py-2 border-none rounded bg-[#8b5cf6] text-white text-sm font-bold hover:bg-[#7c3aed] cursor-pointer">Save Category</button>
+        </div>
+      </div>
+    </div>
+
   </AppLayout>
 </template>
 
@@ -267,6 +350,11 @@ const newPosData = reactive({ department_id: '', name: '' });
 const holidays = ref([]);
 const newHoliday = reactive({ date: '', name: '' });
 
+// --- Overtime Engine & Category State ---
+const overtimeCategories = ref([]);
+const showOtModal = ref(false);
+const newOtData = reactive({ name: '', type: 'hourly', rate: 0 });
+
 const settings = reactive({
   branding: {
     subdomain: 'megacorp',
@@ -274,15 +362,19 @@ const settings = reactive({
   },
   attendance: {
     auto_sunday_holiday: false
+  },
+  overtime: {
+    engine_context: 'default'
   }
 });
 
 onMounted(async () => {
     try {
-        const [resSettings, resDepts, resPos] = await Promise.all([
+        const [resSettings, resDepts, resPos, resOtTypes] = await Promise.all([
             axios.get('/api/settings'),
             axios.get('/api/departments'),
-            axios.get('/api/positions')
+            axios.get('/api/positions'),
+            axios.get('/api/overtime-categories')
         ]);
         users.value = resSettings.data.users;
         
@@ -290,6 +382,9 @@ onMounted(async () => {
             Object.assign(settings.branding, resSettings.data.settings.branding);
             if (resSettings.data.settings.attendance) {
                 settings.attendance.auto_sunday_holiday = resSettings.data.settings.attendance.auto_sunday_holiday;
+            }
+            if (resSettings.data.settings.overtime) {
+                settings.overtime.engine_context = resSettings.data.settings.overtime.engine_context || 'default';
             }
         }
         
@@ -299,6 +394,7 @@ onMounted(async () => {
 
         departments.value = resDepts.data;
         positions.value = resPos.data;
+        overtimeCategories.value = resOtTypes.data;
 
     } catch (e) {
         console.error("Failed to fetch settings or master data", e);
@@ -381,6 +477,35 @@ const deleteHoliday = async (id) => {
     holidays.value = holidays.value.filter(h => h.id !== id);
   } catch (error) {
     alert("Error deleting holiday");
+  }
+};
+
+// --- Overtime Categories Methods ---
+const openAddOtModal = () => {
+  newOtData.name = '';
+  newOtData.type = 'hourly';
+  newOtData.rate = 0;
+  showOtModal.value = true;
+};
+
+const saveOtCategory = async () => {
+  if(!newOtData.name || newOtData.rate < 0) return;
+  try {
+    const res = await axios.post('/api/overtime-categories', newOtData);
+    overtimeCategories.value.unshift(res.data.data);
+    showOtModal.value = false;
+  } catch (error) {
+    alert("Error saving category: " + (error.response?.data?.message || ''));
+  }
+};
+
+const deleteOtCategory = async (id) => {
+  if(!confirm("Are you sure? Existing attendance records linked to this category might be affected.")) return;
+  try {
+    await axios.delete(`/api/overtime-categories/${id}`);
+    overtimeCategories.value = overtimeCategories.value.filter(o => o.id !== id);
+  } catch (error) {
+    alert("Error deleting category");
   }
 };
 

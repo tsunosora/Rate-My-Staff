@@ -199,10 +199,24 @@
 
                   <!-- Missing Scans -->
                   <div v-if="recordsWithMissingScans.length > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p class="text-sm font-bold text-blue-800 mb-1" style="margin: 0">Missing Scans / Only 1 Scan Detected ({{ recordsWithMissingScans.length }} records):</p>
-                      <p class="text-xs text-blue-600 mb-3" style="margin: 0">Please resolve these single scans before importing.</p>
                       
-                      <div class="space-y-3 mt-3">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 border-b border-blue-100 pb-3">
+                          <div>
+                              <p class="text-sm font-bold text-blue-800 mb-1" style="margin: 0">Missing Scans / Only 1 Scan Detected ({{ recordsWithMissingScans.length }} records):</p>
+                              <p class="text-xs text-blue-600 mb-0" style="margin: 0">Please resolve these single scans before importing.</p>
+                          </div>
+                          
+                          <div class="w-full sm:w-[250px]">
+                              <select @change="applyBulkResolution($event)" class="w-full text-sm bg-blue-100 border border-blue-300 font-bold px-3 py-2 rounded-lg text-blue-800 focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer">
+                                  <option value="" disabled selected>⚡ Apply to All...</option>
+                                  <option value="lupa_scan">Auto-Deteksi (Semua)</option>
+                                  <option value="long_shift">Long Shift / Lembur (Semua)</option>
+                                  <option value="ignore">❌ Ignore (Semua)</option>
+                              </select>
+                          </div>
+                      </div>
+                      
+                      <div class="space-y-3 mt-3 max-h-[400px] overflow-y-auto px-1 custom-scrollbar">
                           <div v-for="(record, idx) in recordsWithMissingScans" :key="'m-'+idx" class="flex flex-col md:flex-row md:items-center gap-3 bg-white p-3 rounded border border-blue-100">
                               <div class="font-medium text-gray-800 min-w-[200px]" :title="getRecordName(record)">
                                   {{ getRecordName(record) }} <span class="text-xs text-gray-500 font-normal ml-1">({{ record.tanggal }})</span>
@@ -411,6 +425,18 @@ const recordsWithMissingScans = computed(() => {
 });
 
 const getRecordName = (r) => r.original_name || r.original_pin || 'Unknown';
+
+const applyBulkResolution = (event) => {
+    const value = event.target.value;
+    if (!value) return;
+
+    recordsWithMissingScans.value.forEach(record => {
+        record.resolution = value;
+    });
+
+    // Reset master dropdown back to placeholder so it can be re-triggered if needed
+    event.target.value = "";
+};
 
 const todayStr = new Date().toISOString().split('T')[0];
 const filters = reactive({

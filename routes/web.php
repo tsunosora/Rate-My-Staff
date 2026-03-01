@@ -98,6 +98,9 @@ Route::middleware('auth')->group(function () {
     // Work Schedules API
     Route::apiResource('/api/work-schedules', \App\Http\Controllers\WorkScheduleController::class);
 
+    // Overtime Categories API
+    Route::apiResource('/api/overtime-categories', \App\Http\Controllers\OvertimeCategoryController::class);
+
     // Settings API
     Route::get('/api/settings', [\App\Http\Controllers\SettingController::class, 'index']);
     Route::post('/api/settings', [\App\Http\Controllers\SettingController::class, 'store']);
@@ -126,6 +129,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/attendance-reports', [\App\Http\Controllers\AttendanceReportController::class, 'index']);
     Route::get('/api/attendance-reports/export/excel', [\App\Http\Controllers\AttendanceReportController::class, 'exportExcel']);
     Route::get('/api/attendance-reports/export/pdf', [\App\Http\Controllers\AttendanceReportController::class, 'exportPdf']);
+    Route::get('/api/attendance-reports/export/overtime-slip', [\App\Http\Controllers\AttendanceReportController::class, 'exportOvertimeSlip']);
 });
 
 // Catch-all route for Vue SPA

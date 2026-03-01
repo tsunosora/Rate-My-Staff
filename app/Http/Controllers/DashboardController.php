@@ -87,23 +87,20 @@ class DashboardController extends Controller
             $chartEndDate = $end->format('Y-m-d');
 
             $reportController = new \App\Http\Controllers\AttendanceReportController();
-            $chartReportData = $reportController->getReportData($chartStartDate, $chartEndDate, 'all', $employeeId);
+            $reportDataForChart = $reportController->getReportData($chartStartDate, $chartEndDate, 'all', $employeeId);
 
             $onTimeCount = 0;
             $lateCount = 0;
             $absentCount = 0;
 
-            foreach ($chartReportData as $row) {
+            foreach ($reportDataForChart as $row) {
                 $status = $row['status'];
 
-                if (in_array($status, ['Present', 'on_time', 'Long Shift / Lembur', 'Lupa Scan Pulang', 'Lupa Scan Masuk'])) {
-                    if ($row['late_minutes'] > 0) {
-                        $lateCount++;
-                    } else {
-                        $onTimeCount++;
-                    }
-                } elseif ($status === 'Late' || $row['late_minutes'] > 0) {
+                // Match exact logic for Chart as well
+                if ($status === 'Late' || $row['late_minutes'] > 0) {
                     $lateCount++;
+                } elseif (in_array($status, ['Present', 'on_time']) && $row['late_minutes'] == 0) {
+                    $onTimeCount++;
                 } elseif (in_array($status, ['Absent', 'Izin', 'Sakit', 'Cuti', 'alpha'])) {
                     $absentCount++;
                 }
@@ -129,14 +126,11 @@ class DashboardController extends Controller
         foreach ($reportData as $row) {
             $status = $row['status'];
 
-            if (in_array($status, ['Present', 'on_time', 'Long Shift / Lembur', 'Lupa Scan Pulang', 'Lupa Scan Masuk'])) {
-                if ($row['late_minutes'] > 0) {
-                    $totalLate++;
-                } else {
-                    $totalOnTime++;
-                }
-            } elseif ($status === 'Late' || $row['late_minutes'] > 0) {
+            // Match logic from AttendanceReportController@calculateStats
+            if ($status === 'Late' || $row['late_minutes'] > 0) {
                 $totalLate++;
+            } elseif (in_array($status, ['Present', 'on_time']) && $row['late_minutes'] == 0) {
+                $totalOnTime++;
             } elseif (in_array($status, ['Absent', 'Izin', 'Sakit', 'Cuti', 'alpha'])) {
                 $totalAbsent++;
             }
