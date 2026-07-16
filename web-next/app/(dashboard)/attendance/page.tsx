@@ -28,6 +28,12 @@ export default function AttendancePage() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ employeeId: "", clockIn: "", clockOut: "" });
   const [error, setError] = useState("");
+  const [leaveUrl, setLeaveUrl] = useState("");
+
+  async function shareLeaveLink() {
+    const link = await api<{ token: string }>("/api/attendance/leave-link", { method: "POST" });
+    setLeaveUrl(`${window.location.origin}/absence/${link.token}`);
+  }
 
   const load = useCallback(async () => {
     const q = new URLSearchParams({ date, page: String(page) });
@@ -75,11 +81,26 @@ export default function AttendancePage() {
         <h1 className="text-2xl font-bold text-slate-800">Absensi</h1>
         <div className="flex items-center gap-2">
           <input type="date" className="input" value={date} onChange={(e) => { setPage(1); setDate(e.target.value); }} />
+          <button onClick={shareLeaveLink} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
+            Bagikan Link Izin
+          </button>
           <button onClick={() => setModal(true)} className="btn-primary">
             + Manual
           </button>
         </div>
       </div>
+
+      {leaveUrl && (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm">
+          <span className="break-all text-indigo-700">{leaveUrl}</span>
+          <button
+            onClick={() => navigator.clipboard?.writeText(leaveUrl)}
+            className="shrink-0 rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700"
+          >
+            Salin
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MetricCard label="Hadir" value={metrics?.present ?? 0} color="text-green-600" />
