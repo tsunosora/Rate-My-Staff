@@ -208,6 +208,8 @@ export default function SettingsPage() {
           </ul>
         </Card>
 
+        <ChangePasswordCard />
+
         <Card title="Sistem & Integrasi">
           <div className="space-y-3 text-sm">
             <label className="space-y-1">
@@ -260,5 +262,49 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       <h2 className="mb-3 text-lg font-semibold text-slate-800">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function ChangePasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function submit() {
+    setMsg("");
+    setErr("");
+    if (next !== confirm) {
+      setErr("Konfirmasi password tidak cocok.");
+      return;
+    }
+    try {
+      await api("/api/account/password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      });
+      setMsg("Password berhasil diganti.");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  return (
+    <Card title="Ganti Password">
+      <div className="space-y-3 text-sm">
+        {msg && <div className="rounded-lg bg-green-50 px-3 py-2 text-green-700">{msg}</div>}
+        {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-red-600">{err}</div>}
+        <input type="password" className="input" placeholder="Password saat ini" value={current} onChange={(e) => setCurrent(e.target.value)} />
+        <input type="password" className="input" placeholder="Password baru (min 6)" value={next} onChange={(e) => setNext(e.target.value)} />
+        <input type="password" className="input" placeholder="Konfirmasi password baru" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <button onClick={submit} className="btn-primary">
+          Simpan password
+        </button>
+      </div>
+    </Card>
   );
 }

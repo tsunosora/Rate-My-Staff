@@ -2,7 +2,10 @@ import type { Prisma } from "@prisma/client";
 
 /** Bangun where clause assessment dari query params (dipakai list & export). */
 export function buildAssessmentWhere(sp: URLSearchParams): Prisma.AssessmentWhereInput {
-  const where: Prisma.AssessmentWhereInput = { deletedAt: null, status: "completed" };
+  // Laporan official = penilaian internal saja; rating publik (QR) dikecualikan
+  // agar tidak mengotori rata-rata & statistik. Feedback publik dilihat terpisah
+  // via endpoint reports/employee/[id]/public-feedbacks.
+  const where: Prisma.AssessmentWhereInput = { deletedAt: null, status: "completed", isPublic: false };
   const period = sp.get("period");
   const department = sp.get("department");
   const search = sp.get("search")?.trim();
