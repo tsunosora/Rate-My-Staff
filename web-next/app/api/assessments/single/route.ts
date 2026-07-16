@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession, json, badRequest, route } from "@/lib/http";
 import { singleAssessmentSchema } from "@/lib/validators/assessment";
 import { buildScores } from "@/lib/services/assessment";
+import { notifyAll } from "@/lib/notify";
 
 export const POST = route(async (req: Request) => {
   const session = await requireSession();
@@ -32,8 +33,16 @@ export const POST = route(async (req: Request) => {
       status: d.status,
       scores: { create: scoreRows },
     },
-    include: { scores: true },
+    include: { scores: true, employee: { select: { fullName: true } } },
   });
+
+  if (assessment.status === "completed") {
+    await notifyAll("assessment_completed", {
+      title: "Penilaian selesai",
+      message: `Penilaian untuk ${assessment.employee.fullName} (skor ${totalScore}) telah diselesaikan.`,
+      assessmentId: assessment.id,
+    });
+  }
 
   return json(assessment, { status: 201 });
 });
