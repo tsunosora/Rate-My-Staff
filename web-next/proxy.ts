@@ -1,8 +1,11 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 
-// Next.js 16: file konvensi "middleware" diganti "proxy". Fungsi tetap sama.
-// Auth.js v5 mengembalikan handler yang kompatibel; default Node.js runtime
-// di Next 16 aman untuk Prisma adapter (session pakai JWT, tanpa akses DB di sini).
+// Next.js 16: konvensi "middleware" -> "proxy". Kita buat instance Auth.js
+// dari config RINGAN (tanpa PrismaAdapter) agar bundle proxy tidak memuat
+// Prisma/native engine. Session dibaca dari JWT (tanpa akses DB).
+const { auth } = NextAuth(authConfig);
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
