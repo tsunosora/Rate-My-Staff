@@ -64,9 +64,21 @@ export default function AttendanceReportPage() {
     api<Ref[]>("/api/assessments/employees").then(setEmployees);
   }, []);
 
+  const exportUrl = (() => {
+    const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    if (departmentId) q.set("department_id", departmentId);
+    if (employeeId) q.set("employee_id", employeeId);
+    return `/api/attendance/report/export-excel?${q}`;
+  })();
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-800">Laporan Absensi</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Laporan Absensi</h1>
+        <a href={exportUrl} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
+          Export Excel
+        </a>
+      </div>
 
       <div className="flex flex-wrap items-end gap-2 rounded-xl bg-white p-3 shadow-sm text-sm">
         <label className="space-y-1">
