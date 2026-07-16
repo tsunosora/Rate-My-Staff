@@ -22,3 +22,16 @@ body {
 .input:focus {
   border-color: #64748b; /* slate-500 */
 }
+
+.btn-primary {
+  border-radius: 0.5rem;
+  background: #1e293b; /* slate-800 */
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  background: #334155; /* slate-700 */
+}
