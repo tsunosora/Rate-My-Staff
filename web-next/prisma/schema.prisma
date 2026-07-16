@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  HR
+  EVALUATOR
+  OWNER
+}
+
+enum AssessmentStatus {
+  draft
+  completed
+  approved
+}
+
+enum OvertimeType {
+  flat
+  hourly
+  hybrid
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  role          Role      @default(EVALUATOR)
+  rememberToken String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assessments   Assessment[]   @relation("Evaluator")
+  auditLogs     AuditLog[]
+  notifications Notification[]
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  positions Position[]
+  employees Employee[]
+}
+
+model Position {
+  id           Int      @id @default(autoincrement())
+  name         String
+  departmentId Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  employees  Employee[]
+
+  @@index([departmentId])
+}
+
+model WorkSchedule {
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  startTime            String?
+  endTime              String?
+  breakStartTime       String?
+  breakEndTime         String?
+  lateToleranceMinutes Int       @default(15)
+  dailyWage            Decimal   @default(0) @db.Decimal(15, 2)
+  weeklyWage           Decimal   @default(0) @db.Decimal(15, 2)
+  monthlyWage          Decimal   @default(0) @db.Decimal(15, 2)
+  holidayWage          Decimal   @default(0) @db.Decimal(15, 2)
+  overtimeWagePerHour  Decimal   @default(0) @db.Decimal(15, 2)
+  isHoliday            Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  employees Employee[]
+}
+
+model Employee {
+  id             Int       @id @default(autoincrement())
+  employeeCode   String    @unique @db.VarChar(20)
+  publicToken    String?   @unique @db.VarChar(36)
+  fullName       String    @db.VarChar(150)
+  nickname       String?   @db.VarChar(50)
+  departmentId   Int?
+  positionId     Int?
+  workScheduleId Int?
+  photoPath      String?   @db.VarChar(255)
+  joinDate       DateTime?
+  salary         Decimal?  @db.Decimal(15, 2)
+  email          String?
+  phone          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position     Position?     @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  workSchedule WorkSchedule? @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  assessments  Assessment[]
+  attendances  Attendance[]
+
+  @@index([isActive])
+}
+
+model AssessmentTemplate {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(100)
+  description    String?  @db.Text
+  departmentType String?  @db.VarChar(50)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  indicators  AssessmentIndicator[]
+  assessments Assessment[]
+
+  @@index([isActive])
+}
+
+model AssessmentIndicator {
+  id          Int      @id @default(autoincrement())
+  templateId  Int
+  category    String   @db.VarChar(100)
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  weight      Decimal  @db.Decimal(5, 2)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  scores   AssessmentScore[]
+
+  @@index([templateId])
+}
+
+model Assessment {
+  id              Int              @id @default(autoincrement())
+  employeeId      Int
+  templateId      Int
+  evaluatorId     Int?
+  isPublic        Boolean          @default(false)
+  assessmentDate  DateTime
+  period          String?
+  totalScore      Decimal?         @db.Decimal(5, 2)
+  grade           String?          @db.VarChar(20)
+  raterName       String?
+  evaluatorNotes  String?          @db.Text
+  developmentPlan String?          @db.Text
+  recommendation  String?          @db.Text
+  status          AssessmentStatus @default(draft)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  employee  Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  template  AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  evaluator User?              @relation("Evaluator", fields: [evaluatorId], references: [id], onDelete: Cascade)
+  scores    AssessmentScore[]
+
+  @@index([employeeId])
+  @@index([templateId])
+  @@index([evaluatorId])
+  @@index([assessmentDate])
+  @@index([status])
+}
+
+model AssessmentScore {
+  id            Int      @id @default(autoincrement())
+  assessmentId  Int
+  indicatorId   Int
+  score         Int
+  weightedValue Decimal  @db.Decimal(5, 2)
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assessment Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  indicator  AssessmentIndicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@index([indicatorId])
+}
+
+model OvertimeCategory {
+  id             Int          @id @default(autoincrement())
+  name           String
+  type           OvertimeType @default(hourly)
+  rate           Decimal      @default(0) @db.Decimal(10, 2)
+  companyContext String       @default("default")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  attendances Attendance[]
+}
+
+model Attendance {
+  id                      Int      @id @default(autoincrement())
+  employeeId              Int
+  scanDate                DateTime
+  scanType                String?  @db.VarChar(20)
+  machineName             String?  @db.VarChar(100)
+  snMachine               String?  @db.VarChar(100)
+  status                  String   @default("on_time") @db.VarChar(20)
+  absenceReason           String?  @db.Text
+  lateMinutes             Int      @default(0)
+  overtimeMinutes         Int      @default(0)
+  overtimeReason          String?  @db.Text
+  overtimeCategoryId      Int?
+  approvedOvertimeMinutes Int      @default(0)
+  overtimeAmount          Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  overtimeCategory OvertimeCategory? @relation(fields: [overtimeCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([scanDate])
+  @@index([status])
+}
+
+model Holiday {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeaveLink {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String   @db.VarChar(50)
+  targetTable String   @db.VarChar(50)
+  targetId    Int?
+  oldValues   Json?
+  newValues   Json?
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([targetTable])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    Int
+  type      String
+  data      Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([readAt])
+}
+
+// Pondasi "cloud mesin absensi": raw push log dari mesin Fingerspot
+model FingerspotRawLog {
+  id        Int       @id @default(autoincrement())
+  snMachine String?   @db.VarChar(100)
+  pin       String?   @db.VarChar(50)
+  scanAt    DateTime?
+  rawBody   Json
+  processed Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([processed])
+  @@index([snMachine])
+}
