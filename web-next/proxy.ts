@@ -16,6 +16,7 @@ export default auth((req) => {
     pathname.startsWith("/link-expired") ||
     pathname.startsWith("/api/public") ||
     pathname.startsWith("/api/fingerspot") ||
+    pathname.startsWith("/iclock") ||
     pathname.startsWith("/api/auth");
 
   if (!isPublic && !req.auth) {
