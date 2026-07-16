@@ -12,6 +12,9 @@ export const editAttendanceSchema = z.object({
   clockOut: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable().or(z.literal("")),
   lateMinutes: z.coerce.number().int().min(0).optional(),
   overtimeMinutes: z.coerce.number().int().min(0).optional(),
+  approvedOvertimeMinutes: z.coerce.number().int().min(0).optional(),
+  overtimeCategoryId: z.coerce.number().int().positive().optional().nullable(),
+  overtimeReason: z.string().max(1000).optional().nullable(),
   status: z.string().max(20).optional(),
   absenceReason: z.string().max(1000).optional().nullable(),
 });
