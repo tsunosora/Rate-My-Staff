@@ -1,38 +1,42 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
 /node_modules
-# /public/build
-/public/hot
-/public/storage
-/storage/*.key
-/vendor
-.env
-.env.backup
-.env.production
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/.idea
-/.vscode
-/.fleet
-/.zed
-/.nova
-/.gemini
-/.antigravity
-*.log
-Kimi_Agent_Project Setup Guide.zip
-zip_extracted
-l11-tmp
-cookie.txt
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Testing & Temporary Scripts
-test_*.php
-test_*.js
-*.sqlite
+# testing
+/coverage
 
-/storage/framework/sessions/*
-!/storage/framework/sessions/.gitignore
-/storage/framework/views/*
-!/storage/framework/views/.gitignore
-/storage/framework/cache/*
-!/storage/framework/cache/.gitignore
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
