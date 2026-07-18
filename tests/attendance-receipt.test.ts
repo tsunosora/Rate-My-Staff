@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { buildReceipt, type ReceiptInput } from "@/lib/services/attendance/receipt";
-import { resolveReceiptRates, DEFAULT_RECEIPT_RATES } from "@/lib/services/attendance/receipt-rates";
+import {
+  resolveReceiptRates,
+  resolveOvertimeRounding,
+  DEFAULT_RECEIPT_RATES,
+} from "@/lib/services/attendance/receipt-rates";
 
 const rates = { daily: 20000, holiday: 70000, cetak: 10000 };
 const base = {
@@ -67,9 +71,34 @@ describe("buildReceipt", () => {
     expect(d.totals.cetakAmount).toBe(0);
   });
 
-  test("LC desimal apa adanya (90 menit = 1.50)", () => {
+  test("default 'hour': hanya jam penuh dihitung (90 menit = 1, sisa 30 menit dibuang)", () => {
     const d = buildReceipt({
       ...base,
+      rows: [
+        mk({ date: "2026-04-03", shift: "siang", clockIn: "13:00", clockOut: "22:30", overtimeMinutes: 90, status: "on_time" }),
+      ],
+    });
+    expect(d.rows[0].lc).toBe(1);
+    expect(d.rows[0].overtimeHours).toBe(1);
+    expect(d.totals.cetakAmount).toBe(10000);
+  });
+
+  test("default 'hour': 50 menit lembur TIDAK dihitung (LC=0)", () => {
+    const d = buildReceipt({
+      ...base,
+      rows: [
+        mk({ date: "2026-04-04", shift: "siang", clockIn: "13:00", clockOut: "21:50", overtimeMinutes: 50, status: "on_time" }),
+      ],
+    });
+    expect(d.rows[0].lc).toBe(0);
+    expect(d.rows[0].overtimeHours).toBe(0);
+    expect(d.totals.cetakAmount).toBe(0);
+  });
+
+  test("mode 'decimal': jam desimal apa adanya (90 menit = 1.50)", () => {
+    const d = buildReceipt({
+      ...base,
+      rounding: "decimal",
       rows: [
         mk({ date: "2026-04-03", shift: "siang", clockIn: "13:00", clockOut: "22:30", overtimeMinutes: 90, status: "on_time" }),
       ],
@@ -120,5 +149,25 @@ describe("resolveReceiptRates", () => {
   test("menerima Decimal-like (toString)", () => {
     const r = resolveReceiptRates([{ name: "Lembur Cetak", rate: { toString: () => "12000" } }]);
     expect(r.cetak).toBe(12000);
+  });
+
+  test("Setting menimpa OvertimeCategory & default", () => {
+    const r = resolveReceiptRates(
+      [{ name: "Lembur Cetak", rate: 10000 }],
+      { receipt_rate_daily: "25000", receipt_rate_cetak: "12000", receipt_rate_holiday: "" }
+    );
+    expect(r.daily).toBe(25000); // dari setting
+    expect(r.cetak).toBe(12000); // setting menang atas kategori 10000
+    expect(r.holiday).toBe(DEFAULT_RECEIPT_RATES.holiday); // setting kosong -> default
+  });
+});
+
+describe("resolveOvertimeRounding", () => {
+  test("default 'hour' bila tak diset", () => {
+    expect(resolveOvertimeRounding()).toBe("hour");
+    expect(resolveOvertimeRounding({})).toBe("hour");
+  });
+  test("'decimal' bila diset eksplisit", () => {
+    expect(resolveOvertimeRounding({ overtime_rounding: "decimal" })).toBe("decimal");
   });
 });

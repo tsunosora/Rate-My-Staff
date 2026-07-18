@@ -319,6 +319,66 @@ export default function SettingsPage() {
             Simpan pengaturan
           </button>
         </Card>
+
+        <Card title="Tarif Lembur & Struk">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="space-y-1">
+              <span className="text-muted">Lembur Harian (per hari longshift)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className="input"
+                placeholder="20000"
+                value={settings.receipt_rate_daily ?? ""}
+                onChange={(e) => setSettings({ ...settings, receipt_rate_daily: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Lembur Libur (per hari libur masuk)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className="input"
+                placeholder="70000"
+                value={settings.receipt_rate_holiday ?? ""}
+                onChange={(e) => setSettings({ ...settings, receipt_rate_holiday: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Lembur Cetak (per jam)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className="input"
+                placeholder="10000"
+                value={settings.receipt_rate_cetak ?? ""}
+                onChange={(e) => setSettings({ ...settings, receipt_rate_cetak: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Perhitungan jam lembur</span>
+              <select
+                className="input"
+                value={settings.overtime_rounding ?? "hour"}
+                onChange={(e) => setSettings({ ...settings, overtime_rounding: e.target.value })}
+              >
+                <option value="hour">Per jam penuh (buang sisa menit)</option>
+                <option value="decimal">Desimal (menit dihitung)</option>
+              </select>
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-subtle">
+            Tarif kosong memakai default (20.000 / 70.000 / 10.000) atau nilai dari kategori lembur.
+            Mode <strong>per jam penuh</strong>: lembur hanya dihitung tiap 1 jam — sisa menit di
+            bawah 60 (mis. 30 atau 50 menit) tidak dihitung.
+          </p>
+          <button onClick={saveSettings} className="btn-primary mt-3">
+            Simpan pengaturan
+          </button>
+        </Card>
       </div>
     </div>
   );

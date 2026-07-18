@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 import { aggregateAttendance } from "./aggregate";
-import { buildReceipt, type ReceiptData } from "./receipt";
-import { resolveReceiptRates } from "./receipt-rates";
+import { buildReceipt, type ReceiptData, type OvertimeRounding } from "./receipt";
+import { resolveReceiptRates, resolveOvertimeRounding } from "./receipt-rates";
+import { getAllSettings } from "@/lib/settings";
 
 function monthRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
@@ -11,9 +12,12 @@ function monthRange(year: number, month: number) {
   return { startStr: ymd(start), endStr: ymd(end) };
 }
 
-async function loadRates(prisma: PrismaClient) {
-  const cats = await prisma.overtimeCategory.findMany();
-  return resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })));
+async function loadConfig(prisma: PrismaClient): Promise<{ rates: ReturnType<typeof resolveReceiptRates>; rounding: OvertimeRounding }> {
+  const [cats, settings] = await Promise.all([prisma.overtimeCategory.findMany(), getAllSettings()]);
+  return {
+    rates: resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })), settings),
+    rounding: resolveOvertimeRounding(settings),
+  };
 }
 
 /** Struk 1 karyawan untuk 1 bulan. */
@@ -29,9 +33,9 @@ export async function buildEmployeeReceipt(
   });
   if (!emp) return null;
   const { startStr, endStr } = monthRange(year, month);
-  const [{ rows }, rates] = await Promise.all([
+  const [{ rows }, { rates, rounding }] = await Promise.all([
     aggregateAttendance(prisma, { startStr, endStr, employeeId: String(employeeId) }),
-    loadRates(prisma),
+    loadConfig(prisma),
   ]);
   return buildReceipt({
     employeeId: emp.id,
@@ -41,6 +45,7 @@ export async function buildEmployeeReceipt(
     year,
     month,
     rates,
+    rounding,
     rows: rows.map((r) => ({
       date: r.date,
       shift: r.shift,

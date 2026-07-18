@@ -9,6 +9,20 @@ export type ReceiptRateSet = {
   cetak: number;
 };
 
+/**
+ * Kebijakan pembulatan jam lembur:
+ * - "hour"    : hanya jam PENUH yang dihitung; sisa menit (<60) dibuang. 50m=0, 90m=1, 130m=2.
+ * - "decimal" : jam desimal apa adanya (menit/60, 2 desimal). 50m=0.83, 90m=1.5.
+ */
+export type OvertimeRounding = "hour" | "decimal";
+
+/** Ubah menit lembur menjadi jam sesuai kebijakan pembulatan. */
+export function billableOvertimeHours(minutes: number, rounding: OvertimeRounding): number {
+  if (minutes <= 0) return 0;
+  if (rounding === "decimal") return Math.round((minutes / 60) * 100) / 100;
+  return Math.floor(minutes / 60);
+}
+
 export type ReceiptInputRow = Pick<
   ReportRow,
   "date" | "shift" | "isHoliday" | "clockIn" | "clockOut" | "lateMinutes" | "overtimeMinutes" | "status"
@@ -22,6 +36,8 @@ export type ReceiptInput = {
   year: number; // mis. 2026
   month: number; // 1-12
   rates: ReceiptRateSet;
+  /** Kebijakan pembulatan lembur (default "hour" = hanya jam penuh). */
+  rounding?: OvertimeRounding;
   rows: ReceiptInputRow[];
 };
 
@@ -68,22 +84,19 @@ const MONTHS = [
 ];
 const SHIFT_LABEL: Record<string, string> = { longshift: "Long", pagi: "Pagi", siang: "Siang" };
 
-/** Bulatkan menit lembur ke jam, 2 desimal. */
-function toHours(minutes: number): number {
-  return Math.round((minutes / 60) * 100) / 100;
-}
-
 /**
  * Ubah baris absensi satu bulan-satu karyawan menjadi struk (ReceiptData).
  * Aturan (dikonfirmasi user):
  * - LS = 1 bila shift longshift di hari kerja & hadir -> "Lembur Harian".
  * - LL = 1 bila hari libur tapi tetap hadir (8 jam = 1 hari) -> "Lembur Libur".
- * - LC = jam lembur (overtimeMinutes/60, desimal) hanya shift siang/longshift di hari kerja -> "Lembur Cetak".
+ * - LC = jam lembur hanya shift siang/longshift di hari kerja -> "Lembur Cetak".
+ * Jam lembur dibulatkan menurut `rounding` (default "hour": sisa menit <60 tidak dihitung).
  */
 export function buildReceipt(input: ReceiptInput): ReceiptData {
+  const rounding: OvertimeRounding = input.rounding ?? "hour";
   const rows: ReceiptDayRow[] = input.rows.map((r) => {
     const worked = Boolean(r.clockIn || r.clockOut);
-    const otHours = r.overtimeMinutes > 0 ? toHours(r.overtimeMinutes) : 0;
+    const otHours = billableOvertimeHours(r.overtimeMinutes, rounding);
     const ls = worked && !r.isHoliday && r.shift === "longshift" ? 1 : 0;
     const ll = worked && r.isHoliday ? 1 : 0;
     const lc = worked && !r.isHoliday && (r.shift === "siang" || r.shift === "longshift") ? otHours : 0;
