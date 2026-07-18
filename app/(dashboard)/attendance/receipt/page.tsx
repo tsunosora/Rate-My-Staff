@@ -37,6 +37,13 @@ type ReceiptData = {
   };
   rates: { daily: number; holiday: number; cetak: number };
 };
+type SummaryRow = {
+  employeeId: number;
+  employeeName: string;
+  employeeCode: string;
+  department: string | null;
+  totals: ReceiptData["totals"];
+};
 type Ref = { id: number; name?: string; fullName?: string };
 
 const MONTHS = [
@@ -57,6 +64,8 @@ export default function AttendanceReceiptPage() {
   const [departments, setDepartments] = useState<Ref[]>([]);
   const [data, setData] = useState<ReceiptData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<SummaryRow[] | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     api<Ref[]>("/api/departments").then(setDepartments).catch(() => {});
@@ -82,6 +91,27 @@ export default function AttendanceReceiptPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Pratinjau daftar karyawan (rekap) saat belum memilih satu karyawan — sebelum export massal.
+  const loadSummary = useCallback(async () => {
+    if (employeeId) return;
+    const id = ++reqId.current;
+    setSummaryLoading(true);
+    const q = new URLSearchParams({ year: String(year), month: String(month) });
+    if (departmentId) q.set("department_id", departmentId);
+    try {
+      const res = await api<SummaryRow[]>(`/api/attendance/receipt/summary?${q}`);
+      if (id !== reqId.current) return;
+      setSummary(res);
+    } catch {
+      if (id === reqId.current) setSummary(null);
+    } finally {
+      if (id === reqId.current) setSummaryLoading(false);
+    }
+  }, [employeeId, year, month, departmentId]);
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
 
   const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
   const [exportMsg, setExportMsg] = useState("");
@@ -230,21 +260,92 @@ export default function AttendanceReceiptPage() {
       </div>
 
       {!employeeId ? (
-        <div className="glass rounded-2xl p-10 text-center text-sm text-subtle">
-          Pilih karyawan untuk melihat pratinjau struk, atau langsung <strong className="text-muted">export massal</strong>{" "}
-          (opsional filter departemen).
-        </div>
+        summaryLoading ? (
+          <div className="glass rounded-2xl p-10 text-center text-subtle">Memuat daftar karyawan…</div>
+        ) : !summary || summary.length === 0 ? (
+          <div className="glass rounded-2xl p-10 text-center text-sm text-subtle">
+            Tidak ada karyawan untuk periode/filter ini.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-muted">
+              Pratinjau {summary.length} karyawan — klik <strong className="text-fg">Lihat</strong> untuk
+              detail &amp; edit jam, atau <strong className="text-fg">export massal</strong> di atas.
+            </p>
+            <div className="glass overflow-hidden rounded-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+                      <th className="px-4 py-3 font-medium">Karyawan</th>
+                      <th className="px-4 py-3 text-right font-medium">LS</th>
+                      <th className="px-4 py-3 text-right font-medium">LC</th>
+                      <th className="px-4 py-3 text-right font-medium">LL</th>
+                      <th className="px-4 py-3 text-right font-medium">Jumlah</th>
+                      <th className="px-4 py-3 text-right font-medium">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.map((s) => (
+                      <tr key={s.employeeId} className="border-t border-border transition hover:bg-surface">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-fg">{s.employeeName}</div>
+                          <div className="text-xs text-subtle">{s.department ?? s.employeeCode}</div>
+                        </td>
+                        <td className="px-4 py-3 text-right tabular text-muted">{s.totals.lsCount || "—"}</td>
+                        <td className="px-4 py-3 text-right tabular text-muted">{s.totals.lcHours || "—"}</td>
+                        <td className="px-4 py-3 text-right tabular text-muted">{s.totals.llCount || "—"}</td>
+                        <td className="px-4 py-3 text-right tabular font-medium text-fg">{rp(s.totals.grandTotal)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => setEmployeeId(String(s.employeeId))}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-2.5 py-1.5 text-xs text-muted transition hover:border-primary hover:text-primary"
+                          >
+                            Lihat
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border-strong">
+                      <td className="px-4 py-3 font-semibold text-fg">Total ({summary.length})</td>
+                      <td className="px-4 py-3 text-right tabular text-muted">
+                        {summary.reduce((a, s) => a + s.totals.lsCount, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular text-muted">
+                        {Math.round(summary.reduce((a, s) => a + s.totals.lcHours, 0) * 100) / 100}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular text-muted">
+                        {summary.reduce((a, s) => a + s.totals.llCount, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular font-bold text-primary">
+                        {rp(summary.reduce((a, s) => a + s.totals.grandTotal, 0))}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        )
       ) : loading ? (
         <div className="glass rounded-2xl p-10 text-center text-subtle">Memuat…</div>
       ) : !data ? (
         <div className="glass rounded-2xl p-10 text-center text-subtle">Tidak ada data.</div>
       ) : (
         <div className="space-y-4">
-          <div className="glass rounded-2xl px-5 py-4">
-            <div className="font-display text-lg font-bold text-fg">{data.employeeName}</div>
-            <div className="text-sm text-muted">
-              {(data.department ?? "—") + " · " + data.monthLabel + " · " + data.employeeCode}
+          <div className="glass flex items-center justify-between gap-3 rounded-2xl px-5 py-4">
+            <div>
+              <div className="font-display text-lg font-bold text-fg">{data.employeeName}</div>
+              <div className="text-sm text-muted">
+                {(data.department ?? "—") + " · " + data.monthLabel + " · " + data.employeeCode}
+              </div>
             </div>
+            <button onClick={() => setEmployeeId("")} className="btn-ghost h-9 shrink-0 text-sm">
+              ← Semua karyawan
+            </button>
           </div>
 
           <div className="glass overflow-hidden rounded-2xl">
