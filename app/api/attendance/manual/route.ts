@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession, json, badRequest, route } from "@/lib/http";
 import { manualAttendanceSchema } from "@/lib/validators/attendance";
 import { computeAttendanceRow } from "@/lib/services/attendance/report";
+import { loadShiftConfig } from "@/lib/services/attendance/shift";
 
 function at(dateStr: string, time: string): Date {
   return new Date(`${dateStr}T${time}:00`);
@@ -35,11 +36,13 @@ export const POST = route(async (req: Request) => {
   if (clockOut) scans.push({ scanDate: at(date, clockOut), scanType: "out" });
   if (scans.length === 0) return badRequest({ clockIn: ["Isi minimal jam masuk atau pulang"] });
 
+  const shiftConfig = await loadShiftConfig();
   const row = computeAttendanceRow({
     employeeId,
     date,
     schedule,
     isHoliday: false,
+    shiftConfig,
     scans: scans.map((s) => ({ scanDate: s.scanDate, scanType: s.scanType })),
   });
 

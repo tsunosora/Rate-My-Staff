@@ -42,6 +42,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
     data: {
       ...(d.fullName !== undefined && { fullName: d.fullName }),
       ...(d.nickname !== undefined && { nickname: d.nickname || null }),
+      ...(d.machinePin !== undefined && { machinePin: d.machinePin || null }),
       ...(d.departmentId !== undefined && { departmentId: d.departmentId || null }),
       ...(d.positionId !== undefined && { positionId: d.positionId || null }),
       ...(d.workScheduleId !== undefined && { workScheduleId: d.workScheduleId || null }),

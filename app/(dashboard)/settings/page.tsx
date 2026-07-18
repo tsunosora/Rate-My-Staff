@@ -251,6 +251,74 @@ export default function SettingsPage() {
             </button>
           </div>
         </Card>
+
+        <Card title="Jam Toko & Shift">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="space-y-1">
+              <span className="text-slate-600">Buka toko / shift pagi mulai</span>
+              <input
+                type="time"
+                className="input"
+                value={settings.store_open_time ?? "08:00"}
+                onChange={(e) => setSettings({ ...settings, store_open_time: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-600">Tutup toko / shift siang selesai</span>
+              <input
+                type="time"
+                className="input"
+                value={settings.store_close_time ?? "21:00"}
+                onChange={(e) => setSettings({ ...settings, store_close_time: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-600">Shift pagi selesai</span>
+              <input
+                type="time"
+                className="input"
+                value={settings.shift_morning_end ?? "16:00"}
+                onChange={(e) => setSettings({ ...settings, shift_morning_end: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-600">Shift siang mulai (batas pagi/siang)</span>
+              <input
+                type="time"
+                className="input"
+                value={settings.shift_afternoon_start ?? "13:00"}
+                onChange={(e) => setSettings({ ...settings, shift_afternoon_start: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-600">Longshift bila masuk pagi & pulang ≥</span>
+              <input
+                type="time"
+                className="input"
+                value={settings.longshift_min_out ?? "20:00"}
+                onChange={(e) => setSettings({ ...settings, longshift_min_out: e.target.value })}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-600">Toleransi telat (menit)</span>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={settings.shift_late_tolerance ?? "15"}
+                onChange={(e) => setSettings({ ...settings, shift_late_tolerance: e.target.value })}
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Shift dideteksi otomatis dari jam scan: masuk sebelum &quot;shift siang mulai&quot; = pagi;
+            masuk pagi lalu pulang ≥ ambang longshift = longshift. Lembur = menit kerja melebihi jam
+            selesai shift (pagi: shift pagi selesai; siang/longshift: tutup toko).
+          </p>
+          <button onClick={saveSettings} className="btn-primary mt-3">
+            Simpan pengaturan
+          </button>
+        </Card>
       </div>
     </div>
   );

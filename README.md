@@ -64,6 +64,50 @@ prisma/         Skema database + seed
 tests/          Unit test
 ```
 
+## Import Scanlog Mesin (HTML)
+
+Halaman **Absensi → Import Scanlog** menerima file HTML export mesin (`dbg_kartu_scanlog`,
+kolom PIN / Nama / Tanggal / Scan 1–4). Alurnya: unggah → **Preview** (tanpa menyimpan) →
+**Konfirmasi & Simpan**.
+
+- **Pencocokan:** PIN mesin dicocokkan ke field **PIN Mesin Absensi** (`machinePin`) di data
+  karyawan. Isi PIN ini dulu di **Karyawan → Edit** agar baris tidak "tak cocok". Field yang sama
+  juga dipakai integrasi push Fingerspot.
+- **Pairing scan:** jam masuk diambil dari scan dekat awal shift (08:00 / 13:00), jam pulang dari
+  scan dekat akhir shift (16:00 / 21:00). Bila hanya ada satu scan, diklasifikasikan masuk/pulang
+  berdasarkan kedekatannya ke awal vs akhir shift — mis. scan tunggal 13:00 = **masuk** (shift
+  siang), scan tunggal 21:00 = **pulang** (masuk dikosongkan, bukan diisi jam yang sama).
+  (Scan istirahat belum dipakai.)
+- **Dobel-scan:** bila ada beberapa scan berdekatan di event yang sama (mis. absen jam 8 dua kali,
+  atau jam 9 malam dua kali), digabung jadi satu dan diambil yang **paling terlambat**.
+- **Absensi tidak komplit:** baris yang cuma punya masuk atau cuma pulang otomatis memunculkan
+  modal *Lengkapi manual* (lintas tanggal) tepat setelah import — dan juga ditandai banner di
+  halaman **Absensi**. Jam yang hilang **diisi otomatis sesuai shift** (mis. hanya pulang 16:00 →
+  saran masuk 08:00; hanya pulang 21:00 → saran masuk 13:00; dan sebaliknya), tinggal diperiksa
+  lalu Simpan.
+- **Edit absen:** tiap baris di halaman **Absensi** dan **Laporan Absensi** punya tombol *Edit* untuk
+  mengoreksi jam masuk/pulang (mis. salah isi, atau ternyata longshift) — status/telat/lembur/shift
+  dihitung ulang otomatis.
+- **Hari libur:** tanggal Minggu (bila setting *Minggu otomatis libur* aktif) & tanggal libur
+  custom di **Pengaturan → Hari Libur** ditandai otomatis.
+- **Menimpa:** import menimpa data hari yang sama (`machineName=import-html`). Jika hari itu sudah
+  punya absensi dari sumber lain (mesin push/manual), baris ditandai **bentrok** dan hanya
+  ditimpa bila kotak konfirmasi dicentang; jika tidak, hari bentrok dilewati.
+
+## Shift otomatis & longshift
+
+Status kehadiran (telat/lembur/longshift) dihitung **otomatis dari jam scan** memakai jam toko &
+shift di **Pengaturan → Jam Toko & Shift** — bukan jadwal per-karyawan. Default: toko 08:00–21:00,
+shift pagi 08:00–16:00, shift siang 13:00–21:00.
+
+- **Deteksi shift:** ditentukan dari jam masuk (dekat jam buka = pagi, dekat jam mulai siang = siang).
+- **Longshift:** masuk pagi lalu pulang saat toko tutup (≥ ambang, default 20:00) = bekerja buka
+  sampai tutup.
+- **Lembur:** menit kerja melebihi jam pulang shift (pagi lewat 16:00; siang/longshift lewat 21:00).
+- **Telat:** menit lewat jam mulai shift di atas toleransi (default 15 menit).
+
+Logika ini dipakai konsisten di import scanlog, input manual, dan laporan absensi.
+
 ## Deploy
 
 Produksi berjalan di homelab via PM2 + Cloudflare Tunnel (`absensi.volikoprint.com`).

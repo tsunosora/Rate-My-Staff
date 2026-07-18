@@ -89,6 +89,7 @@ model WorkSchedule {
 model Employee {
   id             Int       @id @default(autoincrement())
   employeeCode   String    @unique @db.VarChar(20)
+  machinePin     String?   @unique @db.VarChar(50)
   publicToken    String?   @unique @db.VarChar(36)
   fullName       String    @db.VarChar(150)
   nickname       String?   @db.VarChar(50)

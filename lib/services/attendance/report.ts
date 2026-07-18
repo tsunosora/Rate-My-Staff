@@ -1,3 +1,5 @@
+import { computeShift, type ShiftConfig } from "./shift";
+
 export type ScheduleInfo = {
   startTime: string | null;
   endTime: string | null;
@@ -18,6 +20,8 @@ export type DayInput = {
   schedule: ScheduleInfo | null;
   isHoliday: boolean;
   scans: ScanInput[];
+  /** Bila diisi, status/telat/lembur dihitung dari jam toko & shift (bukan jadwal per-karyawan). */
+  shiftConfig?: ShiftConfig | null;
 };
 
 export type ReportRow = {
@@ -87,11 +91,36 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
 
   const ins = timed.filter((s) => s.scanType === "in");
   const outs = timed.filter((s) => s.scanType === "out");
-  const clockInDt = (ins[0] ?? timed[0]).dt;
-  const clockOutDt = (outs.length ? outs[outs.length - 1] : timed[timed.length - 1]).dt;
 
-  const clockIn = fmt(clockInDt);
-  const clockOut = timed.length > 1 || outs.length ? fmt(clockOutDt) : null;
+  // Jam masuk HANYA dari scan bertipe "in"; jam pulang dari scan "out". Tidak ada masuk palsu:
+  // baris yang cuma punya scan pulang (mis. lupa absen masuk) => masuk kosong, bukan jam yang sama.
+  let clockInDt: Date | null = ins.length ? ins[0].dt : null;
+  let clockOutDt: Date | null = outs.length ? outs[outs.length - 1].dt : null;
+
+  // Fallback data lama tanpa label in/out: pertama = masuk, terakhir = pulang.
+  if (!clockInDt && !clockOutDt) {
+    clockInDt = timed[0].dt;
+    clockOutDt = timed.length > 1 ? timed[timed.length - 1].dt : null;
+  }
+
+  const clockIn = clockInDt ? fmt(clockInDt) : null;
+  const clockOut = clockOutDt ? fmt(clockOutDt) : null;
+
+  // Mode shift otomatis: status/telat/lembur dari jam toko & shift (abaikan jadwal per-karyawan).
+  if (input.shiftConfig) {
+    const inMin = clockInDt ? minutesOfDay(clockInDt) : null;
+    const outMin = clockOutDt ? minutesOfDay(clockOutDt) : null;
+    const sc = computeShift(inMin, outMin, input.shiftConfig);
+    return {
+      ...base,
+      clockIn,
+      clockOut,
+      lateMinutes: sc.lateMinutes,
+      overtimeMinutes: sc.overtimeMinutes,
+      status: sc.status,
+      absenceReason: null,
+    };
+  }
 
   let lateMinutes = 0;
   let overtimeMinutes = 0;
@@ -101,7 +130,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
   const endMin = parseTimeToMinutes(input.schedule?.endTime ?? null);
   const tolerance = input.schedule?.lateToleranceMinutes ?? 0;
 
-  if (startMin !== null) {
+  if (startMin !== null && clockInDt) {
     const inMin = minutesOfDay(clockInDt);
     if (inMin > startMin + tolerance) {
       lateMinutes = inMin - startMin;
@@ -109,7 +138,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
     }
   }
 
-  if (endMin !== null && clockOut) {
+  if (endMin !== null && clockOutDt) {
     const outMin = minutesOfDay(clockOutDt);
     if (outMin > endMin) overtimeMinutes = outMin - endMin;
   }

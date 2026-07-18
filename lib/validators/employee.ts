@@ -3,6 +3,7 @@ import { z } from "zod";
 export const employeeCreateSchema = z.object({
   fullName: z.string().min(1).max(150),
   nickname: z.string().max(50).optional().nullable(),
+  machinePin: z.string().max(50).optional().nullable(),
   departmentId: z.coerce.number().int().positive().optional().nullable(),
   positionId: z.coerce.number().int().positive().optional().nullable(),
   workScheduleId: z.coerce.number().int().positive().optional().nullable(),

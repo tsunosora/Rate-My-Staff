@@ -21,6 +21,7 @@ export const GET = route(async (req: Request) => {
     where.OR = [
       { fullName: { contains: search } },
       { employeeCode: { contains: search } },
+      { machinePin: { contains: search } },
       { nickname: { contains: search } },
     ];
   }
@@ -53,6 +54,7 @@ export const POST = route(async (req: Request) => {
   const employee = await prisma.employee.create({
     data: {
       employeeCode: code,
+      machinePin: d.machinePin || null,
       publicToken: randomUUID(),
       fullName: d.fullName,
       nickname: d.nickname || null,

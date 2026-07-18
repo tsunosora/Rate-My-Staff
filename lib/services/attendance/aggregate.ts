@@ -1,5 +1,6 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import { buildReport, type DayInput } from "./report";
+import { loadShiftConfig } from "./shift";
 import { getSetting } from "@/lib/settings";
 
 function dateKey(d: Date): string {
@@ -32,6 +33,7 @@ export type AttendanceReportResult = {
     late: number;
     absent: number;
     onTime: number;
+    longshift: number;
     totalLateMinutes: number;
     totalOvertimeMinutes: number;
   };
@@ -67,6 +69,7 @@ export async function aggregateAttendance(
   const holidays = await prisma.holiday.findMany({ where: { date: { gte: start, lt: rangeEnd } } });
   const holidaySet = new Set(holidays.map((h) => dateKey(h.date)));
   const autoSunday = (await getSetting("auto_sunday_holiday")) === "true";
+  const shiftConfig = await loadShiftConfig();
 
   const byEmpDate = new Map<string, typeof attendances>();
   for (const a of attendances) {
@@ -101,6 +104,7 @@ export async function aggregateAttendance(
         date,
         schedule,
         isHoliday,
+        shiftConfig,
         scans: scans.map((s) => ({
           scanDate: s.scanDate,
           scanType: s.scanType,
@@ -122,6 +126,7 @@ export async function aggregateAttendance(
     late: rows.filter((r) => r.status === "late").length,
     absent: rows.filter((r) => r.status === "absent").length,
     onTime: rows.filter((r) => r.status === "on_time").length,
+    longshift: rows.filter((r) => r.status === "longshift").length,
     totalLateMinutes: rows.reduce((s, r) => s + r.lateMinutes, 0),
     totalOvertimeMinutes: rows.reduce((s, r) => s + r.overtimeMinutes, 0),
   };

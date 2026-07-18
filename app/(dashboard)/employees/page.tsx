@@ -7,6 +7,7 @@ type Ref = { id: number; name: string };
 type Employee = {
   id: number;
   employeeCode: string;
+  machinePin: string | null;
   publicToken: string | null;
   fullName: string;
   nickname: string | null;
@@ -21,6 +22,7 @@ type Employee = {
 type FormState = {
   fullName: string;
   nickname: string;
+  machinePin: string;
   departmentId: string;
   positionId: string;
   workScheduleId: string;
@@ -34,6 +36,7 @@ type FormState = {
 const emptyForm: FormState = {
   fullName: "",
   nickname: "",
+  machinePin: "",
   departmentId: "",
   positionId: "",
   workScheduleId: "",
@@ -119,6 +122,7 @@ export default function EmployeesPage() {
     setForm({
       fullName: e.fullName,
       nickname: e.nickname ?? "",
+      machinePin: e.machinePin ?? "",
       departmentId: e.departmentId ? String(e.departmentId) : "",
       positionId: e.positionId ? String(e.positionId) : "",
       workScheduleId: e.workScheduleId ? String(e.workScheduleId) : "",
@@ -136,6 +140,7 @@ export default function EmployeesPage() {
     return {
       fullName: form.fullName,
       nickname: form.nickname || null,
+      machinePin: form.machinePin || null,
       departmentId: form.departmentId ? Number(form.departmentId) : null,
       positionId: form.positionId ? Number(form.positionId) : null,
       workScheduleId: form.workScheduleId ? Number(form.workScheduleId) : null,
@@ -239,6 +244,7 @@ export default function EmployeesPage() {
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
               <th className="px-4 py-3">Kode</th>
+              <th className="px-4 py-3">PIN</th>
               <th className="px-4 py-3">Nama</th>
               <th className="px-4 py-3">Departemen</th>
               <th className="px-4 py-3">Posisi</th>
@@ -249,13 +255,13 @@ export default function EmployeesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                   Memuat…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                   Belum ada karyawan.
                 </td>
               </tr>
@@ -263,6 +269,9 @@ export default function EmployeesPage() {
               rows.map((e) => (
                 <tr key={e.id} className="border-t border-slate-100">
                   <td className="px-4 py-3 font-mono text-xs">{e.employeeCode}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {e.machinePin ?? <span className="text-red-400">—</span>}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-800">{e.fullName}</div>
                     {e.nickname && <div className="text-xs text-slate-400">{e.nickname}</div>}
@@ -365,6 +374,14 @@ export default function EmployeesPage() {
                 value={form.nickname}
                 onChange={(e) => setForm({ ...form, nickname: e.target.value })}
                 className="input"
+              />
+            </Field>
+            <Field label="PIN Mesin Absensi" className="col-span-2">
+              <input
+                value={form.machinePin}
+                onChange={(e) => setForm({ ...form, machinePin: e.target.value })}
+                className="input"
+                placeholder="Nomor PIN terdaftar di mesin (mis. 5)"
               />
             </Field>
             <Field label="Departemen">

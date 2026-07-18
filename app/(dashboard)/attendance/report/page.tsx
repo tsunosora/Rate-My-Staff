@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
+import { Modal } from "@/components/ui/Modal";
 
 type Row = {
   employeeId: number;
@@ -42,6 +43,10 @@ export default function AttendanceReportPage() {
   const [departments, setDepartments] = useState<Ref[]>([]);
   const [employees, setEmployees] = useState<Ref[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editRow, setEditRow] = useState<Row | null>(null);
+  const [editForm, setEditForm] = useState({ clockIn: "", clockOut: "" });
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,6 +75,35 @@ export default function AttendanceReportPage() {
     if (employeeId) q.set("employee_id", employeeId);
     return `/api/attendance/report/export-excel?${q}`;
   })();
+
+  function openEditRow(r: Row) {
+    setEditRow(r);
+    setEditForm({ clockIn: r.clockIn ?? "", clockOut: r.clockOut ?? "" });
+    setEditError("");
+  }
+
+  async function saveEdit() {
+    if (!editRow) return;
+    setSaving(true);
+    setEditError("");
+    try {
+      await api("/api/attendance/manual", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId: editRow.employeeId,
+          date: editRow.date,
+          clockIn: editForm.clockIn || null,
+          clockOut: editForm.clockOut || null,
+        }),
+      });
+      setEditRow(null);
+      load();
+    } catch (e) {
+      setEditError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -125,13 +159,14 @@ export default function AttendanceReportPage() {
               <th className="px-4 py-3">Telat</th>
               <th className="px-4 py-3">Lembur</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Memuat…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Memuat…</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Tidak ada data.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Tidak ada data.</td></tr>
             ) : (
               rows.map((r, i) => (
                 <tr key={`${r.employeeId}-${r.date}-${i}`} className="border-t border-slate-100">
@@ -149,12 +184,45 @@ export default function AttendanceReportPage() {
                       {r.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <button onClick={() => openEditRow(r)} className="text-xs text-blue-600 hover:underline">Edit</button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {editRow && (
+        <Modal title="Edit Absensi" onClose={() => setEditRow(null)}>
+          {editError && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{editError}</div>}
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="text-slate-600">Karyawan: </span>
+              <span className="font-medium text-slate-800">{editRow.fullName}</span>
+              <span className="text-slate-400"> · {editRow.date}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1">
+                <span className="text-slate-600">Jam masuk</span>
+                <input type="time" className="input" value={editForm.clockIn} onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })} />
+              </label>
+              <label className="space-y-1">
+                <span className="text-slate-600">Jam pulang</span>
+                <input type="time" className="input" value={editForm.clockOut} onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })} />
+              </label>
+            </div>
+            <p className="text-xs text-slate-400">Status, telat, lembur & shift (mis. longshift) dihitung ulang otomatis dari jam ini.</p>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button onClick={() => setEditRow(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Batal</button>
+            <button onClick={saveEdit} disabled={saving || (!editForm.clockIn && !editForm.clockOut)} className="btn-primary disabled:opacity-40">
+              {saving ? "Menyimpan…" : "Simpan"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 export type RawScan = { pin: string; scanAt: string | Date };
 
 export type MapperOptions = {
-  /** Peta employee_code -> employee.id (PIN mesin dicocokkan ke employeeCode). */
+  /** Peta PIN mesin -> employee.id (PIN dicocokkan ke Employee.machinePin). */
   codeToId: Record<string, number>;
   /** Jam batas in/out (default 12 = siang). */
   noonHour?: number;

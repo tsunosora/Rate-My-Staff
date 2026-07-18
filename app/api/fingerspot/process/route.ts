@@ -33,10 +33,12 @@ export async function POST() {
   }
 
   const employees = await prisma.employee.findMany({
-    where: { deletedAt: null },
-    select: { id: true, employeeCode: true },
+    where: { deletedAt: null, machinePin: { not: null } },
+    select: { id: true, machinePin: true },
   });
-  const codeToId = Object.fromEntries(employees.map((e) => [e.employeeCode, e.id]));
+  const codeToId = Object.fromEntries(
+    employees.map((e) => [e.machinePin as string, e.id])
+  );
 
   const { mapped } = mapScanlogs(raws, { codeToId });
 
