@@ -82,13 +82,45 @@ export default function AttendanceReceiptPage() {
     load();
   }, [load]);
 
-  const exportUrl = (kind: "pdf" | "excel") => {
+  const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
+  const [exportMsg, setExportMsg] = useState("");
+
+  async function downloadExport(kind: "pdf" | "excel") {
     const q = new URLSearchParams({ year: String(year), month: String(month) });
     if (employeeId) q.set("employee_id", employeeId);
     else if (departmentId) q.set("department_id", departmentId);
     const ep = kind === "pdf" ? "export-pdf" : "export-excel";
-    return `/api/attendance/receipt/${ep}?${q}`;
-  };
+    const ext = kind === "pdf" ? "pdf" : "xlsx";
+    const scope = employeeId ? `struk-${employeeId}` : "struk-massal";
+    setExporting(kind);
+    setExportMsg("");
+    try {
+      const res = await fetch(`/api/attendance/receipt/${ep}?${q}`, { credentials: "same-origin" });
+      if (!res.ok) {
+        const msg =
+          res.status === 404
+            ? "Tidak ada data untuk periode/filter ini."
+            : `Gagal export (${res.status}).`;
+        setExportMsg(msg);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${scope}-${year}-${month}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportMsg("Gagal export. Coba lagi.");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  const scopeLabel = employeeId ? "" : " (massal)";
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -99,13 +131,24 @@ export default function AttendanceReceiptPage() {
             Rekap bulanan per karyawan (LS/LC/LL) — export PDF atau Excel, satuan maupun massal.
           </p>
         </div>
-        <div className="flex gap-2">
-          <a href={exportUrl("pdf")} className="btn-ghost h-10">
-            <IconDownload className="text-[17px]" /> PDF{employeeId ? "" : " (massal)"}
-          </a>
-          <a href={exportUrl("excel")} className="btn-ghost h-10">
-            <IconDownload className="text-[17px]" /> Excel{employeeId ? "" : " (massal)"}
-          </a>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex gap-2">
+            <button
+              onClick={() => downloadExport("pdf")}
+              disabled={exporting !== null}
+              className="btn-ghost h-10 disabled:opacity-50"
+            >
+              <IconDownload className="text-[17px]" /> {exporting === "pdf" ? "Menyiapkan…" : `PDF${scopeLabel}`}
+            </button>
+            <button
+              onClick={() => downloadExport("excel")}
+              disabled={exporting !== null}
+              className="btn-ghost h-10 disabled:opacity-50"
+            >
+              <IconDownload className="text-[17px]" /> {exporting === "excel" ? "Menyiapkan…" : `Excel${scopeLabel}`}
+            </button>
+          </div>
+          {exportMsg && <span className="text-xs text-danger">{exportMsg}</span>}
         </div>
       </div>
 
