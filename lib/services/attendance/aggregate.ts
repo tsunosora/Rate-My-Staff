@@ -115,6 +115,7 @@ export async function aggregateAttendance(
     }
   }
 
+  // `...r` menyertakan shift & isHoliday (dari buildReport) — dipakai oleh struk absensi.
   const rows = buildReport(days).map((r, idx) => ({
     ...r,
     fullName: days[idx].fullName,

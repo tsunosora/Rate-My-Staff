@@ -1,4 +1,4 @@
-import { computeShift, type ShiftConfig } from "./shift";
+import { computeShift, type ShiftConfig, type ShiftKind } from "./shift";
 
 export type ScheduleInfo = {
   startTime: string | null;
@@ -33,6 +33,10 @@ export type ReportRow = {
   overtimeMinutes: number;
   status: string;
   absenceReason: string | null;
+  /** Jenis shift (mode shift otomatis); null bila tak terhitung (mis. tanpa scan/absence). */
+  shift: ShiftKind | null;
+  /** Apakah tanggal ini hari libur (dari holiday/auto-sunday atau jadwal karyawan). */
+  isHoliday: boolean;
 };
 
 const ABSENCE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
@@ -69,6 +73,8 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
     overtimeMinutes: 0,
     status: "absent",
     absenceReason: null,
+    shift: null,
+    isHoliday: input.isHoliday || (input.schedule?.isHoliday ?? false),
   };
 
   // 1) Record ketidakhadiran eksplisit (Izin/Sakit/Cuti) menang.
@@ -119,6 +125,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
       overtimeMinutes: sc.overtimeMinutes,
       status: sc.status,
       absenceReason: null,
+      shift: sc.shift,
     };
   }
 

@@ -4,6 +4,7 @@ import {
   computeAttendanceRow,
   type DayInput,
 } from "@/lib/services/attendance/report";
+import { DEFAULT_SHIFT_CONFIG } from "@/lib/services/attendance/shift";
 
 const schedule = {
   startTime: "08:00",
@@ -106,5 +107,30 @@ describe("computeAttendanceRow", () => {
     );
     expect(r.status).toBe("Izin");
     expect(r.absenceReason).toBe("Acara keluarga");
+  });
+
+  test("mode shift mengekspos shift kind & isHoliday", () => {
+    const r = computeAttendanceRow(
+      day({
+        date: "2026-04-01",
+        schedule: null,
+        shiftConfig: DEFAULT_SHIFT_CONFIG,
+        scans: [
+          { scanDate: "2026-04-01T08:00:00", scanType: "in" },
+          { scanDate: "2026-04-01T21:00:00", scanType: "out" },
+        ],
+      })
+    );
+    expect(r.shift).toBe("longshift");
+    expect(r.isHoliday).toBe(false);
+  });
+
+  test("hari libur tanpa scan -> isHoliday true, shift null", () => {
+    const r = computeAttendanceRow(
+      day({ date: "2026-04-06", schedule: null, isHoliday: true, shiftConfig: DEFAULT_SHIFT_CONFIG, scans: [] })
+    );
+    expect(r.isHoliday).toBe(true);
+    expect(r.shift).toBeNull();
+    expect(r.status).toBe("holiday");
   });
 });
