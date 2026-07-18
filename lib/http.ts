@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
+import { canManage, canAdminUsers } from "@/lib/rbac";
 
 /** Ambil session; lempar Response 401 bila belum login. */
 export async function requireSession(): Promise<Session> {
   const session = await auth();
   if (!session) throw NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  return session;
+}
+
+/** Wajib login + role manajemen (ADMIN/OWNER/HR); lempar 403 bila tidak. */
+export async function requireManager(): Promise<Session> {
+  const session = await requireSession();
+  if (!canManage(session.user?.role))
+    throw NextResponse.json({ message: "Akses ditolak" }, { status: 403 });
+  return session;
+}
+
+/** Wajib login + role admin akun (ADMIN/OWNER); lempar 403 bila tidak. */
+export async function requireAdmin(): Promise<Session> {
+  const session = await requireSession();
+  if (!canAdminUsers(session.user?.role))
+    throw NextResponse.json({ message: "Akses ditolak" }, { status: 403 });
   return session;
 }
 

@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Data absensi asli (PII) — jangan commit
+/tests/fixtures/file_absensi_*.html

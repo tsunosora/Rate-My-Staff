@@ -22,6 +22,13 @@ export const metadata: Metadata = {
   title: "RateMyStaff — Team Management",
   description:
     "Attendance, project tracking, briefing, workflow, and staff assessment.",
+  // Aplikasi internal — jangan diindeks mesin pencari.
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false },
+  },
 };
 
 // Runs before paint to apply the stored theme (default: dark) and avoid FOUC.

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, notFound, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { employeeUpdateSchema } from "@/lib/validators/employee";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -25,7 +25,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 });
 
 export const PUT = route<Ctx>(async (req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = employeeUpdateSchema.safeParse(body);
@@ -58,7 +58,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 });
 
 export const DELETE = route<Ctx>(async (_req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const existing = await prisma.employee.findFirst({
     where: { id: Number(id), deletedAt: null },

@@ -1,4 +1,4 @@
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
 import { getAllSettings, setSettings } from "@/lib/settings";
 import { z } from "zod";
 
@@ -10,7 +10,7 @@ export const GET = route(async () => {
 });
 
 export const PUT = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = settingsSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

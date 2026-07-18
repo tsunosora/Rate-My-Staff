@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
 import { workScheduleSchema } from "@/lib/validators/master";
 
 function toData(d: ReturnType<typeof workScheduleSchema.parse>) {
@@ -29,7 +29,7 @@ export const GET = route(async () => {
 });
 
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = workScheduleSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

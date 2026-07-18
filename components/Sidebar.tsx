@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/icons";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
-type NavItem = { label: string; href: string };
+type Access = "all" | "manager" | "admin";
+type NavItem = { label: string; href: string; require?: Access };
 type NavGroup = {
   label: string;
   href?: string;
   icon: IconType;
+  require?: Access;
   children?: NavItem[];
 };
 
@@ -26,12 +28,13 @@ const NAV: NavGroup[] = [
   {
     label: "Absensi",
     icon: IconAttendance,
+    require: "manager",
     children: [
       { label: "Dashboard", href: "/attendance" },
       { label: "Laporan Detail", href: "/attendance/report" },
     ],
   },
-  { label: "Direktori", href: "/employees", icon: IconUsers },
+  { label: "Direktori", href: "/employees", icon: IconUsers, require: "manager" },
   {
     label: "Penilaian",
     icon: IconStar,
@@ -45,26 +48,48 @@ const NAV: NavGroup[] = [
   {
     label: "Pengaturan",
     icon: IconSettings,
+    require: "manager",
     children: [
       { label: "Umum", href: "/settings" },
       { label: "Jadwal Kerja", href: "/settings/work-schedules" },
+      { label: "Akun & Peran", href: "/settings/users", require: "admin" },
     ],
   },
 ];
 
-export function Sidebar() {
+function allowed(access: Access | undefined, role?: string | null): boolean {
+  const isAdmin = role === "ADMIN" || role === "OWNER";
+  const isManager = isAdmin || role === "HR";
+  if (access === "admin") return isAdmin;
+  if (access === "manager") return isManager;
+  return true;
+}
+
+/** Saring NAV sesuai role: buang grup/anak yang tak diizinkan. */
+function navForRole(role?: string | null): NavGroup[] {
+  return NAV.filter((g) => allowed(g.require, role))
+    .map((g) =>
+      g.children
+        ? { ...g, children: g.children.filter((c) => allowed(c.require, role)) }
+        : g
+    )
+    .filter((g) => !g.children || g.children.length > 0);
+}
+
+export function Sidebar({ role }: { role?: string | null }) {
   return (
     <aside className="glass sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col gap-1 rounded-none border-y-0 border-l-0 p-4 lg:flex">
-      <SidebarNav />
+      <SidebarNav role={role} />
     </aside>
   );
 }
 
 /** Shared nav content — used by the desktop aside and the mobile drawer. */
-export function SidebarNav() {
+export function SidebarNav({ role }: { role?: string | null }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+  const nav = navForRole(role);
 
   return (
     <>
@@ -78,7 +103,7 @@ export function SidebarNav() {
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 text-sm">
-        {NAV.map((group) =>
+        {nav.map((group) =>
           group.children ? (
             <NavGroupItem key={group.label} group={group} isActive={isActive} />
           ) : (

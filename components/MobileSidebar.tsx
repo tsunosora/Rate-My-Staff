@@ -6,7 +6,7 @@ import { SidebarNav } from "@/components/Sidebar";
 import { IconMenu, IconX } from "@/components/ui/icons";
 
 /** Hamburger + slide-in drawer for < lg screens (desktop keeps the fixed aside). */
-export function MobileSidebar() {
+export function MobileSidebar({ role }: { role?: string | null }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -52,7 +52,7 @@ export function MobileSidebar() {
             >
               <IconX className="text-[18px]" />
             </button>
-            <SidebarNav />
+            <SidebarNav role={role} />
           </div>
 
           <style>{`

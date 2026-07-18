@@ -6,6 +6,9 @@ import { authConfig } from "@/lib/auth.config";
 // Prisma/native engine. Session dibaca dari JWT (tanpa akses DB).
 const { auth } = NextAuth(authConfig);
 
+// Proxy hanya menegakkan AUTENTIKASI (sudah login?). Otorisasi per-role
+// ditegakkan di server-layout tiap seksi (app/(dashboard)/**/layout.tsx) +
+// di dalam tiap route API (requireManager/requireAdmin).
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 

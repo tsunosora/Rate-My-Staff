@@ -18,7 +18,7 @@ function initials(name?: string | null) {
 export function Header({ name, role }: { name?: string | null; role?: string | null }) {
   return (
     <header className="glass sticky top-0 z-30 flex items-center gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 sm:px-6">
-      <MobileSidebar />
+      <MobileSidebar role={role} />
 
       {/* Global search (scaffold for upcoming team/project search) */}
       <label className="relative hidden max-w-sm flex-1 items-center md:flex">

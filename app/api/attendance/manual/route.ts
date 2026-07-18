@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireManager, json, badRequest, route } from "@/lib/http";
 import { manualAttendanceSchema } from "@/lib/validators/attendance";
 import { computeAttendanceRow } from "@/lib/services/attendance/report";
 import { loadShiftConfig } from "@/lib/services/attendance/shift";
@@ -10,7 +10,7 @@ function at(dateStr: string, time: string): Date {
 
 /** Buat/update record scan in & out manual untuk 1 karyawan pada 1 tanggal. */
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = manualAttendanceSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

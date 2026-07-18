@@ -57,6 +57,11 @@ export default function ReportsPage() {
   useEffect(() => {
     api<Ref[]>("/api/departments").then(setDepartments);
   }, []);
+  // Pra-isi pencarian dari URL (mis. dari kartu skor di dashboard).
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("search");
+    if (s) setSearch(s);
+  }, []);
 
   function exportUrl(kind: "excel" | "pdf") {
     const q = new URLSearchParams();

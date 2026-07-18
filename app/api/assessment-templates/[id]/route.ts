@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, notFound, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { templateSchema } from "@/lib/validators/assessment";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -16,7 +16,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 });
 
 export const PUT = route<Ctx>(async (req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = templateSchema.partial().safeParse(body);
@@ -32,7 +32,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 });
 
 export const DELETE = route<Ctx>(async (_req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   await prisma.assessmentTemplate.delete({ where: { id: Number(id) } });
   return json({ ok: true });

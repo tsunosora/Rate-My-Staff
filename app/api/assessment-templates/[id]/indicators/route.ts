@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, notFound, route } from "@/lib/http";
+import { requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { indicatorSchema } from "@/lib/validators/assessment";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export const POST = route<Ctx>(async (req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = indicatorSchema.safeParse(body);

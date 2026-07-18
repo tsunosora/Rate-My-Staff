@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, notFound, route } from "@/lib/http";
+import { requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { overtimeCategorySchema } from "@/lib/validators/master";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export const PUT = route<Ctx>(async (req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = overtimeCategorySchema.safeParse(body);
@@ -20,7 +20,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 });
 
 export const DELETE = route<Ctx>(async (_req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   await prisma.overtimeCategory.delete({ where: { id: Number(id) } });
   return json({ ok: true });

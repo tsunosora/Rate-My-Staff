@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, notFound, route } from "@/lib/http";
+import { requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { editAttendanceSchema } from "@/lib/validators/attendance";
 import { makeCalculator } from "@/lib/services/overtime";
 import { getSetting } from "@/lib/settings";
@@ -7,7 +7,7 @@ import { getSetting } from "@/lib/settings";
 type Ctx = { params: Promise<{ id: string }> };
 
 export const PUT = route<Ctx>(async (req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = editAttendanceSchema.safeParse(body);
@@ -50,7 +50,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 });
 
 export const DELETE = route<Ctx>(async (_req, ctx) => {
-  await requireSession();
+  await requireManager();
   const { id } = await ctx.params;
   await prisma.attendance.delete({ where: { id: Number(id) } });
   return json({ ok: true });

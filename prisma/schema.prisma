@@ -33,6 +33,7 @@ model User {
   emailVerified DateTime?
   password      String
   role          Role      @default(EVALUATOR)
+  isActive      Boolean   @default(true)
   rememberToken String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

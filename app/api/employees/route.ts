@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
 import { employeeCreateSchema } from "@/lib/validators/employee";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 
@@ -43,7 +43,7 @@ export const GET = route(async (req: Request) => {
 });
 
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = employeeCreateSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
@@ -26,20 +26,42 @@ type Summary = {
 };
 type Ref = { id: number; name?: string; fullName?: string };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
-function weekAgo() {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Rentang tanggal untuk satu bulan (0-11) atau "all" = satu tahun penuh. */
+function rangeFor(year: number, month: number | "all") {
+  if (month === "all") return { start: ymd(new Date(year, 0, 1)), end: ymd(new Date(year, 11, 31)) };
+  return { start: ymd(new Date(year, month, 1)), end: ymd(new Date(year, month + 1, 0)) };
 }
 
 function softChip(color: string): React.CSSProperties {
   return { background: `color-mix(in oklab, ${color} 16%, transparent)`, color };
 }
 
+const ABSENCE = new Set(["Izin", "Sakit", "Cuti"]);
+
+/** "izin" = gabungan Izin/Sakit/Cuti; lainnya cocok status persis. */
+function filterByStatus(rows: Row[], status: string): Row[] {
+  if (!status) return rows;
+  if (status === "izin") return rows.filter((r) => ABSENCE.has(r.status));
+  return rows.filter((r) => r.status === status);
+}
+
+const NOW = new Date();
+const YEARS = Array.from({ length: 7 }, (_, i) => NOW.getFullYear() - 5 + i);
+const INITIAL_RANGE = rangeFor(NOW.getFullYear(), NOW.getMonth());
+
 export default function AttendanceReportPage() {
-  const [startDate, setStartDate] = useState(weekAgo());
-  const [endDate, setEndDate] = useState(todayStr());
+  const [month, setMonth] = useState<number | "all">(NOW.getMonth());
+  const [year, setYear] = useState(NOW.getFullYear());
+  const [startDate, setStartDate] = useState(INITIAL_RANGE.start);
+  const [endDate, setEndDate] = useState(INITIAL_RANGE.end);
   const [departmentId, setDepartmentId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -53,17 +75,20 @@ export default function AttendanceReportPage() {
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const reqId = useRef(0);
   const load = useCallback(async () => {
+    const id = ++reqId.current;
     setLoading(true);
     const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
     if (departmentId) q.set("department_id", departmentId);
     if (employeeId) q.set("employee_id", employeeId);
     try {
       const res = await api<{ rows: Row[]; summary: Summary }>(`/api/attendance/report?${q}`);
-      setRows(statusFilter ? res.rows.filter((r) => r.status === statusFilter) : res.rows);
+      if (id !== reqId.current) return; // respons usang — abaikan
+      setRows(filterByStatus(res.rows, statusFilter));
       setSummary(res.summary);
     } finally {
-      setLoading(false);
+      if (id === reqId.current) setLoading(false);
     }
   }, [startDate, endDate, departmentId, employeeId, statusFilter]);
   useEffect(() => {
@@ -73,6 +98,18 @@ export default function AttendanceReportPage() {
     api<Ref[]>("/api/departments").then(setDepartments);
     api<Ref[]>("/api/assessments/employees").then(setEmployees);
   }, []);
+  // Terapkan filter dari URL (mis. dari kartu dashboard karyawan).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const emp = p.get("employee_id");
+    const st = p.get("status");
+    const sd = p.get("start_date");
+    const ed = p.get("end_date");
+    if (emp) setEmployeeId(emp);
+    if (st) setStatusFilter(st);
+    if (sd) setStartDate(sd);
+    if (ed) setEndDate(ed);
+  }, []);
 
   const exportUrl = (() => {
     const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
@@ -80,6 +117,12 @@ export default function AttendanceReportPage() {
     if (employeeId) q.set("employee_id", employeeId);
     return `/api/attendance/report/export-excel?${q}`;
   })();
+
+  function applyMonth(m: number | "all", y: number) {
+    const r = rangeFor(y, m);
+    setStartDate(r.start);
+    setEndDate(r.end);
+  }
 
   function openEditRow(r: Row) {
     setEditRow(r);
@@ -115,7 +158,7 @@ export default function AttendanceReportPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-fg">Laporan Absensi</h1>
-          <p className="mt-0.5 text-sm text-muted">Rekap kehadiran per rentang tanggal.</p>
+          <p className="mt-0.5 text-sm text-muted">Rekap kehadiran per bulan atau rentang tanggal.</p>
         </div>
         <a href={exportUrl} className="btn-ghost h-10">
           <IconDownload className="text-[17px]" /> Export Excel
@@ -123,6 +166,35 @@ export default function AttendanceReportPage() {
       </div>
 
       <div className="glass flex flex-wrap items-end gap-3 rounded-2xl p-4 text-sm">
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Bulan</span>
+          <select
+            className="input h-10 w-auto"
+            value={String(month)}
+            onChange={(e) => {
+              const v = e.target.value === "all" ? "all" : Number(e.target.value);
+              setMonth(v);
+              applyMonth(v, year);
+            }}
+          >
+            <option value="all">Semua bulan</option>
+            {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Tahun</span>
+          <select
+            className="input h-10 w-auto"
+            value={year}
+            onChange={(e) => {
+              const y = Number(e.target.value);
+              setYear(y);
+              applyMonth(month, y);
+            }}
+          >
+            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </label>
         <label className="space-y-1.5">
           <span className="block font-medium text-muted">Dari</span>
           <input type="date" className="input h-10 w-auto" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -151,6 +223,7 @@ export default function AttendanceReportPage() {
             <option value="">Semua status</option>
             <option value="on_time">Tepat waktu</option>
             <option value="late">Terlambat</option>
+            <option value="izin">Izin/Sakit/Cuti</option>
             <option value="absent">Absen</option>
           </select>
         </label>
@@ -259,6 +332,10 @@ function StatusBadge({ status }: { status: string }) {
     late: { v: "var(--warning)", t: "Terlambat" },
     absent: { v: "var(--danger)", t: "Absen" },
     longshift: { v: "var(--primary-2)", t: "Long shift" },
+    holiday: { v: "var(--fg-subtle)", t: "Libur" },
+    Izin: { v: "var(--info)", t: "Izin" },
+    Sakit: { v: "var(--info)", t: "Sakit" },
+    Cuti: { v: "var(--info)", t: "Cuti" },
   };
   const m = map[status] ?? { v: "var(--fg-subtle)", t: status };
   return <span className="badge" style={softChip(m.v)}>{m.t}</span>;

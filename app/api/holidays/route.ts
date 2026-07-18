@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
 import { holidaySchema } from "@/lib/validators/master";
 
 export const GET = route(async () => {
@@ -9,7 +9,7 @@ export const GET = route(async () => {
 });
 
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = holidaySchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

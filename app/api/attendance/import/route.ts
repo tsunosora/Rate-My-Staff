@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireManager, json, badRequest, route } from "@/lib/http";
 import { getSetting } from "@/lib/settings";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { loadShiftConfig } from "@/lib/services/attendance/shift";
-import { parseScanlogHtml } from "@/lib/services/attendance/import-html";
+import { analyzeScanlog, describeScanlogFailure } from "@/lib/services/attendance/import-html";
 import {
   buildImportPreview,
   deriveScans,
@@ -52,7 +52,7 @@ type EnrichedRow = ImportPreviewRow & { conflict: boolean; existingSources: stri
 
 /** PUBLIK — import scanlog HTML mesin. Mode preview (commit!="true") atau commit ber-izin. */
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
 
   const formData = await req.formData();
   const file = formData.get("file");
@@ -62,8 +62,9 @@ export const POST = route(async (req: Request) => {
   if (!(file instanceof Blob)) return badRequest({ file: ["File tidak ada"] });
 
   const html = await file.text();
-  const parsed = parseScanlogHtml(html);
-  if (parsed.length === 0) return badRequest({ file: ["Tidak ada baris scanlog terdeteksi"] });
+  const analysis = analyzeScanlog(html);
+  const parsed = analysis.rows;
+  if (parsed.length === 0) return badRequest({ file: [describeScanlogFailure(analysis)] });
 
   // Hari libur: rumus sama dgn aggregateAttendance.
   const [initialEmployees, holidayRows, autoSundayRaw, shiftConfig] = await Promise.all([

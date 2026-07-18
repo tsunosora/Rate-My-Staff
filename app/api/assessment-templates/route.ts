@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, badRequest, route } from "@/lib/http";
+import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
 import { templateSchema } from "@/lib/validators/assessment";
 
 export const GET = route(async () => {
@@ -15,7 +15,7 @@ export const GET = route(async () => {
 });
 
 export const POST = route(async (req: Request) => {
-  await requireSession();
+  await requireManager();
   const body = await req.json().catch(() => null);
   const parsed = templateSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());

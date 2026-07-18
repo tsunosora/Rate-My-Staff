@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { requireSession, json, route } from "@/lib/http";
+import { requireSession, requireManager, json, route } from "@/lib/http";
 
 // Ambil leave-link aktif (belum kadaluarsa) terbaru.
 export const GET = route(async () => {
@@ -14,7 +14,7 @@ export const GET = route(async () => {
 
 // Buat leave-link baru, berlaku 24 jam.
 export const POST = route(async () => {
-  await requireSession();
+  await requireManager();
   const token = randomUUID();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const link = await prisma.leaveLink.create({ data: { token, expiresAt } });
