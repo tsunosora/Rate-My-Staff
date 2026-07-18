@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
-import { IconDownload } from "@/components/ui/icons";
+import { Modal } from "@/components/ui/Modal";
+import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
 
 type ReceiptDayRow = {
   date: string;
@@ -120,6 +121,40 @@ export default function AttendanceReceiptPage() {
     }
   }
 
+  const [editRow, setEditRow] = useState<ReceiptDayRow | null>(null);
+  const [editForm, setEditForm] = useState({ clockIn: "", clockOut: "" });
+  const [editErr, setEditErr] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function openEdit(r: ReceiptDayRow) {
+    setEditRow(r);
+    setEditForm({ clockIn: r.clockIn ?? "", clockOut: r.clockOut ?? "" });
+    setEditErr("");
+  }
+
+  async function saveEdit() {
+    if (!editRow || !data) return;
+    setSaving(true);
+    setEditErr("");
+    try {
+      await api("/api/attendance/manual", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId: data.employeeId,
+          date: editRow.date,
+          clockIn: editForm.clockIn || null,
+          clockOut: editForm.clockOut || null,
+        }),
+      });
+      setEditRow(null);
+      load(); // muat ulang struk: jam, shift, LS/LC/LL & total dihitung ulang
+    } catch (e) {
+      setEditErr((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const scopeLabel = employeeId ? "" : " (massal)";
 
   return (
@@ -227,6 +262,7 @@ export default function AttendanceReceiptPage() {
                     <th className="px-3 py-3 text-right font-medium">LS</th>
                     <th className="px-3 py-3 text-right font-medium">LC</th>
                     <th className="px-3 py-3 text-right font-medium">LL</th>
+                    <th className="px-3 py-3 text-right font-medium">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -246,6 +282,14 @@ export default function AttendanceReceiptPage() {
                       <td className="px-3 py-2.5 text-right tabular text-fg">{r.ls || "—"}</td>
                       <td className="px-3 py-2.5 text-right tabular text-fg">{r.lc ? r.lc.toFixed(2) : "—"}</td>
                       <td className="px-3 py-2.5 text-right tabular text-fg">{r.ll || "—"}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          onClick={() => openEdit(r)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-2.5 py-1.5 text-xs text-muted transition hover:border-primary hover:text-primary"
+                        >
+                          <IconPencil className="text-[14px]" /> Edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -265,6 +309,62 @@ export default function AttendanceReceiptPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {editRow && data && (
+        <Modal title="Edit Jam Absensi" onClose={() => setEditRow(null)}>
+          {editErr && (
+            <div
+              className="mb-3 rounded-xl px-3 py-2.5 text-sm text-danger"
+              style={{ background: "color-mix(in oklab, var(--danger) 16%, transparent)" }}
+            >
+              {editErr}
+            </div>
+          )}
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
+              <span className="text-muted">Karyawan: </span>
+              <span className="font-medium text-fg">{data.employeeName}</span>
+              <span className="text-subtle"> · {editRow.dayName}, {editRow.date}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1.5">
+                <span className="font-medium text-muted">Jam masuk</span>
+                <input
+                  type="time"
+                  className="input"
+                  value={editForm.clockIn}
+                  onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className="font-medium text-muted">Jam pulang</span>
+                <input
+                  type="time"
+                  className="input"
+                  value={editForm.clockOut}
+                  onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })}
+                />
+              </label>
+            </div>
+            <p className="text-xs text-subtle">
+              Shift, telat, lembur &amp; LS/LC/LL dihitung ulang otomatis dari jam ini. Kosongkan salah
+              satu bila hanya ingin mengisi satu sisi.
+            </p>
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={() => setEditRow(null)} className="btn-ghost">
+              Batal
+            </button>
+            <button
+              onClick={saveEdit}
+              disabled={saving || (!editForm.clockIn && !editForm.clockOut)}
+              className="btn-primary disabled:opacity-40"
+            >
+              <IconCheck className="text-[16px]" /> {saving ? "Menyimpan…" : "Simpan"}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
