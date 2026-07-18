@@ -1,0 +1,57 @@
+import ExcelJS from "exceljs";
+import type { ReceiptData } from "@/lib/services/attendance/receipt";
+
+const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
+
+function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
+  const safe = `${data.employeeCode || data.employeeId}`.replace(/[\\/*?:[\]]/g, "").slice(0, 24);
+  const ws = wb.addWorksheet(`${safe}-${idx + 1}`.slice(0, 31));
+
+  const title = ws.addRow([data.employeeName]);
+  title.font = { bold: true, size: 14 };
+  ws.addRow([`${data.department ?? "-"} · ${data.monthLabel}`]);
+  ws.addRow([]);
+
+  const head = ws.addRow(["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Terlambat", "Lembur", "LS", "LC", "LL"]);
+  head.font = { bold: true };
+  head.eachCell((c) => {
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+  });
+
+  for (const r of data.rows) {
+    const row = ws.addRow([
+      r.dayName,
+      r.date,
+      r.clockIn ?? "",
+      r.clockOut ?? "",
+      r.shiftLabel,
+      r.lateMinutes || 0,
+      r.overtimeHours || "",
+      r.ls || "",
+      r.lc || "",
+      r.ll || "",
+    ]);
+    if (r.isHoliday && !r.worked) {
+      row.eachCell({ includeEmpty: true }, (c) => {
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };
+      });
+    }
+  }
+
+  ws.addRow([]);
+  ws.addRow(["Lembur Harian", rp(data.rates.daily), data.totals.lsCount, rp(data.totals.dailyAmount)]);
+  ws.addRow(["Lembur Libur", rp(data.rates.holiday), data.totals.llCount, rp(data.totals.holidayAmount)]);
+  ws.addRow(["Lembur Cetak", rp(data.rates.cetak), data.totals.lcHours, rp(data.totals.cetakAmount)]);
+  const tot = ws.addRow(["Jumlah", "", "", rp(data.totals.grandTotal)]);
+  tot.font = { bold: true };
+
+  ws.columns.forEach((c) => (c.width = 12));
+}
+
+/** Bangun workbook Excel struk: satu worksheet per karyawan. */
+export async function buildReceiptExcel(receipts: ReceiptData[]): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  receipts.forEach((r, i) => addSheet(wb, r, i));
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
