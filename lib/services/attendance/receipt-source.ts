@@ -1,0 +1,79 @@
+import type { PrismaClient } from "@prisma/client";
+import { aggregateAttendance } from "./aggregate";
+import { buildReceipt, type ReceiptData } from "./receipt";
+import { resolveReceiptRates } from "./receipt-rates";
+
+function monthRange(year: number, month: number) {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0); // hari terakhir bulan
+  const ymd = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { startStr: ymd(start), endStr: ymd(end) };
+}
+
+async function loadRates(prisma: PrismaClient) {
+  const cats = await prisma.overtimeCategory.findMany();
+  return resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })));
+}
+
+/** Struk 1 karyawan untuk 1 bulan. */
+export async function buildEmployeeReceipt(
+  prisma: PrismaClient,
+  employeeId: number,
+  year: number,
+  month: number
+): Promise<ReceiptData | null> {
+  const emp = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: { department: true },
+  });
+  if (!emp) return null;
+  const { startStr, endStr } = monthRange(year, month);
+  const [{ rows }, rates] = await Promise.all([
+    aggregateAttendance(prisma, { startStr, endStr, employeeId: String(employeeId) }),
+    loadRates(prisma),
+  ]);
+  return buildReceipt({
+    employeeId: emp.id,
+    employeeName: emp.fullName,
+    employeeCode: emp.employeeCode,
+    department: emp.department?.name ?? null,
+    year,
+    month,
+    rates,
+    rows: rows.map((r) => ({
+      date: r.date,
+      shift: r.shift,
+      isHoliday: r.isHoliday,
+      clockIn: r.clockIn,
+      clockOut: r.clockOut,
+      lateMinutes: r.lateMinutes,
+      overtimeMinutes: r.overtimeMinutes,
+      status: r.status,
+    })),
+  });
+}
+
+/**
+ * Struk semua karyawan aktif (opsional filter departemen) untuk 1 bulan.
+ * TODO(perf): memanggil aggregateAttendance per karyawan agar showAllDates aktif;
+ * cukup untuk skala toko (<~50 karyawan). Refactor bila kelak lambat.
+ */
+export async function buildAllReceipts(
+  prisma: PrismaClient,
+  year: number,
+  month: number,
+  departmentId?: number | null
+): Promise<ReceiptData[]> {
+  const employees = await prisma.employee.findMany({
+    where: { deletedAt: null, isActive: true, ...(departmentId ? { departmentId } : {}) },
+    orderBy: { fullName: "asc" },
+    select: { id: true },
+  });
+  const out: ReceiptData[] = [];
+  for (const e of employees) {
+    const r = await buildEmployeeReceipt(prisma, e.id, year, month);
+    if (r) out.push(r);
+  }
+  return out;
+}
