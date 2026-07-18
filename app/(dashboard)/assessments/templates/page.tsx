@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
+import { IconPlus } from "@/components/ui/icons";
 
 type Indicator = {
   id: number;
@@ -21,6 +22,10 @@ type Template = {
   indicators: Indicator[];
   _count?: { assessments: number };
 };
+
+function softChip(c: string) {
+  return { background: `color-mix(in oklab, ${c} 16%, transparent)`, color: c };
+}
 
 export default function TemplatesPage() {
   const [rows, setRows] = useState<Template[]>([]);
@@ -92,30 +97,33 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-7xl space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Template Penilaian</h1>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-fg">Template Penilaian</h1>
+          <p className="mt-0.5 text-sm text-muted">Susun indikator &amp; bobot penilaian per departemen.</p>
+        </div>
         <button onClick={openAddTpl} className="btn-primary">
-          + Template
+          <IconPlus className="text-[17px]" /> Template
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="glass overflow-hidden rounded-2xl">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Nama</th>
-              <th className="px-4 py-3">Target Dept</th>
-              <th className="px-4 py-3">Indikator</th>
-              <th className="px-4 py-3">Total Bobot</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+              <th className="px-4 py-3 font-medium">Nama</th>
+              <th className="px-4 py-3 font-medium">Target Dept</th>
+              <th className="px-4 py-3 font-medium">Indikator</th>
+              <th className="px-4 py-3 font-medium">Total Bobot</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 text-right font-medium">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-subtle">
                   Belum ada template.
                 </td>
               </tr>
@@ -123,31 +131,27 @@ export default function TemplatesPage() {
               rows.map((t) => {
                 const tw = totalWeight(t);
                 return (
-                  <tr key={t.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-800">{t.name}</td>
-                    <td className="px-4 py-3">{t.departmentType ?? "—"}</td>
-                    <td className="px-4 py-3">{t.indicators.length}</td>
-                    <td className={`px-4 py-3 font-medium ${tw === 100 ? "text-green-600" : "text-red-600"}`}>
+                  <tr key={t.id} className="border-t border-border transition hover:bg-surface">
+                    <td className="px-4 py-3 font-medium text-fg">{t.name}</td>
+                    <td className="px-4 py-3 text-muted">{t.departmentType ?? "—"}</td>
+                    <td className="tabular px-4 py-3 text-muted">{t.indicators.length}</td>
+                    <td className={`tabular px-4 py-3 font-medium ${tw === 100 ? "text-success" : "text-danger"}`}>
                       {tw}%
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          t.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
+                      <span className="badge" style={softChip(t.isActive ? "var(--success)" : "var(--fg-subtle)")}>
                         {t.isActive ? "Aktif" : "Nonaktif"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2 text-xs">
-                        <button onClick={() => openIndicators(t)} className="text-slate-600 hover:underline">
+                        <button onClick={() => openIndicators(t)} className="font-medium text-muted transition hover:text-fg hover:underline">
                           Indikator
                         </button>
-                        <button onClick={() => openEditTpl(t)} className="text-blue-600 hover:underline">
+                        <button onClick={() => openEditTpl(t)} className="font-medium text-primary hover:underline">
                           Edit
                         </button>
-                        <button onClick={() => delTpl(t)} className="text-red-600 hover:underline">
+                        <button onClick={() => delTpl(t)} className="font-medium text-danger hover:underline">
                           Hapus
                         </button>
                       </div>
@@ -164,24 +168,24 @@ export default function TemplatesPage() {
         <Modal title={tplModal === "add" ? "Tambah Template" : "Edit Template"} onClose={() => setTplModal(null)}>
           <div className="space-y-3">
             <label className="block space-y-1 text-sm">
-              <span className="text-slate-600">Nama *</span>
+              <span className="text-muted">Nama *</span>
               <input className="input" value={tplForm.name} onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })} />
             </label>
             <label className="block space-y-1 text-sm">
-              <span className="text-slate-600">Target departemen</span>
+              <span className="text-muted">Target departemen</span>
               <input className="input" value={tplForm.departmentType} onChange={(e) => setTplForm({ ...tplForm, departmentType: e.target.value })} />
             </label>
             <label className="block space-y-1 text-sm">
-              <span className="text-slate-600">Deskripsi</span>
+              <span className="text-muted">Deskripsi</span>
               <textarea className="input" rows={2} value={tplForm.description} onChange={(e) => setTplForm({ ...tplForm, description: e.target.value })} />
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-muted">
               <input type="checkbox" checked={tplForm.isActive} onChange={(e) => setTplForm({ ...tplForm, isActive: e.target.checked })} />
               Aktif
             </label>
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <button onClick={() => setTplModal(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">
+            <button onClick={() => setTplModal(null)} className="btn-ghost">
               Batal
             </button>
             <button onClick={saveTpl} className="btn-primary">
@@ -234,35 +238,35 @@ function IndicatorsModal({
   }
 
   return (
-    <Modal title={`Indikator — ${template.name}`} onClose={onClose}>
+    <Modal title={`Indikator — ${template.name}`} onClose={onClose} size="xl">
       <table className="mb-3 w-full text-sm">
-        <thead className="text-left text-slate-500">
+        <thead className="text-left text-xs uppercase tracking-wide text-subtle">
           <tr>
-            <th className="py-1">#</th>
-            <th className="py-1">Kategori</th>
-            <th className="py-1">Nama</th>
-            <th className="py-1">Bobot</th>
+            <th className="py-1 font-medium">#</th>
+            <th className="py-1 font-medium">Kategori</th>
+            <th className="py-1 font-medium">Nama</th>
+            <th className="py-1 font-medium">Bobot</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {template.indicators.map((i) => (
-            <tr key={i.id} className="border-t border-slate-100">
-              <td className="py-1">{i.sortOrder}</td>
-              <td className="py-1">{i.category}</td>
-              <td className="py-1">{i.name}</td>
-              <td className="py-1">{Number(i.weight)}%</td>
+            <tr key={i.id} className="border-t border-border">
+              <td className="tabular py-1 text-muted">{i.sortOrder}</td>
+              <td className="py-1 text-muted">{i.category}</td>
+              <td className="py-1 text-fg">{i.name}</td>
+              <td className="tabular py-1 text-muted">{Number(i.weight)}%</td>
               <td className="py-1 text-right text-xs">
                 <button
                   onClick={() => {
                     setEditingId(i.id);
                     setForm({ category: i.category, name: i.name, weight: String(Number(i.weight)), sortOrder: String(i.sortOrder) });
                   }}
-                  className="mr-2 text-blue-600 hover:underline"
+                  className="mr-2 font-medium text-primary hover:underline"
                 >
                   Edit
                 </button>
-                <button onClick={() => del(i.id)} className="text-red-600 hover:underline">
+                <button onClick={() => del(i.id)} className="font-medium text-danger hover:underline">
                   Hapus
                 </button>
               </td>
@@ -270,7 +274,7 @@ function IndicatorsModal({
           ))}
         </tbody>
       </table>
-      <div className={`mb-3 text-sm font-medium ${total === 100 ? "text-green-600" : "text-red-600"}`}>
+      <div className={`mb-3 text-sm font-medium ${total === 100 ? "text-success" : "text-danger"}`}>
         Total bobot: {total}% {total !== 100 && "(harus 100%)"}
       </div>
       <div className="grid grid-cols-4 gap-2">

@@ -1,8 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
+import { AttendanceDonut } from "@/components/attendance/AttendanceDonut";
+import {
+  IconPlus,
+  IconUpload,
+  IconLink,
+  IconCopy,
+  IconAlert,
+  IconPencil,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCheck,
+  IconClock,
+  IconUsers,
+} from "@/components/ui/icons";
 
 type Scan = {
   id: number;
@@ -244,130 +258,206 @@ export default function AttendancePage() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / 20));
+  const prettyDate = formatLongDate(date);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">Absensi</h1>
-        <div className="flex items-center gap-2">
-          <input type="date" className="input" value={date} onChange={(e) => { setPage(1); setDate(e.target.value); }} />
-          <button onClick={shareLeaveLink} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
-            Bagikan Link Izin
+    <div className="mx-auto max-w-7xl space-y-5">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-fg">Absensi</h1>
+          <p className="mt-0.5 text-sm text-muted">{prettyDate}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            className="input h-10 w-auto"
+            value={date}
+            onChange={(e) => { setPage(1); setDate(e.target.value); }}
+          />
+          <button onClick={shareLeaveLink} className="btn-ghost h-10">
+            <IconLink className="text-[17px]" /> Link Izin
           </button>
-          <button onClick={() => setImportOpen(true)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
-            Import Scanlog
+          <button onClick={() => setImportOpen(true)} className="btn-ghost h-10">
+            <IconUpload className="text-[17px]" /> Import Scanlog
           </button>
           <button
             onClick={() => { setEditing(null); setForm({ employeeId: "", clockIn: "", clockOut: "" }); setError(""); setModal(true); }}
-            className="btn-primary"
+            className="btn-primary h-10"
           >
-            + Manual
+            <IconPlus className="text-[17px]" /> Manual
           </button>
         </div>
       </div>
 
       {leaveUrl && (
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm">
-          <span className="break-all text-indigo-700">{leaveUrl}</span>
+        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-primary" style={softChip("var(--primary)")}>
+              <IconLink className="text-[16px]" />
+            </span>
+            <span className="truncate text-primary">{leaveUrl}</span>
+          </div>
           <button
             onClick={() => navigator.clipboard?.writeText(leaveUrl)}
-            className="shrink-0 rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700"
+            className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
           >
-            Salin
+            <IconCopy className="text-[15px]" /> Salin
           </button>
         </div>
       )}
 
       {incomplete.length > 0 && (
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm">
-          <span className="text-amber-800">
-            ⚠ {incomplete.length} absensi tidak komplit (masuk/pulang tidak lengkap) pada {date}.
-          </span>
+        <div
+          className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm"
+          style={{ borderColor: "color-mix(in oklab, var(--warning) 35%, transparent)", background: "color-mix(in oklab, var(--warning) 10%, transparent)" }}
+        >
+          <div className="flex items-center gap-2.5">
+            <IconAlert className="shrink-0 text-[18px] text-warning" />
+            <span className="text-fg">
+              <b className="font-semibold text-warning">{incomplete.length}</b> absensi tidak komplit (masuk/pulang tidak lengkap) pada {date}.
+            </span>
+          </div>
           <button
             onClick={() => openComplete(incomplete)}
-            className="shrink-0 rounded border border-amber-400 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-warning transition hover:brightness-110"
+            style={{ background: "color-mix(in oklab, var(--warning) 18%, transparent)" }}
           >
             Lengkapi manual
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label="Hadir" value={metrics?.present ?? 0} color="text-green-600" />
-        <MetricCard label="Terlambat" value={metrics?.late ?? 0} color="text-yellow-600" />
-        <MetricCard label="Absen" value={metrics?.absent ?? 0} color="text-red-600" />
-        <MetricCard label="Telat terbaru" value={metrics?.recentLates.length ?? 0} color="text-slate-600" />
+      {/* Hero: donut + metrics */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="glass rounded-2xl p-5 lg:col-span-1">
+          <h2 className="mb-4 text-sm font-semibold text-muted">Ringkasan Kehadiran</h2>
+          <AttendanceDonut
+            present={metrics?.present ?? 0}
+            late={metrics?.late ?? 0}
+            absent={metrics?.absent ?? 0}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+          <MetricCard label="Hadir" value={metrics?.present ?? 0} tone="success" icon={IconCheck} />
+          <MetricCard label="Terlambat" value={metrics?.late ?? 0} tone="warning" icon={IconClock} />
+          <MetricCard label="Absen" value={metrics?.absent ?? 0} tone="danger" icon={IconAlert} />
+          <MetricCard
+            label="Telat terbaru"
+            value={metrics?.recentLates.length ?? 0}
+            tone="info"
+            icon={IconUsers}
+            sub={metrics?.recentLates[0] ? `${metrics.recentLates[0].name} +${metrics.recentLates[0].minutes}m` : "—"}
+          />
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        <select className="input max-w-xs" value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }}>
-          <option value="all">Semua status</option>
-          <option value="on_time">Tepat waktu</option>
-          <option value="late">Terlambat</option>
-        </select>
-      </div>
+      {/* Table card */}
+      <div className="glass overflow-hidden rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold text-fg">Log Absensi</h2>
+          <Segmented
+            value={status}
+            onChange={(v) => { setPage(1); setStatus(v); }}
+            options={[
+              { value: "all", label: "Semua" },
+              { value: "on_time", label: "Tepat waktu" },
+              { value: "late", label: "Terlambat" },
+            ]}
+          />
+        </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Karyawan</th>
-              <th className="px-4 py-3">Waktu</th>
-              <th className="px-4 py-3">Tipe</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Mesin</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Tidak ada data.</td></tr>
-            ) : (
-              rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800">{r.employee.fullName}</div>
-                    <div className="text-xs text-slate-400">{r.employee.employeeCode}</div>
-                  </td>
-                  <td className="px-4 py-3">{new Date(r.scanDate).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</td>
-                  <td className="px-4 py-3">{r.scanType === "in" ? "Masuk" : r.scanType === "out" ? "Keluar" : r.scanType}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${r.status === "late" ? "bg-yellow-100 text-yellow-700" : r.status === "on_time" ? "bg-green-100 text-green-700" : r.status === "longshift" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-500"}`}>
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">{r.machineName ?? "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(r)} className="text-xs text-blue-600 hover:underline">Edit</button>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+                <th className="px-5 py-3 font-medium">Karyawan</th>
+                <th className="px-5 py-3 font-medium">Waktu</th>
+                <th className="px-5 py-3 font-medium">Tipe</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">Mesin</th>
+                <th className="px-5 py-3 text-right font-medium">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-subtle">
+                    Tidak ada data absensi untuk tanggal ini.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id} className="border-t border-border transition hover:bg-surface">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold text-primary" style={softChip("var(--primary)")}>
+                          {initials(r.employee.fullName)}
+                        </span>
+                        <div>
+                          <div className="font-medium text-fg">{r.employee.fullName}</div>
+                          <div className="text-xs text-subtle">{r.employee.employeeCode}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 tabular text-muted">
+                      {new Date(r.scanDate).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                    <td className="px-5 py-3 text-muted">
+                      {r.scanType === "in" ? "Masuk" : r.scanType === "out" ? "Keluar" : r.scanType}
+                    </td>
+                    <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
+                    <td className="px-5 py-3 text-muted">{r.machineName ?? "—"}</td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => openEdit(r)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-2.5 py-1.5 text-xs text-muted transition hover:border-primary hover:text-primary"
+                      >
+                        <IconPencil className="text-[14px]" /> Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-500">
-        <span>{total} scan</span>
-        <div className="flex items-center gap-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-40">Prev</button>
-          <span>{page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-40">Next</button>
+        <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3 text-sm text-muted">
+          <span className="tabular">{total} scan</span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-border-strong transition hover:bg-surface-2 disabled:opacity-40"
+            >
+              <IconChevronLeft className="text-[16px]" />
+            </button>
+            <span className="tabular px-1">{page} / {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-border-strong transition hover:bg-surface-2 disabled:opacity-40"
+            >
+              <IconChevronRight className="text-[16px]" />
+            </button>
+          </div>
         </div>
       </div>
 
       {modal && (
         <Modal title={editing ? "Edit Absensi" : "Absensi Manual"} onClose={() => { setModal(false); setEditing(null); }}>
-          {error && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+          {error && <ErrorBox>{error}</ErrorBox>}
           <div className="space-y-3">
             {editing ? (
-              <div className="text-sm">
-                <span className="text-slate-600">Karyawan: </span>
-                <span className="font-medium text-slate-800">{editing.name}</span>
+              <div className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm">
+                <span className="text-muted">Karyawan: </span>
+                <span className="font-medium text-fg">{editing.name}</span>
               </div>
             ) : (
-              <label className="block space-y-1 text-sm">
-                <span className="text-slate-600">Karyawan *</span>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium text-muted">Karyawan *</span>
                 <select className="input" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })}>
                   <option value="">— pilih —</option>
                   {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
@@ -375,77 +465,78 @@ export default function AttendancePage() {
               </label>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1 text-sm">
-                <span className="text-slate-600">Jam masuk</span>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-medium text-muted">Jam masuk</span>
                 <input type="time" className="input" value={form.clockIn} onChange={(e) => setForm({ ...form, clockIn: e.target.value })} />
               </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-slate-600">Jam pulang</span>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-medium text-muted">Jam pulang</span>
                 <input type="time" className="input" value={form.clockOut} onChange={(e) => setForm({ ...form, clockOut: e.target.value })} />
               </label>
             </div>
-            <p className="text-xs text-slate-400">Tanggal: {date}</p>
+            <p className="text-xs text-subtle">Tanggal: {date}</p>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button onClick={() => { setModal(false); setEditing(null); }} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Batal</button>
-            <button onClick={saveManual} className="btn-primary">Simpan</button>
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={() => { setModal(false); setEditing(null); }} className="btn-ghost">Batal</button>
+            <button onClick={saveManual} className="btn-primary"><IconCheck className="text-[16px]" /> Simpan</button>
           </div>
         </Modal>
       )}
 
       {importOpen && (
-        <Modal title="Import Scanlog Mesin (HTML)" onClose={closeImport}>
-          {importError && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{importError}</div>}
+        <Modal title="Import Scanlog Mesin (HTML)" onClose={closeImport} size="xl">
+          {importError && <ErrorBox>{importError}</ErrorBox>}
           <div className="space-y-3">
             <input
               type="file"
               accept=".html,.htm,text/html"
-              className="block w-full text-sm"
+              className="block w-full cursor-pointer rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary/15 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary"
               onChange={(e) => { setImportResult(null); setImportFile(e.target.files?.[0] ?? null); }}
             />
             <div className="flex gap-2">
-              <button disabled={!importFile || importBusy} onClick={() => runImport(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-40">
+              <button disabled={!importFile || importBusy} onClick={() => runImport(false)} className="btn-ghost">
                 {importBusy ? "Memproses…" : "Preview"}
               </button>
             </div>
 
             {importResult && (
               <>
-                <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                  Total {importResult.summary.total} baris · Cocok {importResult.summary.matched} · Tak cocok {importResult.summary.unmatched}
+                <div className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                  Total <b className="tabular text-fg">{importResult.summary.total}</b> baris · Cocok <b className="tabular text-success">{importResult.summary.matched}</b> · Tak cocok <b className="tabular">{importResult.summary.unmatched}</b>
                   {importResult.summary.conflicts > 0 && (
-                    <span className="text-amber-600"> · Bentrok {importResult.summary.conflicts}</span>
+                    <span className="text-warning"> · Bentrok {importResult.summary.conflicts}</span>
                   )}
                   {importResult.summary.unmatchedPins.length > 0 && (
-                    <span className="text-red-600"> · PIN tak dikenal: {importResult.summary.unmatchedPins.join(", ")}</span>
+                    <span className="text-danger"> · PIN tak dikenal: {importResult.summary.unmatchedPins.join(", ")}</span>
                   )}
                 </div>
-                <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+                <div className="max-h-72 overflow-auto rounded-xl border border-border">
                   <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
-                      <tr><th className="px-2 py-1">Karyawan</th><th className="px-2 py-1">Tanggal</th><th className="px-2 py-1">Masuk</th><th className="px-2 py-1">Pulang</th><th className="px-2 py-1">Shift</th><th className="px-2 py-1">Status</th></tr>
+                    <thead className="sticky top-0 bg-solid text-left text-subtle">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Karyawan</th><th className="px-3 py-2 font-medium">Tanggal</th><th className="px-3 py-2 font-medium">Masuk</th><th className="px-3 py-2 font-medium">Pulang</th><th className="px-3 py-2 font-medium">Shift</th><th className="px-3 py-2 font-medium">Status</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {importResult.rows.map((r, i) => (
-                        <tr key={i} className={`border-t border-slate-100 ${!r.matched ? "bg-red-50" : r.conflict ? "bg-amber-50" : ""}`}>
-                          <td className="px-2 py-1">{r.employeeName ?? `${r.fileName} (PIN ${r.pin})`}</td>
-                          <td className="px-2 py-1">
+                        <tr key={i} className="border-t border-border" style={rowTint(r.matched, r.conflict)}>
+                          <td className="px-3 py-2 text-fg">{r.employeeName ?? `${r.fileName} (PIN ${r.pin})`}</td>
+                          <td className="px-3 py-2 text-muted">
                             {r.dateISO}
-                            {r.isHoliday && <span className="ml-1 rounded bg-indigo-100 px-1 text-[10px] text-indigo-600">libur</span>}
+                            {r.isHoliday && <span className="badge ml-1" style={softChip("var(--primary)")}>libur</span>}
                           </td>
-                          <td className="px-2 py-1">{r.clockIn ?? "—"}</td>
-                          <td className="px-2 py-1">{r.clockOut ?? "—"}</td>
-                          <td className="px-2 py-1">
+                          <td className="px-3 py-2 tabular text-muted">{r.clockIn ?? "—"}</td>
+                          <td className="px-3 py-2 tabular text-muted">{r.clockOut ?? "—"}</td>
+                          <td className="px-3 py-2">
                             {r.shift ? (
-                              <span className={`rounded px-1 text-[10px] ${r.shift === "longshift" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-600"}`}>
+                              <span className="badge" style={softChip(r.shift === "longshift" ? "var(--primary-2)" : "var(--fg-subtle)")}>
                                 {r.shift}
                               </span>
                             ) : "—"}
                           </td>
-                          <td className="px-2 py-1">
-                            {r.matched ? r.status : "tak cocok"}
-                            {r.conflict && <span className="ml-1 text-amber-600" title={`Sudah ada dari: ${r.existingSources.join(", ")}`}>⚠ bentrok</span>}
+                          <td className="px-3 py-2">
+                            {r.matched ? <span className="text-muted">{r.status}</span> : <span className="text-danger">tak cocok</span>}
+                            {r.conflict && <span className="ml-1 text-warning" title={`Sudah ada dari: ${r.existingSources.join(", ")}`}>⚠ bentrok</span>}
                           </td>
                         </tr>
                       ))}
@@ -453,7 +544,7 @@ export default function AttendancePage() {
                   </table>
                 </div>
                 {importResult.committed ? (
-                  <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                  <div className="rounded-xl px-3 py-2.5 text-sm text-success" style={softChip("var(--success)")}>
                     Berhasil menyimpan {importResult.created ?? 0} record.
                     {(importResult.skippedConflicts ?? 0) > 0 && (
                       <> {importResult.skippedConflicts} hari bentrok dilewati (tidak ditimpa).</>
@@ -462,27 +553,27 @@ export default function AttendancePage() {
                 ) : (
                   <>
                     {(importResult.createdEmployees ?? 0) > 0 && (
-                      <div className="rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-                        {importResult.createdEmployees} karyawan baru dibuat dari file (Nama + PIN). Lengkapi jadwal kerja & departemen di menu Karyawan.
+                      <div className="rounded-xl px-3 py-2.5 text-xs text-success" style={softChip("var(--success)")}>
+                        {importResult.createdEmployees} karyawan baru dibuat dari file (Nama + PIN). Lengkapi jadwal kerja &amp; departemen di menu Karyawan.
                       </div>
                     )}
                     {importResult.summary.unmatchedPins.length > 0 && (
-                      <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                      <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs text-danger" style={softChip("var(--danger)")}>
                         <span>{importResult.summary.unmatchedPins.length} PIN belum terdaftar sebagai karyawan.</span>
                         <button
                           disabled={importBusy}
                           onClick={() => runImport(false, true)}
-                          className="shrink-0 rounded border border-red-300 px-2 py-1 font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
+                          className="shrink-0 rounded-lg border border-current px-2.5 py-1 font-semibold transition hover:brightness-110 disabled:opacity-40"
                         >
                           {importBusy ? "Membuat…" : "Buat karyawan otomatis"}
                         </button>
                       </div>
                     )}
                     {importResult.summary.conflicts > 0 && (
-                      <label className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      <label className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs text-warning" style={softChip("var(--warning)")}>
                         <input
                           type="checkbox"
-                          className="mt-0.5"
+                          className="mt-0.5 accent-[color:var(--warning)]"
                           checked={overwriteConflicts}
                           onChange={(e) => setOverwriteConflicts(e.target.checked)}
                         />
@@ -490,7 +581,7 @@ export default function AttendancePage() {
                       </label>
                     )}
                     <div className="flex justify-end gap-2">
-                      <button onClick={closeImport} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Batal</button>
+                      <button onClick={closeImport} className="btn-ghost">Batal</button>
                       <button disabled={importBusy || importResult.summary.matched === 0} onClick={() => runImport(true)} className="btn-primary">
                         {importBusy ? "Menyimpan…" : `Konfirmasi & Simpan (${importResult.summary.matched})`}
                       </button>
@@ -504,47 +595,54 @@ export default function AttendancePage() {
       )}
 
       {incompleteOpen && (
-        <Modal title="Lengkapi Absensi Tidak Komplit" onClose={() => setIncompleteOpen(false)}>
-          {incompleteError && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{incompleteError}</div>}
+        <Modal title="Lengkapi Absensi Tidak Komplit" onClose={() => setIncompleteOpen(false)} size="xl">
+          {incompleteError && <ErrorBox>{incompleteError}</ErrorBox>}
           {completeList.length === 0 ? (
-            <p className="text-sm text-slate-500">Semua absensi sudah komplit. 🎉</p>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-full text-success" style={softChip("var(--success)")}>
+                <IconCheck className="text-[22px]" />
+              </span>
+              <p className="text-sm text-muted">Semua absensi sudah komplit.</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500">Isi jam yang hilang (ditandai kotak input) untuk tiap karyawan, lalu Simpan.</p>
-              <div className="max-h-80 overflow-auto rounded-lg border border-slate-200">
+              <p className="text-xs text-subtle">Isi jam yang hilang (ditandai kotak input) untuk tiap karyawan, lalu Simpan.</p>
+              <div className="max-h-80 overflow-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
-                    <tr><th className="px-2 py-1">Karyawan</th><th className="px-2 py-1">Tanggal</th><th className="px-2 py-1">Masuk</th><th className="px-2 py-1">Pulang</th><th className="px-2 py-1"></th></tr>
+                  <thead className="sticky top-0 bg-solid text-left text-subtle">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Karyawan</th><th className="px-3 py-2 font-medium">Tanggal</th><th className="px-3 py-2 font-medium">Masuk</th><th className="px-3 py-2 font-medium">Pulang</th><th className="px-3 py-2"></th>
+                    </tr>
                   </thead>
                   <tbody>
                     {completeList.map((r) => {
                       const key = `${r.employeeId}|${r.date}`;
                       return (
-                        <tr key={key} className="border-t border-slate-100">
-                          <td className="px-2 py-1">
-                            <div className="font-medium text-slate-800">{r.fullName}</div>
-                            <div className="text-xs text-slate-400">{r.employeeCode}</div>
+                        <tr key={key} className="border-t border-border">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-fg">{r.fullName}</div>
+                            <div className="text-xs text-subtle">{r.employeeCode}</div>
                           </td>
-                          <td className="px-2 py-1">{r.date}</td>
-                          <td className="px-2 py-1">
+                          <td className="px-3 py-2 tabular text-muted">{r.date}</td>
+                          <td className="px-3 py-2">
                             {r.missing === "in" ? (
                               <input type="time" className="input" value={fillTimes[key] ?? ""}
                                 onChange={(e) => setFillTimes({ ...fillTimes, [key]: e.target.value })} />
                             ) : (
-                              <span className="text-slate-700">{r.clockIn ?? "—"}</span>
+                              <span className="tabular text-fg">{r.clockIn ?? "—"}</span>
                             )}
                           </td>
-                          <td className="px-2 py-1">
+                          <td className="px-3 py-2">
                             {r.missing === "out" ? (
                               <input type="time" className="input" value={fillTimes[key] ?? ""}
                                 onChange={(e) => setFillTimes({ ...fillTimes, [key]: e.target.value })} />
                             ) : (
-                              <span className="text-slate-700">{r.clockOut ?? "—"}</span>
+                              <span className="tabular text-fg">{r.clockOut ?? "—"}</span>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-right">
+                          <td className="px-3 py-2 text-right">
                             <button disabled={!fillTimes[key]} onClick={() => saveComplete(r)}
-                              className="rounded border border-slate-300 px-2 py-1 text-xs disabled:opacity-40 hover:bg-slate-100">
+                              className="btn-ghost px-3 py-1.5 text-xs disabled:opacity-40">
                               Simpan
                             </button>
                           </td>
@@ -556,8 +654,8 @@ export default function AttendancePage() {
               </div>
             </div>
           )}
-          <div className="mt-4 flex justify-between gap-2">
-            <button onClick={() => setIncompleteOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Tutup</button>
+          <div className="mt-5 flex justify-between gap-2">
+            <button onClick={() => setIncompleteOpen(false)} className="btn-ghost">Tutup</button>
             {completeList.length > 0 && (
               <button
                 onClick={saveAllComplete}
@@ -574,11 +672,97 @@ export default function AttendancePage() {
   );
 }
 
-function MetricCard({ label, value, color }: { label: string; value: number; color: string }) {
+/* ---------- presentational helpers ---------- */
+
+type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+const TONE: Record<string, string> = {
+  success: "var(--success)",
+  warning: "var(--warning)",
+  danger: "var(--danger)",
+  info: "var(--info)",
+};
+
+function softChip(color: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${color} 16%, transparent)`, color };
+}
+
+function rowTint(matched: boolean, conflict: boolean): React.CSSProperties {
+  if (!matched) return { background: "color-mix(in oklab, var(--danger) 10%, transparent)" };
+  if (conflict) return { background: "color-mix(in oklab, var(--warning) 10%, transparent)" };
+  return {};
+}
+
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
+}
+
+function formatLongDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function MetricCard({
+  label, value, tone, icon: Icon, sub,
+}: {
+  label: string; value: number; tone: keyof typeof TONE | string; icon: IconType; sub?: string;
+}) {
+  const color = TONE[tone] ?? "var(--primary)";
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
+    <div className="glass group flex flex-col justify-between gap-3 rounded-2xl p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted">{label}</span>
+        <span className="grid h-9 w-9 place-items-center rounded-xl" style={softChip(color)}>
+          <Icon className="text-[18px]" />
+        </span>
+      </div>
+      <div>
+        <div className="tabular font-display text-3xl font-extrabold text-fg">{value}</div>
+        {sub && <div className="mt-0.5 truncate text-xs text-subtle">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { v: string; t: string }> = {
+    on_time: { v: "var(--success)", t: "Tepat waktu" },
+    late: { v: "var(--warning)", t: "Terlambat" },
+    longshift: { v: "var(--primary-2)", t: "Long shift" },
+    absent: { v: "var(--danger)", t: "Absen" },
+  };
+  const m = map[status] ?? { v: "var(--fg-subtle)", t: status };
+  return <span className="badge" style={softChip(m.v)}>{m.t}</span>;
+}
+
+function Segmented({
+  value, onChange, options,
+}: {
+  value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="inline-flex rounded-xl border border-border bg-surface p-1">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+            value === o.value
+              ? "bg-gradient-to-r from-primary to-primary-2 text-on-primary shadow"
+              : "text-muted hover:text-fg"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ErrorBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-3 rounded-xl px-3 py-2.5 text-sm text-danger" style={softChip("var(--danger)")}>
+      {children}
     </div>
   );
 }

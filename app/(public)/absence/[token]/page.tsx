@@ -1,13 +1,18 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { IconCheck, IconAlert, IconClock, IconAttendance } from "@/components/ui/icons";
 
 type Emp = { id: number; fullName: string };
 const STATUSES = [
-  { value: "Izin", emoji: "📝" },
-  { value: "Sakit", emoji: "🤒" },
-  { value: "Cuti", emoji: "🏖️" },
+  { value: "Izin", label: "Izin" },
+  { value: "Sakit", label: "Sakit" },
+  { value: "Cuti", label: "Cuti" },
 ];
+
+function softChip(c: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${c} 16%, transparent)` };
+}
 
 export default function AbsencePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -60,10 +65,12 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
   if (done) {
     return (
       <Centered>
-        <div className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl">✓</div>
-          <h2 className="text-xl font-bold text-slate-800">Terkirim!</h2>
-          <p className="mt-1 text-slate-500">Laporan ketidakhadiran Anda telah dicatat.</p>
+        <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 text-center shadow-2xl sm:p-8">
+          <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-success" style={softChip("var(--success)")}>
+            <IconCheck className="text-[28px]" />
+          </span>
+          <h2 className="font-display text-xl font-bold text-fg">Terkirim!</h2>
+          <p className="mt-1 text-muted">Laporan ketidakhadiran Anda telah dicatat.</p>
         </div>
       </Centered>
     );
@@ -71,48 +78,65 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
 
   return (
     <Centered>
-      <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl">
-        <div className="mb-5 text-center">
-          <div className="text-2xl">🗓️</div>
-          <h1 className="text-xl font-bold text-slate-800">Formulir Ketidakhadiran</h1>
+      <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 shadow-2xl sm:p-8">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
+            <IconAttendance className="text-[22px]" />
+          </span>
+          <h1 className="font-display text-xl font-bold text-fg">Formulir Ketidakhadiran</h1>
+          <p className="text-sm text-muted">Laporkan izin, sakit, atau cuti Anda.</p>
         </div>
 
-        {error && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+        {error && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-danger" style={softChip("var(--danger)")}>
+            <IconAlert className="text-[16px]" /> {error}
+          </div>
+        )}
 
-        <label className="mb-3 block space-y-1 text-sm">
-          <span className="text-slate-600">Nama karyawan *</span>
-          <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+        <label className="mb-3 block space-y-1.5 text-sm">
+          <span className="font-medium text-muted">Nama karyawan *</span>
+          <select className="input h-11" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
             <option value="">— pilih —</option>
             {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
           </select>
         </label>
 
-        <label className="mb-3 block space-y-1 text-sm">
-          <span className="text-slate-600">Tanggal *</span>
-          <input type="date" className="w-full rounded-lg border border-slate-300 px-3 py-2" value={date} onChange={(e) => setDate(e.target.value)} />
+        <label className="mb-3 block space-y-1.5 text-sm">
+          <span className="font-medium text-muted">Tanggal *</span>
+          <input type="date" className="input h-11" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
 
-        <div className="mb-3 grid grid-cols-3 gap-2">
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setStatus(s.value)}
-              className={`rounded-lg border px-2 py-2 text-sm ${status === s.value ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-slate-300 text-slate-600"}`}
-            >
-              {s.emoji} {s.value}
-            </button>
-          ))}
+        <div className="mb-3">
+          <span className="mb-1.5 block text-sm font-medium text-muted">Jenis *</span>
+          <div className="grid grid-cols-3 gap-2">
+            {STATUSES.map((s) => (
+              <button
+                key={s.value}
+                onClick={() => setStatus(s.value)}
+                className={`rounded-xl border px-2 py-2.5 text-sm font-medium transition ${
+                  status === s.value
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border-strong text-muted hover:bg-surface-2"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <textarea
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          rows={3}
-          maxLength={1000}
-          placeholder="Alasan *"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <button onClick={submit} disabled={saving} className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">
+        <label className="mb-4 block space-y-1.5 text-sm">
+          <span className="font-medium text-muted">Alasan *</span>
+          <textarea
+            className="input"
+            rows={3}
+            maxLength={1000}
+            placeholder="Tulis alasan Anda…"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </label>
+        <button onClick={submit} disabled={saving} className="btn-primary h-11 w-full">
           {saving ? "Mengirim…" : "Kirim"}
         </button>
       </div>
@@ -123,17 +147,19 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
 function ExpiredView() {
   return (
     <Centered>
-      <div className="text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl">⏰</div>
-        <h2 className="text-xl font-bold text-slate-800">Tautan Kadaluarsa</h2>
-        <p className="mt-1 text-slate-500">Tautan ini sudah tidak berlaku. Hubungi HR untuk tautan baru.</p>
+      <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 text-center shadow-2xl sm:p-8">
+        <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-warning" style={softChip("var(--warning)")}>
+          <IconClock className="text-[26px]" />
+        </span>
+        <h2 className="font-display text-xl font-bold text-fg">Tautan Kadaluarsa</h2>
+        <p className="mt-1 text-muted">Tautan ini sudah tidak berlaku. Hubungi HR untuk tautan baru.</p>
       </div>
     </Centered>
   );
 }
 function Centered({ children }: { children: React.ReactNode }) {
-  return <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-100 via-slate-100 to-purple-100 p-4">{children}</main>;
+  return <main className="ambient relative flex min-h-screen items-center justify-center bg-bg p-4">{children}</main>;
 }
 function Spinner() {
-  return <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-indigo-500" />;
+  return <div className="relative z-10 h-8 w-8 animate-spin rounded-full border-4 border-border-strong border-t-primary" />;
 }

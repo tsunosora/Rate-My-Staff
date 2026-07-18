@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
+import { IconPlus, IconPencil, IconTrash, IconCheck } from "@/components/ui/icons";
 
 type WorkSchedule = {
   id: number;
@@ -40,6 +41,10 @@ const empty: Form = {
   dailyWage: "0",
   holidayWage: "0",
 };
+
+function softChip(c: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${c} 16%, transparent)`, color: c };
+}
 
 export default function WorkSchedulesPage() {
   const [rows, setRows] = useState<WorkSchedule[]>([]);
@@ -121,83 +126,103 @@ export default function WorkSchedulesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-7xl space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Jadwal Kerja</h1>
-        <button
-          onClick={openAdd}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
-        >
-          + Jadwal
+        <div>
+          <h1 className="font-display text-2xl font-bold text-fg">Jadwal Kerja</h1>
+          <p className="mt-0.5 text-sm text-muted">Shift, toleransi telat &amp; upah harian.</p>
+        </div>
+        <button onClick={openAdd} className="btn-primary h-10">
+          <IconPlus className="text-[17px]" /> Jadwal
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Nama</th>
-              <th className="px-4 py-3">Jam kerja</th>
-              <th className="px-4 py-3">Toleransi</th>
-              <th className="px-4 py-3">Upah harian</th>
-              <th className="px-4 py-3">Libur?</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                  Belum ada jadwal.
-                </td>
+      <div className="glass overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+                <th className="px-4 py-3 font-medium">Nama</th>
+                <th className="px-4 py-3 font-medium">Jam kerja</th>
+                <th className="px-4 py-3 font-medium">Toleransi</th>
+                <th className="px-4 py-3 font-medium">Upah harian</th>
+                <th className="px-4 py-3 font-medium">Libur?</th>
+                <th className="px-4 py-3 text-right font-medium">Aksi</th>
               </tr>
-            ) : (
-              rows.map((w) => (
-                <tr key={w.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3 font-medium text-slate-800">{w.name}</td>
-                  <td className="px-4 py-3">
-                    {w.isHoliday ? "—" : `${w.startTime ?? "?"} – ${w.endTime ?? "?"}`}
-                  </td>
-                  <td className="px-4 py-3">{w.lateToleranceMinutes} mnt</td>
-                  <td className="px-4 py-3">Rp {Number(w.dailyWage ?? 0).toLocaleString("id-ID")}</td>
-                  <td className="px-4 py-3">{w.isHoliday ? "Ya" : "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2 text-xs">
-                      <button onClick={() => openEdit(w)} className="text-blue-600 hover:underline">
-                        Edit
-                      </button>
-                      <button onClick={() => remove(w)} className="text-red-600 hover:underline">
-                        Hapus
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-subtle">
+                    Belum ada jadwal.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                rows.map((w) => (
+                  <tr key={w.id} className="border-t border-border transition hover:bg-surface">
+                    <td className="px-4 py-3 font-medium text-fg">{w.name}</td>
+                    <td className="px-4 py-3 tabular text-muted">
+                      {w.isHoliday ? "—" : `${w.startTime ?? "?"} – ${w.endTime ?? "?"}`}
+                    </td>
+                    <td className="px-4 py-3 tabular text-muted">{w.lateToleranceMinutes} mnt</td>
+                    <td className="px-4 py-3 tabular text-muted">Rp {Number(w.dailyWage ?? 0).toLocaleString("id-ID")}</td>
+                    <td className="px-4 py-3">
+                      {w.isHoliday ? (
+                        <span className="badge" style={softChip("var(--warning)")}>Ya</span>
+                      ) : (
+                        <span className="text-subtle">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => openEdit(w)}
+                          aria-label="Edit"
+                          title="Edit"
+                          className="grid h-8 w-8 place-items-center rounded-lg border border-border-strong text-muted transition hover:border-primary hover:text-primary"
+                        >
+                          <IconPencil className="text-[15px]" />
+                        </button>
+                        <button
+                          onClick={() => remove(w)}
+                          aria-label="Hapus"
+                          title="Hapus"
+                          className="grid h-8 w-8 place-items-center rounded-lg border border-border-strong text-muted transition hover:border-danger hover:text-danger"
+                        >
+                          <IconTrash className="text-[15px]" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {modal && (
         <Modal
           title={modal === "add" ? "Tambah Jadwal" : "Edit Jadwal"}
           onClose={() => setModal(null)}
+          size="xl"
         >
           {error && (
-            <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>
+            <div className="mb-3 rounded-xl px-3 py-2.5 text-sm text-danger" style={softChip("var(--danger)")}>{error}</div>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <label className="col-span-2 space-y-1 text-sm">
-              <span className="text-slate-600">Nama jadwal *</span>
+            <label className="col-span-2 space-y-1.5 text-sm">
+              <span className="font-medium text-muted">Nama jadwal *</span>
               <input
                 className="input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </label>
-            <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600">
+            <label className="col-span-2 flex items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
+                className="accent-[color:var(--primary)]"
                 checked={form.isHoliday}
                 onChange={(e) => setForm({ ...form, isHoliday: e.target.checked })}
               />
@@ -225,8 +250,8 @@ export default function WorkSchedulesPage() {
                   value={form.breakEndTime}
                   onChange={(v) => setForm({ ...form, breakEndTime: v })}
                 />
-                <label className="space-y-1 text-sm">
-                  <span className="text-slate-600">Toleransi telat (menit)</span>
+                <label className="space-y-1.5 text-sm">
+                  <span className="font-medium text-muted">Toleransi telat (menit)</span>
                   <input
                     type="number"
                     className="input"
@@ -236,8 +261,8 @@ export default function WorkSchedulesPage() {
                 </label>
               </>
             )}
-            <label className="space-y-1 text-sm">
-              <span className="text-slate-600">Upah harian (Rp)</span>
+            <label className="space-y-1.5 text-sm">
+              <span className="font-medium text-muted">Upah harian (Rp)</span>
               <input
                 type="number"
                 className="input"
@@ -245,8 +270,8 @@ export default function WorkSchedulesPage() {
                 onChange={(e) => setForm({ ...form, dailyWage: e.target.value })}
               />
             </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-slate-600">Upah libur (Rp)</span>
+            <label className="space-y-1.5 text-sm">
+              <span className="font-medium text-muted">Upah libur (Rp)</span>
               <input
                 type="number"
                 className="input"
@@ -255,18 +280,12 @@ export default function WorkSchedulesPage() {
               />
             </label>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              onClick={() => setModal(null)}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
-            >
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={() => setModal(null)} className="btn-ghost">
               Batal
             </button>
-            <button
-              onClick={save}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
-            >
-              Simpan
+            <button onClick={save} className="btn-primary">
+              <IconCheck className="text-[16px]" /> Simpan
             </button>
           </div>
         </Modal>
@@ -285,8 +304,8 @@ function TimeField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="space-y-1 text-sm">
-      <span className="text-slate-600">{label}</span>
+    <label className="space-y-1.5 text-sm">
+      <span className="font-medium text-muted">{label}</span>
       <input type="time" className="input" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );

@@ -2,48 +2,82 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentType, type SVGProps } from "react";
+import {
+  IconDashboard,
+  IconAttendance,
+  IconUsers,
+  IconStar,
+  IconSettings,
+  IconChevronDown,
+} from "@/components/ui/icons";
 
+type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 type NavItem = { label: string; href: string };
-type NavGroup = { label: string; href?: string; children?: NavItem[] };
+type NavGroup = {
+  label: string;
+  href?: string;
+  icon: IconType;
+  children?: NavItem[];
+};
 
 const NAV: NavGroup[] = [
-  { label: "Dashboard", href: "/dashboard" },
+  { label: "Dashboard", href: "/dashboard", icon: IconDashboard },
   {
-    label: "Attendance",
+    label: "Absensi",
+    icon: IconAttendance,
     children: [
       { label: "Dashboard", href: "/attendance" },
-      { label: "Detailed Report", href: "/attendance/report" },
+      { label: "Laporan Detail", href: "/attendance/report" },
     ],
   },
-  { label: "Directory", href: "/employees" },
+  { label: "Direktori", href: "/employees", icon: IconUsers },
   {
-    label: "Assessment",
+    label: "Penilaian",
+    icon: IconStar,
     children: [
-      { label: "New Score", href: "/assessments/single" },
-      { label: "Bulk Score", href: "/assessments/bulk" },
-      { label: "Templates", href: "/assessments/templates" },
-      { label: "Reports", href: "/reports" },
+      { label: "Skor Baru", href: "/assessments/single" },
+      { label: "Skor Massal", href: "/assessments/bulk" },
+      { label: "Template", href: "/assessments/templates" },
+      { label: "Laporan", href: "/reports" },
     ],
   },
   {
-    label: "Settings",
+    label: "Pengaturan",
+    icon: IconSettings,
     children: [
-      { label: "General", href: "/settings" },
-      { label: "Work Schedules", href: "/settings/work-schedules" },
+      { label: "Umum", href: "/settings" },
+      { label: "Jadwal Kerja", href: "/settings/work-schedules" },
     ],
   },
 ];
 
 export function Sidebar() {
+  return (
+    <aside className="glass sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col gap-1 rounded-none border-y-0 border-l-0 p-4 lg:flex">
+      <SidebarNav />
+    </aside>
+  );
+}
+
+/** Shared nav content — used by the desktop aside and the mobile drawer. */
+export function SidebarNav() {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-1 border-r border-slate-200 bg-white p-4">
-      <div className="mb-4 px-2 text-lg font-bold text-slate-800">RateMyStaff</div>
-      <nav className="flex flex-col gap-1 text-sm">
+    <>
+      <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
+          <span className="font-display text-lg font-extrabold">R</span>
+        </span>
+        <span className="font-display text-lg font-bold tracking-tight text-fg">
+          Rate<span className="text-primary">My</span>Staff
+        </span>
+      </Link>
+
+      <nav className="flex flex-1 flex-col gap-1 text-sm">
         {NAV.map((group) =>
           group.children ? (
             <NavGroupItem key={group.label} group={group} isActive={isActive} />
@@ -53,12 +87,20 @@ export function Sidebar() {
               href={group.href!}
               className={linkClass(isActive(group.href!))}
             >
-              {group.label}
+              <group.icon className="text-[18px] shrink-0" />
+              <span>{group.label}</span>
             </Link>
           )
         )}
       </nav>
-    </aside>
+
+      <div className="mt-auto rounded-xl border border-border bg-surface-2 p-3 text-xs text-muted">
+        <p className="font-semibold text-fg">Team Management</p>
+        <p className="mt-0.5 leading-relaxed">
+          Absensi, proyek, briefing &amp; penilaian dalam satu tempat.
+        </p>
+      </div>
+    </>
   );
 }
 
@@ -76,29 +118,57 @@ function NavGroupItem({
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100"
+        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition ${
+          anyActive && !open
+            ? "text-fg"
+            : "text-muted hover:bg-surface-2 hover:text-fg"
+        }`}
       >
-        <span>{group.label}</span>
-        <span className="text-xs text-slate-400">{open ? "▾" : "▸"}</span>
+        <group.icon className="text-[18px] shrink-0" />
+        <span className="flex-1 text-left">{group.label}</span>
+        <IconChevronDown
+          className={`text-[15px] text-subtle transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
       </button>
-      {open && (
-        <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-slate-200 pl-2">
-          {group.children!.map((c) => (
-            <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
-              {c.label}
-            </Link>
-          ))}
+      <div
+        className={`grid transition-all duration-200 ${
+          open ? "mt-1 grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="ml-4 flex flex-col gap-0.5 border-l border-border pl-3">
+            {group.children!.map((c) => (
+              <Link
+                key={c.href}
+                href={c.href}
+                className={subLinkClass(isActive(c.href))}
+              >
+                {c.label}
+              </Link>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 function linkClass(active: boolean) {
   return [
+    "flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition",
+    active
+      ? "bg-gradient-to-r from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/25"
+      : "text-muted hover:bg-surface-2 hover:text-fg",
+  ].join(" ");
+}
+
+function subLinkClass(active: boolean) {
+  return [
     "rounded-lg px-3 py-2 transition",
     active
-      ? "bg-slate-800 text-white"
-      : "text-slate-600 hover:bg-slate-100",
+      ? "bg-surface-2 font-medium text-primary"
+      : "text-muted hover:bg-surface-2 hover:text-fg",
   ].join(" ");
 }

@@ -1,8 +1,13 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { IconStar, IconCheck, IconAlert } from "@/components/ui/icons";
 
 type Emp = { fullName: string; nickname: string | null; position: string | null; department: string | null };
+
+function softChip(c: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${c} 16%, transparent)` };
+}
 
 export default function RatePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -41,17 +46,28 @@ export default function RatePage({ params }: { params: Promise<{ token: string }
   }
 
   if (notFound) {
-    return <Centered><p className="text-slate-600">Tautan tidak valid atau karyawan tidak ditemukan.</p></Centered>;
+    return (
+      <Centered>
+        <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 text-center shadow-2xl sm:p-8">
+          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl text-danger" style={softChip("var(--danger)")}>
+            <IconAlert className="text-[26px]" />
+          </span>
+          <p className="text-muted">Tautan tidak valid atau karyawan tidak ditemukan.</p>
+        </div>
+      </Centered>
+    );
   }
   if (!emp) return <Centered><Spinner /></Centered>;
 
   if (done) {
     return (
       <Centered>
-        <div className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl">✓</div>
-          <h2 className="text-xl font-bold text-slate-800">Terima kasih!</h2>
-          <p className="mt-1 text-slate-500">Penilaian Anda untuk {emp.fullName} telah terkirim.</p>
+        <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 text-center shadow-2xl sm:p-8">
+          <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl text-success" style={softChip("var(--success)")}>
+            <IconCheck className="text-[28px]" />
+          </span>
+          <h2 className="font-display text-xl font-bold text-fg">Terima kasih!</h2>
+          <p className="mt-1 text-muted">Penilaian Anda untuk {emp.fullName} telah terkirim.</p>
         </div>
       </Centered>
     );
@@ -59,48 +75,62 @@ export default function RatePage({ params }: { params: Promise<{ token: string }
 
   return (
     <Centered>
-      <div className="w-full max-w-sm rounded-3xl bg-white/80 p-8 shadow-xl backdrop-blur">
-        <div className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-indigo-500">RateMyStaff</div>
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-slate-800">{emp.fullName}</h1>
-          <p className="text-sm text-slate-500">{emp.position ?? emp.department ?? "Karyawan"}</p>
+      <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 shadow-2xl sm:p-8">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
+            <span className="font-display text-xl font-extrabold">R</span>
+          </span>
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary">RateMyStaff</div>
+          <h1 className="mt-2 font-display text-xl font-bold text-fg">{emp.fullName}</h1>
+          <p className="text-sm text-muted">{emp.position ?? emp.department ?? "Karyawan"}</p>
         </div>
 
-        {error && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+        {error && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-danger" style={softChip("var(--danger)")}>
+            <IconAlert className="text-[16px]" /> {error}
+          </div>
+        )}
 
-        <div className="mb-4 flex justify-center gap-1">
+        <div className="mb-5 flex justify-center gap-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               onMouseEnter={() => setHover(n)}
               onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
-              className={`text-4xl transition ${(hover || rating) >= n ? "text-yellow-400" : "text-slate-300"}`}
+              className={`text-4xl transition ${(hover || rating) >= n ? "text-warning" : "text-subtle"}`}
               aria-label={`${n} bintang`}
             >
-              ★
+              <IconStar className="text-[36px]" fill={(hover || rating) >= n ? "currentColor" : "none"} />
             </button>
           ))}
         </div>
 
-        <input
-          className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          placeholder="Nama Anda (opsional)"
-          value={raterName}
-          onChange={(e) => setRaterName(e.target.value)}
-        />
-        <textarea
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          rows={3}
-          maxLength={1000}
-          placeholder="Masukan / feedback (opsional)"
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-        />
+        <label className="mb-3 block space-y-1.5 text-sm">
+          <span className="font-medium text-muted">Nama Anda (opsional)</span>
+          <input
+            className="input h-11"
+            placeholder="Nama Anda"
+            value={raterName}
+            onChange={(e) => setRaterName(e.target.value)}
+            autoComplete="name"
+          />
+        </label>
+        <label className="mb-4 block space-y-1.5 text-sm">
+          <span className="font-medium text-muted">Masukan / feedback (opsional)</span>
+          <textarea
+            className="input"
+            rows={3}
+            maxLength={1000}
+            placeholder="Tulis masukan Anda…"
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+          />
+        </label>
         <button
           onClick={submit}
           disabled={saving}
-          className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
+          className="btn-primary h-11 w-full"
         >
           {saving ? "Mengirim…" : "Kirim Penilaian"}
         </button>
@@ -111,11 +141,11 @@ export default function RatePage({ params }: { params: Promise<{ token: string }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-100 via-slate-100 to-purple-100 p-4">
+    <main className="ambient relative flex min-h-screen items-center justify-center bg-bg p-4">
       {children}
     </main>
   );
 }
 function Spinner() {
-  return <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-indigo-500" />;
+  return <div className="relative z-10 h-8 w-8 animate-spin rounded-full border-4 border-border-strong border-t-primary" />;
 }

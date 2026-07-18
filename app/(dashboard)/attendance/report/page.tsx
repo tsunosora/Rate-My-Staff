@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
+import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
 
 type Row = {
   employeeId: number;
@@ -30,6 +31,10 @@ function weekAgo() {
   const d = new Date();
   d.setDate(d.getDate() - 7);
   return d.toISOString().slice(0, 10);
+}
+
+function softChip(color: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${color} 16%, transparent)`, color };
 }
 
 export default function AttendanceReportPage() {
@@ -106,119 +111,131 @@ export default function AttendanceReportPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Laporan Absensi</h1>
-        <a href={exportUrl} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
-          Export Excel
+    <div className="mx-auto max-w-7xl space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-fg">Laporan Absensi</h1>
+          <p className="mt-0.5 text-sm text-muted">Rekap kehadiran per rentang tanggal.</p>
+        </div>
+        <a href={exportUrl} className="btn-ghost h-10">
+          <IconDownload className="text-[17px]" /> Export Excel
         </a>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2 rounded-xl bg-white p-3 shadow-sm text-sm">
-        <label className="space-y-1">
-          <span className="block text-slate-500">Dari</span>
-          <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      <div className="glass flex flex-wrap items-end gap-3 rounded-2xl p-4 text-sm">
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Dari</span>
+          <input type="date" className="input h-10 w-auto" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </label>
-        <label className="space-y-1">
-          <span className="block text-slate-500">Sampai</span>
-          <input type="date" className="input" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Sampai</span>
+          <input type="date" className="input h-10 w-auto" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
-        <select className="input" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-          <option value="">Semua dept</option>
-          {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <select className="input" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-          <option value="">Semua karyawan</option>
-          {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
-        </select>
-        <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">Semua status</option>
-          <option value="on_time">Tepat waktu</option>
-          <option value="late">Terlambat</option>
-          <option value="absent">Absen</option>
-        </select>
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Departemen</span>
+          <select className="input h-10 w-auto" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <option value="">Semua dept</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Karyawan</span>
+          <select className="input h-10 w-auto" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+            <option value="">Semua karyawan</option>
+            {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1.5">
+          <span className="block font-medium text-muted">Status</span>
+          <select className="input h-10 w-auto" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Semua status</option>
+            <option value="on_time">Tepat waktu</option>
+            <option value="late">Terlambat</option>
+            <option value="absent">Absen</option>
+          </select>
+        </label>
       </div>
 
       {summary && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Tepat waktu" value={summary.onTime} />
-          <Stat label="Terlambat" value={`${summary.late} (${summary.totalLateMinutes}m)`} />
-          <Stat label="Absen" value={summary.absent} />
-          <Stat label="Total lembur" value={`${summary.totalOvertimeMinutes}m`} />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Stat label="Tepat waktu" value={summary.onTime} tone="var(--success)" />
+          <Stat label="Terlambat" value={`${summary.late} (${summary.totalLateMinutes}m)`} tone="var(--warning)" />
+          <Stat label="Absen" value={summary.absent} tone="var(--danger)" />
+          <Stat label="Total lembur" value={`${summary.totalOvertimeMinutes}m`} tone="var(--info)" />
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Tanggal</th>
-              <th className="px-4 py-3">Karyawan</th>
-              <th className="px-4 py-3">Masuk</th>
-              <th className="px-4 py-3">Pulang</th>
-              <th className="px-4 py-3">Telat</th>
-              <th className="px-4 py-3">Lembur</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Memuat…</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Tidak ada data.</td></tr>
-            ) : (
-              rows.map((r, i) => (
-                <tr key={`${r.employeeId}-${r.date}-${i}`} className="border-t border-slate-100">
-                  <td className="px-4 py-3">{r.date}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800">{r.fullName}</div>
-                    <div className="text-xs text-slate-400">{r.department ?? "—"}</div>
-                  </td>
-                  <td className="px-4 py-3">{r.clockIn ?? "—"}</td>
-                  <td className="px-4 py-3">{r.clockOut ?? "—"}</td>
-                  <td className="px-4 py-3">{r.lateMinutes ? `${r.lateMinutes}m` : "—"}</td>
-                  <td className="px-4 py-3">{r.overtimeMinutes ? `${r.overtimeMinutes}m` : "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${r.status === "late" ? "bg-yellow-100 text-yellow-700" : r.status === "on_time" ? "bg-green-100 text-green-700" : r.status === "absent" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"}`}>
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEditRow(r)} className="text-xs text-blue-600 hover:underline">Edit</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="glass overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+                <th className="px-4 py-3 font-medium">Tanggal</th>
+                <th className="px-4 py-3 font-medium">Karyawan</th>
+                <th className="px-4 py-3 font-medium">Masuk</th>
+                <th className="px-4 py-3 font-medium">Pulang</th>
+                <th className="px-4 py-3 font-medium">Telat</th>
+                <th className="px-4 py-3 font-medium">Lembur</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-subtle">Memuat…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-subtle">Tidak ada data.</td></tr>
+              ) : (
+                rows.map((r, i) => (
+                  <tr key={`${r.employeeId}-${r.date}-${i}`} className="border-t border-border transition hover:bg-surface">
+                    <td className="px-4 py-3 tabular text-muted">{r.date}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-fg">{r.fullName}</div>
+                      <div className="text-xs text-subtle">{r.department ?? "—"}</div>
+                    </td>
+                    <td className="px-4 py-3 tabular text-muted">{r.clockIn ?? "—"}</td>
+                    <td className="px-4 py-3 tabular text-muted">{r.clockOut ?? "—"}</td>
+                    <td className="px-4 py-3 tabular text-muted">{r.lateMinutes ? `${r.lateMinutes}m` : "—"}</td>
+                    <td className="px-4 py-3 tabular text-muted">{r.overtimeMinutes ? `${r.overtimeMinutes}m` : "—"}</td>
+                    <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => openEditRow(r)} className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-2.5 py-1.5 text-xs text-muted transition hover:border-primary hover:text-primary">
+                        <IconPencil className="text-[14px]" /> Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {editRow && (
         <Modal title="Edit Absensi" onClose={() => setEditRow(null)}>
-          {editError && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{editError}</div>}
+          {editError && <div className="mb-3 rounded-xl px-3 py-2.5 text-sm text-danger" style={softChip("var(--danger)")}>{editError}</div>}
           <div className="space-y-3 text-sm">
-            <div>
-              <span className="text-slate-600">Karyawan: </span>
-              <span className="font-medium text-slate-800">{editRow.fullName}</span>
-              <span className="text-slate-400"> · {editRow.date}</span>
+            <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
+              <span className="text-muted">Karyawan: </span>
+              <span className="font-medium text-fg">{editRow.fullName}</span>
+              <span className="text-subtle"> · {editRow.date}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1">
-                <span className="text-slate-600">Jam masuk</span>
+              <label className="space-y-1.5">
+                <span className="font-medium text-muted">Jam masuk</span>
                 <input type="time" className="input" value={editForm.clockIn} onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })} />
               </label>
-              <label className="space-y-1">
-                <span className="text-slate-600">Jam pulang</span>
+              <label className="space-y-1.5">
+                <span className="font-medium text-muted">Jam pulang</span>
                 <input type="time" className="input" value={editForm.clockOut} onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })} />
               </label>
             </div>
-            <p className="text-xs text-slate-400">Status, telat, lembur & shift (mis. longshift) dihitung ulang otomatis dari jam ini.</p>
+            <p className="text-xs text-subtle">Status, telat, lembur &amp; shift (mis. longshift) dihitung ulang otomatis dari jam ini.</p>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button onClick={() => setEditRow(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Batal</button>
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={() => setEditRow(null)} className="btn-ghost">Batal</button>
             <button onClick={saveEdit} disabled={saving || (!editForm.clockIn && !editForm.clockOut)} className="btn-primary disabled:opacity-40">
-              {saving ? "Menyimpan…" : "Simpan"}
+              <IconCheck className="text-[16px]" /> {saving ? "Menyimpan…" : "Simpan"}
             </button>
           </div>
         </Modal>
@@ -227,11 +244,22 @@ export default function AttendanceReportPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value, tone }: { label: string; value: string | number; tone: string }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="text-xl font-bold text-slate-800">{value}</div>
+    <div className="glass rounded-2xl p-5">
+      <div className="text-sm text-muted">{label}</div>
+      <div className="tabular mt-1 font-display text-2xl font-extrabold" style={{ color: tone }}>{value}</div>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { v: string; t: string }> = {
+    on_time: { v: "var(--success)", t: "Tepat waktu" },
+    late: { v: "var(--warning)", t: "Terlambat" },
+    absent: { v: "var(--danger)", t: "Absen" },
+    longshift: { v: "var(--primary-2)", t: "Long shift" },
+  };
+  const m = map[status] ?? { v: "var(--fg-subtle)", t: status };
+  return <span className="badge" style={softChip(m.v)}>{m.t}</span>;
 }

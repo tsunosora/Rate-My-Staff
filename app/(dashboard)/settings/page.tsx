@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
+import { IconTrash } from "@/components/ui/icons";
 
 type Dept = { id: number; name: string; _count?: { employees: number } };
 type Pos = { id: number; name: string; department?: { name: string } | null };
 type Holiday = { id: number; date: string; name: string };
 type Settings = Record<string, string | null>;
+
+function softChip(c: string): React.CSSProperties {
+  return { background: `color-mix(in oklab, ${c} 16%, transparent)`, color: c };
+}
 
 export default function SettingsPage() {
   const [departments, setDepartments] = useState<Dept[]>([]);
@@ -94,10 +99,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Pengaturan</h1>
-        {msg && <span className="text-sm text-green-600">{msg}</span>}
+        <div>
+          <h1 className="font-display text-2xl font-bold text-fg">Pengaturan</h1>
+          <p className="mt-0.5 text-sm text-muted">Departemen, posisi, hari libur, shift &amp; integrasi.</p>
+        </div>
+        {msg && <span className="text-sm text-success">{msg}</span>}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -113,20 +121,18 @@ export default function SettingsPage() {
               Tambah
             </button>
           </div>
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-border text-sm">
             {departments.map((d) => (
               <li key={d.id} className="flex items-center justify-between py-2">
-                <span>
+                <span className="text-fg">
                   {d.name}
                   {d._count && (
-                    <span className="ml-2 text-xs text-slate-400">
+                    <span className="ml-2 text-xs text-subtle">
                       ({d._count.employees} karyawan)
                     </span>
                   )}
                 </span>
-                <button onClick={() => delDept(d.id)} className="text-xs text-red-600 hover:underline">
-                  Hapus
-                </button>
+                <DeleteLink onClick={() => delDept(d.id)} />
               </li>
             ))}
           </ul>
@@ -156,18 +162,16 @@ export default function SettingsPage() {
               Tambah
             </button>
           </div>
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-border text-sm">
             {positions.map((p) => (
               <li key={p.id} className="flex items-center justify-between py-2">
-                <span>
+                <span className="text-fg">
                   {p.name}
                   {p.department && (
-                    <span className="ml-2 text-xs text-slate-400">{p.department.name}</span>
+                    <span className="ml-2 text-xs text-subtle">{p.department.name}</span>
                   )}
                 </span>
-                <button onClick={() => delPos(p.id)} className="text-xs text-red-600 hover:underline">
-                  Hapus
-                </button>
+                <DeleteLink onClick={() => delPos(p.id)} />
               </li>
             ))}
           </ul>
@@ -191,18 +195,13 @@ export default function SettingsPage() {
               Tambah
             </button>
           </div>
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-border text-sm">
             {holidays.map((h) => (
               <li key={h.id} className="flex items-center justify-between py-2">
-                <span>
+                <span className="text-fg">
                   {new Date(h.date).toLocaleDateString("id-ID")} — {h.name}
                 </span>
-                <button
-                  onClick={() => delHoliday(h.id)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  Hapus
-                </button>
+                <DeleteLink onClick={() => delHoliday(h.id)} />
               </li>
             ))}
           </ul>
@@ -213,7 +212,7 @@ export default function SettingsPage() {
         <Card title="Sistem & Integrasi">
           <div className="space-y-3 text-sm">
             <label className="space-y-1">
-              <span className="text-slate-600">Engine perhitungan lembur</span>
+              <span className="text-muted">Engine perhitungan lembur</span>
               <select
                 className="input"
                 value={settings.overtime_engine_context ?? "default"}
@@ -225,9 +224,10 @@ export default function SettingsPage() {
                 <option value="rate_my_staff_custom">RateMyStaff Custom</option>
               </select>
             </label>
-            <label className="flex items-center gap-2 text-slate-600">
+            <label className="flex items-center gap-2 text-muted">
               <input
                 type="checkbox"
+                className="accent-[color:var(--primary)]"
                 checked={settings.auto_sunday_holiday === "true"}
                 onChange={(e) =>
                   setSettings({
@@ -239,7 +239,7 @@ export default function SettingsPage() {
               Minggu otomatis hari libur
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">SN Mesin Fingerspot</span>
+              <span className="text-muted">SN Mesin Fingerspot</span>
               <input
                 className="input"
                 value={settings.fingerspot_sn ?? ""}
@@ -255,7 +255,7 @@ export default function SettingsPage() {
         <Card title="Jam Toko & Shift">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="space-y-1">
-              <span className="text-slate-600">Buka toko / shift pagi mulai</span>
+              <span className="text-muted">Buka toko / shift pagi mulai</span>
               <input
                 type="time"
                 className="input"
@@ -264,7 +264,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">Tutup toko / shift siang selesai</span>
+              <span className="text-muted">Tutup toko / shift siang selesai</span>
               <input
                 type="time"
                 className="input"
@@ -273,7 +273,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">Shift pagi selesai</span>
+              <span className="text-muted">Shift pagi selesai</span>
               <input
                 type="time"
                 className="input"
@@ -282,7 +282,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">Shift siang mulai (batas pagi/siang)</span>
+              <span className="text-muted">Shift siang mulai (batas pagi/siang)</span>
               <input
                 type="time"
                 className="input"
@@ -291,7 +291,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">Longshift bila masuk pagi & pulang ≥</span>
+              <span className="text-muted">Longshift bila masuk pagi & pulang ≥</span>
               <input
                 type="time"
                 className="input"
@@ -300,7 +300,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-slate-600">Toleransi telat (menit)</span>
+              <span className="text-muted">Toleransi telat (menit)</span>
               <input
                 type="number"
                 min={0}
@@ -310,7 +310,7 @@ export default function SettingsPage() {
               />
             </label>
           </div>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-subtle">
             Shift dideteksi otomatis dari jam scan: masuk sebelum &quot;shift siang mulai&quot; = pagi;
             masuk pagi lalu pulang ≥ ambang longshift = longshift. Lembur = menit kerja melebihi jam
             selesai shift (pagi: shift pagi selesai; siang/longshift: tutup toko).
@@ -324,10 +324,21 @@ export default function SettingsPage() {
   );
 }
 
+function DeleteLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:underline"
+    >
+      <IconTrash className="text-[13px]" /> Hapus
+    </button>
+  );
+}
+
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm">
-      <h2 className="mb-3 text-lg font-semibold text-slate-800">{title}</h2>
+    <section className="glass rounded-2xl p-5">
+      <h2 className="mb-3 text-lg font-semibold text-fg">{title}</h2>
       {children}
     </section>
   );
@@ -364,8 +375,16 @@ function ChangePasswordCard() {
   return (
     <Card title="Ganti Password">
       <div className="space-y-3 text-sm">
-        {msg && <div className="rounded-lg bg-green-50 px-3 py-2 text-green-700">{msg}</div>}
-        {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-red-600">{err}</div>}
+        {msg && (
+          <div className="rounded-xl px-3 py-2 text-success" style={softChip("var(--success)")}>
+            {msg}
+          </div>
+        )}
+        {err && (
+          <div className="rounded-xl px-3 py-2 text-danger" style={softChip("var(--danger)")}>
+            {err}
+          </div>
+        )}
         <input type="password" className="input" placeholder="Password saat ini" value={current} onChange={(e) => setCurrent(e.target.value)} />
         <input type="password" className="input" placeholder="Password baru (min 6)" value={next} onChange={(e) => setNext(e.target.value)} />
         <input type="password" className="input" placeholder="Konfirmasi password baru" value={confirm} onChange={(e) => setConfirm(e.target.value)} />

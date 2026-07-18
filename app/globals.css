@@ -1,37 +1,290 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (html carries `.dark` or `.light`; dark is default) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/*  Design tokens → Tailwind theme (inline = utilities resolve to the  */
+/*  runtime CSS variables below, so theming is a var swap, no rebuild) */
+/* ------------------------------------------------------------------ */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-x), ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-solid: var(--solid);
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-2: var(--primary-2);
+  --color-on-primary: var(--on-primary);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-ring: var(--ring);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
 }
 
-body {
-  background: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
+/* ---- Dark (default) — deep neutral near-black (never pure #000) ---- */
+:root,
+.dark {
+  color-scheme: dark;
+  --bg: #09090b;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.07);
+  --solid: #131316; /* opaque surface for menus/modals */
+
+  --fg: #fafafa;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #63636b;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --primary: #818cf8; /* indigo-400, tuned for dark legibility */
+  --primary-2: #a78bfa; /* violet-400 */
+  --on-primary: #09090b;
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --ring: rgba(129, 140, 248, 0.55);
+
+  --glow-1: rgba(99, 102, 241, 0.07);
+  --glow-2: rgba(139, 92, 246, 0.055);
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 12px 32px -12px rgba(0, 0, 0, 0.7);
 }
 
-/* Reusable form input style */
-.input {
-  width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #cbd5e1; /* slate-300 */
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  outline: none;
-}
-.input:focus {
-  border-color: #64748b; /* slate-500 */
+/* ---- Light — clean neutral (white cards on very light gray) ---- */
+.light {
+  color-scheme: light;
+  --bg: #f6f6f7;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-2: rgba(255, 255, 255, 0.96);
+  --solid: #ffffff;
+
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --fg-subtle: #a1a1aa;
+
+  --border: rgba(24, 24, 27, 0.07);
+  --border-strong: rgba(24, 24, 27, 0.13);
+
+  --primary: #6366f1;
+  --primary-2: #8b5cf6;
+  --on-primary: #ffffff;
+
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #2563eb;
+  --ring: rgba(99, 102, 241, 0.4);
+
+  --glow-1: rgba(99, 102, 241, 0.07);
+  --glow-2: rgba(139, 92, 246, 0.055);
+  --shadow-card: 0 1px 2px 0 rgba(24, 24, 27, 0.04),
+    0 12px 28px -14px rgba(24, 24, 27, 0.16);
 }
 
-.btn-primary {
-  border-radius: 0.5rem;
-  background: #1e293b; /* slate-800 */
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #fff;
-  white-space: nowrap;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+    color: var(--fg);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--fg-subtle) 40%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--fg-subtle) 60%, transparent);
+    background-clip: content-box;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
-.btn-primary:hover {
-  background: #334155; /* slate-700 */
+
+/* ------------------------------------------------------------------ */
+/*  Component utilities                                                 */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Frosted glass card */
+  .glass {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: var(--shadow-card);
+  }
+  .glass-2 {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-strong);
+    background: color-mix(in oklab, var(--solid) 45%, transparent);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--fg);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease,
+      background 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--fg-subtle);
+  }
+  .input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  /* Primary CTA — indigo→violet gradient */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    padding: 0.55rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-primary);
+    white-space: nowrap;
+    box-shadow: 0 8px 20px -8px color-mix(in oklab, var(--primary) 70%, transparent);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    cursor: pointer;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 10px 26px -8px color-mix(in oklab, var(--primary) 80%, transparent);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+  }
+
+  /* Ghost / secondary button */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-strong);
+    background: color-mix(in oklab, var(--surface) 60%, transparent);
+    padding: 0.55rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--fg);
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    cursor: pointer;
+  }
+  .btn-ghost:hover {
+    background: var(--surface-2);
+    border-color: var(--primary);
+  }
+  .btn-ghost:active {
+    transform: scale(0.97);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* Soft status badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+}
+
+/* Ambient gradient blobs for the app background */
+.ambient::before,
+.ambient::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  width: 42rem;
+  height: 42rem;
+  border-radius: 9999px;
+  filter: blur(120px);
+  pointer-events: none;
+}
+.ambient::before {
+  top: -14rem;
+  left: -8rem;
+  background: var(--glow-1);
+}
+.ambient::after {
+  bottom: -16rem;
+  right: -10rem;
+  background: var(--glow-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }
