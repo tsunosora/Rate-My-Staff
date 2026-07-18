@@ -1,0 +1,128 @@
+import type { ReportRow } from "./report";
+
+export type ReceiptRateSet = {
+  /** Lembur Harian: per hari longshift (acuan 20000). */
+  daily: number;
+  /** Lembur Libur: per hari libur yang tetap masuk (acuan 70000). */
+  holiday: number;
+  /** Lembur Cetak: per jam lembur di atas jam tutup shift siang/longshift (acuan 10000). */
+  cetak: number;
+};
+
+export type ReceiptInputRow = Pick<
+  ReportRow,
+  "date" | "shift" | "isHoliday" | "clockIn" | "clockOut" | "lateMinutes" | "overtimeMinutes" | "status"
+>;
+
+export type ReceiptInput = {
+  employeeId: number;
+  employeeName: string;
+  employeeCode: string;
+  department: string | null;
+  year: number; // mis. 2026
+  month: number; // 1-12
+  rates: ReceiptRateSet;
+  rows: ReceiptInputRow[];
+};
+
+export type ReceiptDayRow = {
+  date: string;
+  dayName: string;
+  isHoliday: boolean;
+  clockIn: string | null;
+  clockOut: string | null;
+  shiftLabel: string; // "Long" | "Pagi" | "Siang" | "—"
+  lateMinutes: number;
+  overtimeHours: number; // overtimeMinutes/60, 2 desimal (kolom Keterangan>Lembur)
+  ls: number; // 0 | 1
+  lc: number; // jam, 2 desimal
+  ll: number; // 0 | 1
+  worked: boolean;
+};
+
+export type ReceiptData = {
+  employeeId: number;
+  employeeName: string;
+  employeeCode: string;
+  department: string | null;
+  year: number;
+  month: number;
+  monthLabel: string; // "April 2026"
+  rows: ReceiptDayRow[];
+  totals: {
+    lsCount: number;
+    lcHours: number;
+    llCount: number;
+    dailyAmount: number;
+    holidayAmount: number;
+    cetakAmount: number;
+    grandTotal: number;
+  };
+  rates: ReceiptRateSet;
+};
+
+const DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+const SHIFT_LABEL: Record<string, string> = { longshift: "Long", pagi: "Pagi", siang: "Siang" };
+
+/** Bulatkan menit lembur ke jam, 2 desimal. */
+function toHours(minutes: number): number {
+  return Math.round((minutes / 60) * 100) / 100;
+}
+
+/**
+ * Ubah baris absensi satu bulan-satu karyawan menjadi struk (ReceiptData).
+ * Aturan (dikonfirmasi user):
+ * - LS = 1 bila shift longshift di hari kerja & hadir -> "Lembur Harian".
+ * - LL = 1 bila hari libur tapi tetap hadir (8 jam = 1 hari) -> "Lembur Libur".
+ * - LC = jam lembur (overtimeMinutes/60, desimal) hanya shift siang/longshift di hari kerja -> "Lembur Cetak".
+ */
+export function buildReceipt(input: ReceiptInput): ReceiptData {
+  const rows: ReceiptDayRow[] = input.rows.map((r) => {
+    const worked = Boolean(r.clockIn || r.clockOut);
+    const otHours = r.overtimeMinutes > 0 ? toHours(r.overtimeMinutes) : 0;
+    const ls = worked && !r.isHoliday && r.shift === "longshift" ? 1 : 0;
+    const ll = worked && r.isHoliday ? 1 : 0;
+    const lc = worked && !r.isHoliday && (r.shift === "siang" || r.shift === "longshift") ? otHours : 0;
+    const [y, m, d] = r.date.split("-").map(Number);
+    const dayName = DAY_NAMES[new Date(y, m - 1, d).getDay()];
+    return {
+      date: r.date,
+      dayName,
+      isHoliday: r.isHoliday,
+      clockIn: r.clockIn,
+      clockOut: r.clockOut,
+      shiftLabel: r.shift ? SHIFT_LABEL[r.shift] ?? "—" : "—",
+      lateMinutes: r.lateMinutes,
+      overtimeHours: otHours,
+      ls,
+      lc,
+      ll,
+      worked,
+    };
+  });
+
+  const lsCount = rows.reduce((s, r) => s + r.ls, 0);
+  const llCount = rows.reduce((s, r) => s + r.ll, 0);
+  const lcHours = Math.round(rows.reduce((s, r) => s + r.lc, 0) * 100) / 100;
+  const dailyAmount = lsCount * input.rates.daily;
+  const holidayAmount = llCount * input.rates.holiday;
+  const cetakAmount = Math.round(lcHours * input.rates.cetak);
+  const grandTotal = dailyAmount + holidayAmount + cetakAmount;
+
+  return {
+    employeeId: input.employeeId,
+    employeeName: input.employeeName,
+    employeeCode: input.employeeCode,
+    department: input.department,
+    year: input.year,
+    month: input.month,
+    monthLabel: `${MONTHS[input.month - 1]} ${input.year}`,
+    rows,
+    totals: { lsCount, lcHours, llCount, dailyAmount, holidayAmount, cetakAmount, grandTotal },
+    rates: input.rates,
+  };
+}
