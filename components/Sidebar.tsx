@@ -32,6 +32,7 @@ const NAV: NavGroup[] = [
     children: [
       { label: "Dashboard", href: "/attendance" },
       { label: "Laporan Detail", href: "/attendance/report" },
+      { label: "Struk", href: "/attendance/receipt" },
     ],
   },
   { label: "Direktori", href: "/employees", icon: IconUsers, require: "manager" },
