@@ -13,9 +13,12 @@ function toSec(t: string): number {
 /**
  * Dobel-scan di event yang sama (mis. 08:00 & 08:05, atau 21:00 & 21:06) dianggap satu event.
  * Scan dalam jarak <= CLUSTER_GAP dikelompokkan; wakil tiap kelompok = scan PALING TERLAMBAT.
- * Aman: jarak masuk↔pulang selalu berjam-jam, jauh di atas ambang ini.
+ * Ambang harus mencerminkan "tap ganda di menit yang sama" saja — BUKAN jarak masuk↔pulang.
+ * Nilai lama (2 jam) keliru menggabung scan berjarak jam (mis. masuk 08:00 & pulang 10:00) jadi
+ * satu, memicu saran jam pulang palsu. 15 menit cukup longgar untuk tap ganda, jauh di bawah
+ * durasi shift terpendek.
  */
-const CLUSTER_GAP_SEC = 120 * 60; // 2 jam
+const CLUSTER_GAP_SEC = 15 * 60; // 15 menit
 
 /** "HH:MM" -> menit. */
 function hmMin(t: string): number {

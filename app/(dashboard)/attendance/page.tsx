@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ComponentType, type SVGProps } f
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { AttendanceDonut } from "@/components/attendance/AttendanceDonut";
+import { keyIncompleteRows, type KeyedIncompleteRow } from "@/lib/services/attendance/incomplete-rows";
 import {
   IconPlus,
   IconUpload,
@@ -69,7 +70,7 @@ export default function AttendancePage() {
   const [importError, setImportError] = useState("");
   const [overwriteConflicts, setOverwriteConflicts] = useState(false);
   const [incomplete, setIncomplete] = useState<IncompleteRow[]>([]);
-  const [completeList, setCompleteList] = useState<IncompleteRow[]>([]);
+  const [completeList, setCompleteList] = useState<KeyedIncompleteRow<IncompleteRow>[]>([]);
   const [incompleteOpen, setIncompleteOpen] = useState(false);
   const [fillTimes, setFillTimes] = useState<Record<string, string>>({});
   const [incompleteError, setIncompleteError] = useState("");
@@ -164,10 +165,11 @@ export default function AttendancePage() {
   }
 
   function openComplete(list: IncompleteRow[]) {
+    const keyed = keyIncompleteRows(list);
     const init: Record<string, string> = {};
-    for (const r of list) init[`${r.employeeId}|${r.date}`] = r.suggested ?? "";
+    for (const r of keyed) init[r.uid] = r.suggested ?? "";
     setFillTimes(init);
-    setCompleteList(list);
+    setCompleteList(keyed);
     setIncompleteError("");
     setIncompleteOpen(true);
   }
@@ -186,8 +188,8 @@ export default function AttendancePage() {
     }
   }
 
-  async function saveComplete(row: IncompleteRow) {
-    const key = `${row.employeeId}|${row.date}`;
+  async function saveComplete(row: KeyedIncompleteRow<IncompleteRow>) {
+    const key = row.uid;
     const time = fillTimes[key];
     if (!time) return;
     setIncompleteError("");
@@ -206,7 +208,7 @@ export default function AttendancePage() {
         delete n[key];
         return n;
       });
-      setCompleteList((list) => list.filter((x) => `${x.employeeId}|${x.date}` !== key));
+      setCompleteList((list) => list.filter((x) => x.uid !== key));
       await load();
     } catch (e) {
       setIncompleteError((e as Error).message);
@@ -214,14 +216,14 @@ export default function AttendancePage() {
   }
 
   async function saveAllComplete() {
-    const targets = completeList.filter((r) => fillTimes[`${r.employeeId}|${r.date}`]);
+    const targets = completeList.filter((r) => fillTimes[r.uid]);
     if (targets.length === 0) return;
     setIncompleteSaving(true);
     setIncompleteError("");
     try {
       await Promise.all(
         targets.map((row) => {
-          const time = fillTimes[`${row.employeeId}|${row.date}`];
+          const time = fillTimes[row.uid];
           return api("/api/attendance/manual", {
             method: "POST",
             body: JSON.stringify({
@@ -233,8 +235,8 @@ export default function AttendancePage() {
           });
         })
       );
-      const savedKeys = new Set(targets.map((r) => `${r.employeeId}|${r.date}`));
-      setCompleteList((list) => list.filter((x) => !savedKeys.has(`${x.employeeId}|${x.date}`)));
+      const savedKeys = new Set(targets.map((r) => r.uid));
+      setCompleteList((list) => list.filter((x) => !savedKeys.has(x.uid)));
       setFillTimes((f) => {
         const n = { ...f };
         for (const k of savedKeys) delete n[k];
@@ -616,7 +618,7 @@ export default function AttendancePage() {
                   </thead>
                   <tbody>
                     {completeList.map((r) => {
-                      const key = `${r.employeeId}|${r.date}`;
+                      const key = r.uid;
                       return (
                         <tr key={key} className="border-t border-border">
                           <td className="px-3 py-2">
@@ -659,10 +661,10 @@ export default function AttendancePage() {
             {completeList.length > 0 && (
               <button
                 onClick={saveAllComplete}
-                disabled={incompleteSaving || completeList.every((r) => !fillTimes[`${r.employeeId}|${r.date}`])}
+                disabled={incompleteSaving || completeList.every((r) => !fillTimes[r.uid])}
                 className="btn-primary disabled:opacity-40"
               >
-                {incompleteSaving ? "Menyimpan…" : `Simpan Semua (${completeList.filter((r) => fillTimes[`${r.employeeId}|${r.date}`]).length})`}
+                {incompleteSaving ? "Menyimpan…" : `Simpan Semua (${completeList.filter((r) => fillTimes[r.uid]).length})`}
               </button>
             )}
           </div>

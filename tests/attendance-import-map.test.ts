@@ -54,6 +54,22 @@ describe("deriveScans", () => {
       { time: "21:03:00", scanType: "out" },
     ]);
   });
+
+  // Regresi: dua scan berjarak jam (mis. masuk 08:00 & pulang 10:00) BUKAN dobel-scan satu
+  // event — jangan digabung jadi satu lalu memicu saran jam pulang palsu (mis. 16:00).
+  test("scan 08:00 & 10:00 (jarak 2 jam) → in 08:00 + out 10:00, tidak digabung", () => {
+    expect(deriveScans(["08:00:00", "10:00:00"])).toEqual([
+      { time: "08:00:00", scanType: "in" },
+      { time: "10:00:00", scanType: "out" },
+    ]);
+  });
+
+  test("scan 08:00 & 09:00 (jarak 1 jam) → in 08:00 + out 09:00, tidak digabung", () => {
+    expect(deriveScans(["08:00:00", "09:00:00"])).toEqual([
+      { time: "08:00:00", scanType: "in" },
+      { time: "09:00:00", scanType: "out" },
+    ]);
+  });
 });
 
 const employees: ImportEmployee[] = [
