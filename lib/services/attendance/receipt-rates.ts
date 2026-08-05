@@ -14,8 +14,8 @@ export const RECEIPT_SETTING_KEYS = {
   mealAllowance: "flex_meal_allowance",
 } as const;
 
-/** Nominal uang makan default (mode flexible) bila belum diatur. */
-export const DEFAULT_MEAL_ALLOWANCE = 0;
+/** Nominal uang makan default (mode flexible) bila belum diatur: Rp10.000 flat, sekali per hari >10 jam. */
+export const DEFAULT_MEAL_ALLOWANCE = 10000;
 
 /** Label istilah pembayaran di struk (bisa diganti dari Pengaturan). */
 export type ReceiptLabelSet = {

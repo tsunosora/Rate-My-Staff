@@ -4,8 +4,10 @@ import {
   resolveReceiptRates,
   resolveOvertimeRounding,
   resolveReceiptLabels,
+  resolveMealAllowance,
   DEFAULT_RECEIPT_RATES,
   DEFAULT_RECEIPT_LABELS,
+  DEFAULT_MEAL_ALLOWANCE,
 } from "@/lib/services/attendance/receipt-rates";
 
 const rates = { daily: 20000, holiday: 70000, cetak: 10000 };
@@ -171,6 +173,19 @@ describe("resolveOvertimeRounding", () => {
   });
   test("'decimal' bila diset eksplisit", () => {
     expect(resolveOvertimeRounding({ overtime_rounding: "decimal" })).toBe("decimal");
+  });
+});
+
+describe("resolveMealAllowance", () => {
+  test("default Rp10.000 bila tak diset", () => {
+    expect(DEFAULT_MEAL_ALLOWANCE).toBe(10000);
+    expect(resolveMealAllowance()).toBe(10000);
+    expect(resolveMealAllowance({})).toBe(10000);
+    expect(resolveMealAllowance({ flex_meal_allowance: "" })).toBe(10000);
+  });
+  test("nilai eksplisit menimpa default", () => {
+    expect(resolveMealAllowance({ flex_meal_allowance: "15000" })).toBe(15000);
+    expect(resolveMealAllowance({ flex_meal_allowance: "0" })).toBe(0); // 0 eksplisit = nonaktif
   });
 });
 

@@ -376,7 +376,7 @@ export default function SettingsPage() {
                 min={0}
                 step={1000}
                 className="input"
-                placeholder="0"
+                placeholder="10000"
                 value={settings.flex_meal_allowance ?? ""}
                 onChange={(e) => setSettings({ ...settings, flex_meal_allowance: e.target.value })}
               />
@@ -387,7 +387,8 @@ export default function SettingsPage() {
             Mode <strong>per jam penuh</strong>: lembur hanya dihitung tiap 1 jam — sisa menit di
             bawah 60 (mis. 30 atau 50 menit) tidak dihitung.{" "}
             <strong>Uang makan</strong> hanya berlaku untuk jadwal “jam masuk bebas” dan dibayar flat
-            sekali per hari bila durasi kerja melewati 10 jam (lemburnya dihitung per-menit).
+            sekali per hari bila durasi kerja melewati 10 jam (lemburnya dihitung per-menit). Kosong =
+            default Rp10.000.
           </p>
 
           <div className="mt-5 border-t border-border pt-4">
