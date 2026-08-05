@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { aggregateAttendance } from "./aggregate";
 import { buildReceipt, type ReceiptData, type OvertimeRounding } from "./receipt";
-import { resolveReceiptRates, resolveOvertimeRounding } from "./receipt-rates";
+import { resolveReceiptRates, resolveOvertimeRounding, resolveMealAllowance } from "./receipt-rates";
 import { getAllSettings } from "@/lib/settings";
 
 function monthRange(year: number, month: number) {
@@ -12,11 +12,16 @@ function monthRange(year: number, month: number) {
   return { startStr: ymd(start), endStr: ymd(end) };
 }
 
-async function loadConfig(prisma: PrismaClient): Promise<{ rates: ReturnType<typeof resolveReceiptRates>; rounding: OvertimeRounding }> {
+async function loadConfig(prisma: PrismaClient): Promise<{
+  rates: ReturnType<typeof resolveReceiptRates>;
+  rounding: OvertimeRounding;
+  mealAllowance: number;
+}> {
   const [cats, settings] = await Promise.all([prisma.overtimeCategory.findMany(), getAllSettings()]);
   return {
     rates: resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })), settings),
     rounding: resolveOvertimeRounding(settings),
+    mealAllowance: resolveMealAllowance(settings),
   };
 }
 
@@ -29,14 +34,16 @@ export async function buildEmployeeReceipt(
 ): Promise<ReceiptData | null> {
   const emp = await prisma.employee.findUnique({
     where: { id: employeeId },
-    include: { department: true },
+    include: { department: true, workSchedule: true },
   });
   if (!emp) return null;
   const { startStr, endStr } = monthRange(year, month);
-  const [{ rows }, { rates, rounding }] = await Promise.all([
+  const [{ rows }, { rates, rounding, mealAllowance }] = await Promise.all([
     aggregateAttendance(prisma, { startStr, endStr, employeeId: String(employeeId) }),
     loadConfig(prisma),
   ]);
+  const flexible = Boolean(emp.workSchedule?.flexibleHours);
+  const flexRatePerHour = emp.workSchedule ? Number(emp.workSchedule.overtimeWagePerHour) : 0;
   return buildReceipt({
     employeeId: emp.id,
     employeeName: emp.fullName,
@@ -46,6 +53,9 @@ export async function buildEmployeeReceipt(
     month,
     rates,
     rounding,
+    flexible,
+    flexRatePerHour,
+    mealAllowance,
     rows: rows.map((r) => ({
       date: r.date,
       shift: r.shift,
@@ -54,6 +64,7 @@ export async function buildEmployeeReceipt(
       clockOut: r.clockOut,
       lateMinutes: r.lateMinutes,
       overtimeMinutes: r.overtimeMinutes,
+      mealEligible: r.mealEligible,
       status: r.status,
     })),
   });

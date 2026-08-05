@@ -11,17 +11,23 @@ const sample: ReceiptData = {
   year: 2026,
   month: 4,
   monthLabel: "April 2026",
+  flexible: false,
+  flexRatePerHour: 0,
+  mealAllowance: 0,
   rows: [
     {
       date: "2026-04-01", dayName: "Rabu", isHoliday: false, clockIn: "08:00", clockOut: "22:00",
-      shiftLabel: "Long", lateMinutes: 0, overtimeHours: 1, ls: 1, lc: 1, ll: 0, worked: true,
+      shiftLabel: "Long", lateMinutes: 0, overtimeHours: 1, ls: 1, lc: 1, ll: 0, mealEligible: false, worked: true,
     },
     {
       date: "2026-04-06", dayName: "Minggu", isHoliday: true, clockIn: null, clockOut: null,
-      shiftLabel: "—", lateMinutes: 0, overtimeHours: 0, ls: 0, lc: 0, ll: 0, worked: false,
+      shiftLabel: "—", lateMinutes: 0, overtimeHours: 0, ls: 0, lc: 0, ll: 0, mealEligible: false, worked: false,
     },
   ],
-  totals: { lsCount: 1, lcHours: 1, llCount: 0, dailyAmount: 20000, holidayAmount: 0, cetakAmount: 10000, grandTotal: 30000 },
+  totals: {
+    lsCount: 1, lcHours: 1, llCount: 0, dailyAmount: 20000, holidayAmount: 0, cetakAmount: 10000,
+    overtimeMinutes: 0, overtimeAmount: 0, mealCount: 0, mealAmount: 0, grandTotal: 30000,
+  },
   rates: { daily: 20000, holiday: 70000, cetak: 10000 },
 };
 
@@ -36,9 +42,40 @@ describe("buildReceiptExcel", () => {
   });
 });
 
+const flexSample: ReceiptData = {
+  ...sample,
+  employeeId: 3,
+  employeeName: "Budi",
+  employeeCode: "EMP010",
+  flexible: true,
+  flexRatePerHour: 10000,
+  mealAllowance: 15000,
+  rows: [
+    {
+      date: "2026-04-01", dayName: "Rabu", isHoliday: false, clockIn: "08:00", clockOut: "18:31",
+      shiftLabel: "Bebas", lateMinutes: 0, overtimeHours: 2.52, ls: 0, lc: 0, ll: 0, mealEligible: true, worked: true,
+    },
+  ],
+  totals: {
+    lsCount: 0, lcHours: 0, llCount: 0, dailyAmount: 0, holidayAmount: 0, cetakAmount: 0,
+    overtimeMinutes: 151, overtimeAmount: 25167, mealCount: 1, mealAmount: 15000, grandTotal: 40167,
+  },
+};
+
 describe("buildReceiptPdf", () => {
   test("PDF struk -> buffer valid", async () => {
     const buf = await buildReceiptPdf([sample], "2026-07-18 18:00");
+    expect(buf.length).toBeGreaterThan(0);
+  });
+  test("PDF struk flexible (lembur + uang makan) -> buffer valid", async () => {
+    const buf = await buildReceiptPdf([flexSample], "2026-07-18 18:00");
+    expect(buf.length).toBeGreaterThan(0);
+  });
+});
+
+describe("buildReceiptExcel — flexible", () => {
+  test("struk flexible -> buffer valid", async () => {
+    const buf = await buildReceiptExcel([flexSample]);
     expect(buf.length).toBeGreaterThan(0);
   });
 });

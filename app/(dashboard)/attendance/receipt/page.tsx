@@ -17,6 +17,7 @@ type ReceiptDayRow = {
   ls: number;
   lc: number;
   ll: number;
+  mealEligible: boolean;
   worked: boolean;
 };
 type ReceiptData = {
@@ -25,6 +26,9 @@ type ReceiptData = {
   employeeCode: string;
   department: string | null;
   monthLabel: string;
+  flexible: boolean;
+  flexRatePerHour: number;
+  mealAllowance: number;
   rows: ReceiptDayRow[];
   totals: {
     lsCount: number;
@@ -33,6 +37,10 @@ type ReceiptData = {
     dailyAmount: number;
     holidayAmount: number;
     cetakAmount: number;
+    overtimeMinutes: number;
+    overtimeAmount: number;
+    mealCount: number;
+    mealAmount: number;
     grandTotal: number;
   };
   rates: { daily: number; holiday: number; cetak: number };
@@ -400,9 +408,23 @@ export default function AttendanceReceiptPage() {
 
           <div className="glass grid gap-4 rounded-2xl p-5 md:grid-cols-2">
             <div className="space-y-2 text-sm">
-              <SubTotal label="Lembur Harian" rate={data.rates.daily} qty={data.totals.lsCount} amount={data.totals.dailyAmount} />
-              <SubTotal label="Lembur Libur" rate={data.rates.holiday} qty={data.totals.llCount} amount={data.totals.holidayAmount} />
-              <SubTotal label="Lembur Cetak" rate={data.rates.cetak} qty={data.totals.lcHours} amount={data.totals.cetakAmount} />
+              {data.flexible ? (
+                <>
+                  <SubTotal
+                    label="Lembur (per jam)"
+                    rate={data.flexRatePerHour}
+                    qty={Math.round((data.totals.overtimeMinutes / 60) * 100) / 100}
+                    amount={data.totals.overtimeAmount}
+                  />
+                  <SubTotal label="Uang Makan" rate={data.mealAllowance} qty={data.totals.mealCount} amount={data.totals.mealAmount} />
+                </>
+              ) : (
+                <>
+                  <SubTotal label="Lembur Harian" rate={data.rates.daily} qty={data.totals.lsCount} amount={data.totals.dailyAmount} />
+                  <SubTotal label="Lembur Libur" rate={data.rates.holiday} qty={data.totals.llCount} amount={data.totals.holidayAmount} />
+                  <SubTotal label="Lembur Cetak" rate={data.rates.cetak} qty={data.totals.lcHours} amount={data.totals.cetakAmount} />
+                </>
+              )}
             </div>
             <div className="flex flex-col items-end justify-center rounded-xl border border-border bg-surface p-5">
               <span className="text-sm text-muted">Jumlah</span>

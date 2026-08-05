@@ -15,12 +15,15 @@ type WorkSchedule = {
   lateToleranceMinutes: number;
   dailyWage: string | number;
   holidayWage: string | number;
+  overtimeWagePerHour: string | number;
   isHoliday: boolean;
+  flexibleHours: boolean;
 };
 
 type Form = {
   name: string;
   isHoliday: boolean;
+  flexibleHours: boolean;
   startTime: string;
   endTime: string;
   breakStartTime: string;
@@ -28,11 +31,13 @@ type Form = {
   lateToleranceMinutes: string;
   dailyWage: string;
   holidayWage: string;
+  overtimeWagePerHour: string;
 };
 
 const empty: Form = {
   name: "",
   isHoliday: false,
+  flexibleHours: false,
   startTime: "08:00",
   endTime: "17:00",
   breakStartTime: "",
@@ -40,6 +45,7 @@ const empty: Form = {
   lateToleranceMinutes: "15",
   dailyWage: "0",
   holidayWage: "0",
+  overtimeWagePerHour: "0",
 };
 
 function softChip(c: string): React.CSSProperties {
@@ -71,6 +77,7 @@ export default function WorkSchedulesPage() {
     setForm({
       name: w.name,
       isHoliday: w.isHoliday,
+      flexibleHours: w.flexibleHours ?? false,
       startTime: w.startTime ?? "",
       endTime: w.endTime ?? "",
       breakStartTime: w.breakStartTime ?? "",
@@ -78,6 +85,7 @@ export default function WorkSchedulesPage() {
       lateToleranceMinutes: String(w.lateToleranceMinutes),
       dailyWage: String(w.dailyWage ?? 0),
       holidayWage: String(w.holidayWage ?? 0),
+      overtimeWagePerHour: String(w.overtimeWagePerHour ?? 0),
     });
     setError("");
     setModal("edit");
@@ -87,6 +95,7 @@ export default function WorkSchedulesPage() {
     return {
       name: form.name,
       isHoliday: form.isHoliday,
+      flexibleHours: form.flexibleHours,
       startTime: form.isHoliday ? "" : form.startTime,
       endTime: form.isHoliday ? "" : form.endTime,
       breakStartTime: form.breakStartTime,
@@ -94,6 +103,7 @@ export default function WorkSchedulesPage() {
       lateToleranceMinutes: Number(form.lateToleranceMinutes || 0),
       dailyWage: Number(form.dailyWage || 0),
       holidayWage: Number(form.holidayWage || 0),
+      overtimeWagePerHour: Number(form.overtimeWagePerHour || 0),
     };
   }
 
@@ -229,6 +239,17 @@ export default function WorkSchedulesPage() {
               Jadwal hari libur (tanpa jam kerja)
             </label>
             {!form.isHoliday && (
+              <label className="col-span-2 flex items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  className="accent-[color:var(--primary)]"
+                  checked={form.flexibleHours}
+                  onChange={(e) => setForm({ ...form, flexibleHours: e.target.checked })}
+                />
+                Jam masuk bebas — lembur dihitung dari durasi (di atas 8 jam) + uang makan (di atas 10 jam)
+              </label>
+            )}
+            {!form.isHoliday && (
               <>
                 <TimeField
                   label="Jam masuk"
@@ -279,6 +300,20 @@ export default function WorkSchedulesPage() {
                 onChange={(e) => setForm({ ...form, holidayWage: e.target.value })}
               />
             </label>
+            {form.flexibleHours && !form.isHoliday && (
+              <label className="col-span-2 space-y-1.5 text-sm">
+                <span className="font-medium text-muted">Tarif lembur / jam (Rp)</span>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.overtimeWagePerHour}
+                  onChange={(e) => setForm({ ...form, overtimeWagePerHour: e.target.value })}
+                />
+                <span className="text-xs text-subtle">
+                  Dihitung per-menit (proporsional). Mis. 10000 = Rp10.000/jam.
+                </span>
+              </label>
+            )}
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <button onClick={() => setModal(null)} className="btn-ghost">

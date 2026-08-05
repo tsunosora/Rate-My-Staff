@@ -42,6 +42,7 @@ async function loadEmployees(): Promise<ImportEmployee[]> {
           endTime: e.workSchedule.endTime,
           lateToleranceMinutes: e.workSchedule.lateToleranceMinutes,
           isHoliday: e.workSchedule.isHoliday,
+          flexibleHours: e.workSchedule.flexibleHours,
         }
       : null,
   }));

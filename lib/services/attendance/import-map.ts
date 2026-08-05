@@ -172,8 +172,10 @@ export function buildImportPreview(
       })),
     });
 
-    let shift: ShiftKind | null = null;
-    if (opts.shiftConfig && (computed.clockIn || computed.clockOut)) {
+    // Mode flexible (jam masuk bebas): pertahankan label "flexible", tak ada shift jam-dinding.
+    const isFlexible = computed.shift === "flexible";
+    let shift: ShiftKind | null = isFlexible ? "flexible" : null;
+    if (!isFlexible && opts.shiftConfig && (computed.clockIn || computed.clockOut)) {
       shift = computeShift(
         computed.clockIn ? hm(computed.clockIn) : null,
         computed.clockOut ? hm(computed.clockOut) : null,
@@ -182,8 +184,9 @@ export function buildImportPreview(
     }
 
     // Saran jam yang hilang bila absensi tidak komplit (hanya masuk / hanya pulang).
+    // Tak berlaku untuk flexible (tak ada jam mulai/selesai tetap).
     let suggested: string | null = null;
-    if (opts.shiftConfig && shift && !!computed.clockIn !== !!computed.clockOut) {
+    if (!isFlexible && opts.shiftConfig && shift && !!computed.clockIn !== !!computed.clockOut) {
       suggested = suggestMissingTime(shift, computed.clockIn ? "out" : "in", opts.shiftConfig);
     }
 

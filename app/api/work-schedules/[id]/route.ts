@@ -31,6 +31,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
       holidayWage: d.holidayWage,
       overtimeWagePerHour: d.overtimeWagePerHour,
       isHoliday: d.isHoliday,
+      flexibleHours: d.flexibleHours,
     },
   });
   return json(ws);

@@ -1,10 +1,13 @@
 import { computeShift, type ShiftConfig, type ShiftKind } from "./shift";
+import { computeFlexible } from "./flexible";
 
 export type ScheduleInfo = {
   startTime: string | null;
   endTime: string | null;
   lateToleranceMinutes: number;
   isHoliday: boolean;
+  /** Mode "jam masuk bebas": lembur dihitung dari durasi kerja (8 jam), bukan jam dinding. */
+  flexibleHours?: boolean;
 };
 
 export type ScanInput = {
@@ -37,6 +40,8 @@ export type ReportRow = {
   shift: ShiftKind | null;
   /** Apakah tanggal ini hari libur (dari holiday/auto-sunday atau jadwal karyawan). */
   isHoliday: boolean;
+  /** Mode flexible: hari ini berhak uang makan (durasi kerja di atas 10 jam). */
+  mealEligible: boolean;
 };
 
 const ABSENCE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
@@ -75,6 +80,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
     absenceReason: null,
     shift: null,
     isHoliday: input.isHoliday || (input.schedule?.isHoliday ?? false),
+    mealEligible: false,
   };
 
   // 1) Record ketidakhadiran eksplisit (Izin/Sakit/Cuti) menang.
@@ -111,6 +117,25 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
 
   const clockIn = clockInDt ? fmt(clockInDt) : null;
   const clockOut = clockOutDt ? fmt(clockOutDt) : null;
+
+  // Mode "jam masuk bebas" (per-jadwal): lembur & uang makan dari DURASI kerja, bukan jam dinding.
+  // Menang atas shiftConfig global agar toko flexible tak ikut aturan shift pagi/siang/longshift.
+  if (input.schedule?.flexibleHours) {
+    const inMin = clockInDt ? minutesOfDay(clockInDt) : null;
+    const outMin = clockOutDt ? minutesOfDay(clockOutDt) : null;
+    const fc = computeFlexible(inMin, outMin);
+    return {
+      ...base,
+      clockIn,
+      clockOut,
+      lateMinutes: 0,
+      overtimeMinutes: fc.overtimeMinutes,
+      status: fc.status,
+      absenceReason: null,
+      shift: "flexible",
+      mealEligible: fc.mealEligible,
+    };
+  }
 
   // Mode shift otomatis: status/telat/lembur dari jam toko & shift (abaikan jadwal per-karyawan).
   if (input.shiftConfig) {

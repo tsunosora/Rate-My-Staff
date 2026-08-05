@@ -29,7 +29,7 @@ export const SHIFT_SETTING_KEYS = {
   lateTolerance: "shift_late_tolerance",
 } as const;
 
-export type ShiftKind = "pagi" | "siang" | "longshift";
+export type ShiftKind = "pagi" | "siang" | "longshift" | "flexible";
 
 export type ShiftComputation = {
   shift: ShiftKind;

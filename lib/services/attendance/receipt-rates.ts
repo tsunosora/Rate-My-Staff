@@ -10,7 +10,12 @@ export const RECEIPT_SETTING_KEYS = {
   holiday: "receipt_rate_holiday",
   cetak: "receipt_rate_cetak",
   rounding: "overtime_rounding",
+  /** Uang makan flat per hari untuk mode flexible (durasi kerja di atas 10 jam). */
+  mealAllowance: "flex_meal_allowance",
 } as const;
+
+/** Nominal uang makan default (mode flexible) bila belum diatur. */
+export const DEFAULT_MEAL_ALLOWANCE = 0;
 
 export type CategoryLike = { name: string; rate: number | { toString(): string } };
 export type SettingsMap = Record<string, string | null>;
@@ -59,4 +64,9 @@ export function resolveReceiptRates(
 /** Baca kebijakan pembulatan lembur dari Setting (default "hour" = jam penuh). */
 export function resolveOvertimeRounding(settings?: SettingsMap): OvertimeRounding {
   return settings?.[RECEIPT_SETTING_KEYS.rounding] === "decimal" ? "decimal" : DEFAULT_OVERTIME_ROUNDING;
+}
+
+/** Baca nominal uang makan (mode flexible) dari Setting; default 0 bila kosong/bukan angka. */
+export function resolveMealAllowance(settings?: SettingsMap): number {
+  return settingNum(settings, RECEIPT_SETTING_KEYS.mealAllowance) ?? DEFAULT_MEAL_ALLOWANCE;
 }

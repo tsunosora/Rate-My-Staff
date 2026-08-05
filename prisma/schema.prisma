@@ -80,6 +80,8 @@ model WorkSchedule {
   holidayWage          Decimal   @default(0) @db.Decimal(15, 2)
   overtimeWagePerHour  Decimal   @default(0) @db.Decimal(15, 2)
   isHoliday            Boolean   @default(false)
+  // Mode "jam masuk bebas": lembur dari durasi kerja (8 jam) + uang makan (>10 jam), bukan shift jam-dinding.
+  flexibleHours        Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime?

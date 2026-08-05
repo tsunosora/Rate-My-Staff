@@ -369,11 +369,25 @@ export default function SettingsPage() {
                 <option value="decimal">Desimal (menit dihitung)</option>
               </select>
             </label>
+            <label className="space-y-1">
+              <span className="text-muted">Uang makan (jam masuk bebas, di atas 10 jam)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className="input"
+                placeholder="0"
+                value={settings.flex_meal_allowance ?? ""}
+                onChange={(e) => setSettings({ ...settings, flex_meal_allowance: e.target.value })}
+              />
+            </label>
           </div>
           <p className="mt-2 text-xs text-subtle">
             Tarif kosong memakai default (20.000 / 70.000 / 10.000) atau nilai dari kategori lembur.
             Mode <strong>per jam penuh</strong>: lembur hanya dihitung tiap 1 jam — sisa menit di
-            bawah 60 (mis. 30 atau 50 menit) tidak dihitung.
+            bawah 60 (mis. 30 atau 50 menit) tidak dihitung.{" "}
+            <strong>Uang makan</strong> hanya berlaku untuk jadwal “jam masuk bebas” dan dibayar flat
+            sekali per hari bila durasi kerja melewati 10 jam (lemburnya dihitung per-menit).
           </p>
           <button onClick={saveSettings} className="btn-primary mt-3">
             Simpan pengaturan

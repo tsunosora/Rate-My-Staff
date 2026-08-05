@@ -28,6 +28,7 @@ export const POST = route(async (req: Request) => {
         endTime: employee.workSchedule.endTime,
         lateToleranceMinutes: employee.workSchedule.lateToleranceMinutes,
         isHoliday: employee.workSchedule.isHoliday,
+        flexibleHours: employee.workSchedule.flexibleHours,
       }
     : null;
 

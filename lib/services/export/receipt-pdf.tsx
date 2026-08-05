@@ -71,24 +71,43 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
       ))}
 
       <View style={styles.footer}>
-        <View style={styles.fRow}>
-          <Text style={styles.fLabel}>Lembur Harian</Text>
-          <Text style={styles.fRate}>{rp(data.rates.daily)}</Text>
-          <Text style={styles.fQty}>{data.totals.lsCount}</Text>
-          <Text style={styles.fAmount}>{rp(data.totals.dailyAmount)}</Text>
-        </View>
-        <View style={styles.fRow}>
-          <Text style={styles.fLabel}>Lembur Libur</Text>
-          <Text style={styles.fRate}>{rp(data.rates.holiday)}</Text>
-          <Text style={styles.fQty}>{data.totals.llCount}</Text>
-          <Text style={styles.fAmount}>{rp(data.totals.holidayAmount)}</Text>
-        </View>
-        <View style={styles.fRow}>
-          <Text style={styles.fLabel}>Lembur Cetak</Text>
-          <Text style={styles.fRate}>{rp(data.rates.cetak)}</Text>
-          <Text style={styles.fQty}>{data.totals.lcHours.toFixed(2)}</Text>
-          <Text style={styles.fAmount}>{rp(data.totals.cetakAmount)}</Text>
-        </View>
+        {data.flexible ? (
+          <>
+            <View style={styles.fRow}>
+              <Text style={styles.fLabel}>Lembur (per jam)</Text>
+              <Text style={styles.fRate}>{rp(data.flexRatePerHour)}</Text>
+              <Text style={styles.fQty}>{(data.totals.overtimeMinutes / 60).toFixed(2)} jam</Text>
+              <Text style={styles.fAmount}>{rp(data.totals.overtimeAmount)}</Text>
+            </View>
+            <View style={styles.fRow}>
+              <Text style={styles.fLabel}>Uang Makan</Text>
+              <Text style={styles.fRate}>{rp(data.mealAllowance)}</Text>
+              <Text style={styles.fQty}>{data.totals.mealCount}</Text>
+              <Text style={styles.fAmount}>{rp(data.totals.mealAmount)}</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.fRow}>
+              <Text style={styles.fLabel}>Lembur Harian</Text>
+              <Text style={styles.fRate}>{rp(data.rates.daily)}</Text>
+              <Text style={styles.fQty}>{data.totals.lsCount}</Text>
+              <Text style={styles.fAmount}>{rp(data.totals.dailyAmount)}</Text>
+            </View>
+            <View style={styles.fRow}>
+              <Text style={styles.fLabel}>Lembur Libur</Text>
+              <Text style={styles.fRate}>{rp(data.rates.holiday)}</Text>
+              <Text style={styles.fQty}>{data.totals.llCount}</Text>
+              <Text style={styles.fAmount}>{rp(data.totals.holidayAmount)}</Text>
+            </View>
+            <View style={styles.fRow}>
+              <Text style={styles.fLabel}>Lembur Cetak</Text>
+              <Text style={styles.fRate}>{rp(data.rates.cetak)}</Text>
+              <Text style={styles.fQty}>{data.totals.lcHours.toFixed(2)}</Text>
+              <Text style={styles.fAmount}>{rp(data.totals.cetakAmount)}</Text>
+            </View>
+          </>
+        )}
         <View style={styles.grand}>
           <Text style={styles.grandLabel}>Jumlah</Text>
           <Text style={styles.grandAmount}>{rp(data.totals.grandTotal)}</Text>

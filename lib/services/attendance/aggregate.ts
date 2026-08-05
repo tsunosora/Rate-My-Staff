@@ -90,6 +90,7 @@ export async function aggregateAttendance(
           endTime: emp.workSchedule.endTime,
           lateToleranceMinutes: emp.workSchedule.lateToleranceMinutes,
           isHoliday: emp.workSchedule.isHoliday,
+          flexibleHours: emp.workSchedule.flexibleHours,
         }
       : null;
     for (const date of allDates) {

@@ -34,6 +34,7 @@ export const workScheduleSchema = z.object({
   holidayWage: z.coerce.number().min(0).default(0),
   overtimeWagePerHour: z.coerce.number().min(0).default(0),
   isHoliday: z.boolean().default(false),
+  flexibleHours: z.boolean().default(false),
 });
 
 export const overtimeCategorySchema = z.object({

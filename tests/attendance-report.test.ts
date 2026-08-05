@@ -133,4 +133,40 @@ describe("computeAttendanceRow", () => {
     expect(r.shift).toBeNull();
     expect(r.status).toBe("holiday");
   });
+
+  test("jadwal flexible MENANG atas shiftConfig: lembur dari durasi, bukan jam dinding", () => {
+    // Masuk 11:00 pulang 19:30 = 8j30m -> lembur 30 menit (durasi), bukan hitungan shift siang.
+    const r = computeAttendanceRow(
+      day({
+        schedule: { startTime: null, endTime: null, lateToleranceMinutes: 15, isHoliday: false, flexibleHours: true },
+        shiftConfig: DEFAULT_SHIFT_CONFIG,
+        scans: [
+          { scanDate: "2026-07-16T11:00:00", scanType: "in" },
+          { scanDate: "2026-07-16T19:30:00", scanType: "out" },
+        ],
+      })
+    );
+    expect(r.shift).toBe("flexible");
+    expect(r.overtimeMinutes).toBe(30);
+    expect(r.lateMinutes).toBe(0);
+    expect(r.mealEligible).toBe(false);
+    expect(r.status).toBe("on_time");
+  });
+
+  test("jadwal flexible: di atas 10 jam -> mealEligible true", () => {
+    // 08:00 -> 18:31 = 631m -> lembur 151m, uang makan
+    const r = computeAttendanceRow(
+      day({
+        schedule: { startTime: null, endTime: null, lateToleranceMinutes: 15, isHoliday: false, flexibleHours: true },
+        shiftConfig: DEFAULT_SHIFT_CONFIG,
+        scans: [
+          { scanDate: "2026-07-16T08:00:00", scanType: "in" },
+          { scanDate: "2026-07-16T18:31:00", scanType: "out" },
+        ],
+      })
+    );
+    expect(r.shift).toBe("flexible");
+    expect(r.overtimeMinutes).toBe(151);
+    expect(r.mealEligible).toBe(true);
+  });
 });

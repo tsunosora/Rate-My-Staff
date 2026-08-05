@@ -16,6 +16,7 @@ function toData(d: ReturnType<typeof workScheduleSchema.parse>) {
     holidayWage: d.holidayWage,
     overtimeWagePerHour: d.overtimeWagePerHour,
     isHoliday: d.isHoliday,
+    flexibleHours: d.flexibleHours,
   };
 }
 
