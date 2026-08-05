@@ -9,14 +9,7 @@ import {
   type ReceiptLabelSet,
 } from "./receipt-rates";
 import { getAllSettings } from "@/lib/settings";
-
-function monthRange(year: number, month: number) {
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0); // hari terakhir bulan
-  const ymd = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  return { startStr: ymd(start), endStr: ymd(end) };
-}
+import type { ReceiptPeriod } from "./period";
 
 async function loadConfig(prisma: PrismaClient): Promise<{
   rates: ReturnType<typeof resolveReceiptRates>;
@@ -33,21 +26,19 @@ async function loadConfig(prisma: PrismaClient): Promise<{
   };
 }
 
-/** Struk 1 karyawan untuk 1 bulan. */
+/** Struk 1 karyawan untuk satu periode (bulanan/mingguan). */
 export async function buildEmployeeReceipt(
   prisma: PrismaClient,
   employeeId: number,
-  year: number,
-  month: number
+  period: ReceiptPeriod
 ): Promise<ReceiptData | null> {
   const emp = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: { department: true, workSchedule: true },
   });
   if (!emp) return null;
-  const { startStr, endStr } = monthRange(year, month);
   const [{ rows }, { rates, rounding, mealAllowance, labels }] = await Promise.all([
-    aggregateAttendance(prisma, { startStr, endStr, employeeId: String(employeeId) }),
+    aggregateAttendance(prisma, { startStr: period.startStr, endStr: period.endStr, employeeId: String(employeeId) }),
     loadConfig(prisma),
   ]);
   const flexible = Boolean(emp.workSchedule?.flexibleHours);
@@ -57,8 +48,9 @@ export async function buildEmployeeReceipt(
     employeeName: emp.fullName,
     employeeCode: emp.employeeCode,
     department: emp.department?.name ?? null,
-    year,
-    month,
+    year: period.year,
+    month: period.month,
+    periodLabel: period.label,
     rates,
     rounding,
     flexible,
@@ -81,14 +73,13 @@ export async function buildEmployeeReceipt(
 }
 
 /**
- * Struk semua karyawan aktif (opsional filter departemen) untuk 1 bulan.
+ * Struk semua karyawan aktif (opsional filter departemen) untuk satu periode.
  * TODO(perf): memanggil aggregateAttendance per karyawan agar showAllDates aktif;
  * cukup untuk skala toko (<~50 karyawan). Refactor bila kelak lambat.
  */
 export async function buildAllReceipts(
   prisma: PrismaClient,
-  year: number,
-  month: number,
+  period: ReceiptPeriod,
   departmentId?: number | null
 ): Promise<ReceiptData[]> {
   const employees = await prisma.employee.findMany({
@@ -98,7 +89,7 @@ export async function buildAllReceipts(
   });
   const out: ReceiptData[] = [];
   for (const e of employees) {
-    const r = await buildEmployeeReceipt(prisma, e.id, year, month);
+    const r = await buildEmployeeReceipt(prisma, e.id, period);
     if (r) out.push(r);
   }
   return out;

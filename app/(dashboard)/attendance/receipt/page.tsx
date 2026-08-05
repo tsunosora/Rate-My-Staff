@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
+import { weekPeriod } from "@/lib/services/attendance/period";
 
 type ReceiptDayRow = {
   date: string;
@@ -69,12 +70,15 @@ const MONTHS = [
 ];
 const NOW = new Date();
 const YEARS = Array.from({ length: 7 }, (_, i) => NOW.getFullYear() - 5 + i);
+const TODAY_ISO = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, "0")}-${String(NOW.getDate()).padStart(2, "0")}`;
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 export default function AttendanceReceiptPage() {
+  const [periodMode, setPeriodMode] = useState<"month" | "week">("month");
   const [month, setMonth] = useState(NOW.getMonth() + 1); // 1-12
   const [year, setYear] = useState(NOW.getFullYear());
+  const [weekDate, setWeekDate] = useState(TODAY_ISO); // sembarang hari dalam minggu terpilih
   const [employeeId, setEmployeeId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [employees, setEmployees] = useState<Ref[]>([]);
@@ -89,12 +93,21 @@ export default function AttendanceReceiptPage() {
     api<Ref[]>("/api/assessments/employees").then(setEmployees).catch(() => {});
   }, []);
 
+  // Pasangan query periode: mingguan (period=week&week=YYYY-MM-DD) atau bulanan (year&month).
+  const periodPairs = useCallback(
+    (): Record<string, string> =>
+      periodMode === "week"
+        ? { period: "week", week: weekDate }
+        : { year: String(year), month: String(month) },
+    [periodMode, weekDate, year, month]
+  );
+
   const reqId = useRef(0);
   const load = useCallback(async () => {
     if (!employeeId) return; // pratinjau disembunyikan oleh render guard; data lama diabaikan
     const id = ++reqId.current;
     setLoading(true);
-    const q = new URLSearchParams({ employee_id: employeeId, year: String(year), month: String(month) });
+    const q = new URLSearchParams({ employee_id: employeeId, ...periodPairs() });
     try {
       const res = await api<ReceiptData>(`/api/attendance/receipt?${q}`);
       if (id !== reqId.current) return;
@@ -104,7 +117,7 @@ export default function AttendanceReceiptPage() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [employeeId, year, month]);
+  }, [employeeId, periodPairs]);
   useEffect(() => {
     load();
   }, [load]);
@@ -114,7 +127,7 @@ export default function AttendanceReceiptPage() {
     if (employeeId) return;
     const id = ++reqId.current;
     setSummaryLoading(true);
-    const q = new URLSearchParams({ year: String(year), month: String(month) });
+    const q = new URLSearchParams(periodPairs());
     if (departmentId) q.set("department_id", departmentId);
     try {
       const res = await api<SummaryRow[]>(`/api/attendance/receipt/summary?${q}`);
@@ -125,7 +138,7 @@ export default function AttendanceReceiptPage() {
     } finally {
       if (id === reqId.current) setSummaryLoading(false);
     }
-  }, [employeeId, year, month, departmentId]);
+  }, [employeeId, periodPairs, departmentId]);
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
@@ -134,7 +147,7 @@ export default function AttendanceReceiptPage() {
   const [exportMsg, setExportMsg] = useState("");
 
   async function downloadExport(kind: "pdf" | "excel") {
-    const q = new URLSearchParams({ year: String(year), month: String(month) });
+    const q = new URLSearchParams(periodPairs());
     if (employeeId) q.set("employee_id", employeeId);
     else if (departmentId) q.set("department_id", departmentId);
     const ep = kind === "pdf" ? "export-pdf" : "export-excel";
@@ -156,7 +169,7 @@ export default function AttendanceReceiptPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${scope}-${year}-${month}.${ext}`;
+      a.download = `${scope}-${periodMode === "week" ? weekDate : `${year}-${month}`}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -210,7 +223,7 @@ export default function AttendanceReceiptPage() {
         <div>
           <h1 className="font-display text-2xl font-bold text-fg">Struk Absensi</h1>
           <p className="mt-0.5 text-sm text-muted">
-            Rekap bulanan per karyawan (LS/LC/LL) — export PDF atau Excel, satuan maupun massal.
+            Rekap bulanan / mingguan per karyawan — export PDF atau Excel, satuan maupun massal.
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -236,21 +249,48 @@ export default function AttendanceReceiptPage() {
 
       <div className="glass flex flex-wrap items-end gap-3 rounded-2xl p-4 text-sm">
         <label className="space-y-1.5">
-          <span className="block font-medium text-muted">Bulan</span>
-          <select className="input h-10 w-auto" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-            {MONTHS.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
+          <span className="block font-medium text-muted">Periode</span>
+          <select
+            className="input h-10 w-auto"
+            value={periodMode}
+            onChange={(e) => setPeriodMode(e.target.value as "month" | "week")}
+          >
+            <option value="month">Bulanan</option>
+            <option value="week">Mingguan</option>
           </select>
         </label>
-        <label className="space-y-1.5">
-          <span className="block font-medium text-muted">Tahun</span>
-          <select className="input h-10 w-auto" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </label>
+        {periodMode === "month" ? (
+          <>
+            <label className="space-y-1.5">
+              <span className="block font-medium text-muted">Bulan</span>
+              <select className="input h-10 w-auto" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                {MONTHS.map((m, i) => (
+                  <option key={i} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1.5">
+              <span className="block font-medium text-muted">Tahun</span>
+              <select className="input h-10 w-auto" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+          </>
+        ) : (
+          <label className="space-y-1.5">
+            <span className="block font-medium text-muted">
+              Minggu <span className="text-subtle">· {weekPeriod(weekDate).label}</span>
+            </span>
+            <input
+              type="date"
+              className="input h-10 w-auto"
+              value={weekDate}
+              onChange={(e) => setWeekDate(e.target.value || TODAY_ISO)}
+            />
+          </label>
+        )}
         <label className="space-y-1.5">
           <span className="block font-medium text-muted">Karyawan</span>
           <select className="input h-10 w-auto" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>

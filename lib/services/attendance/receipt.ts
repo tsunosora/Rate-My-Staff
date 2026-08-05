@@ -43,6 +43,8 @@ export type ReceiptInput = {
   department: string | null;
   year: number; // mis. 2026
   month: number; // 1-12
+  /** Label periode tampil (mis. "April 2026" atau "06–12 Apr 2026"). Default: bulan+tahun. */
+  periodLabel?: string;
   rates: ReceiptRateSet;
   /** Kebijakan pembulatan lembur (default "hour" = hanya jam penuh). Diabaikan di mode flexible. */
   rounding?: OvertimeRounding;
@@ -193,7 +195,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     department: input.department,
     year: input.year,
     month: input.month,
-    monthLabel: `${MONTHS[input.month - 1]} ${input.year}`,
+    monthLabel: input.periodLabel ?? `${MONTHS[input.month - 1]} ${input.year}`,
     flexible,
     flexRatePerHour: flexible ? input.flexRatePerHour ?? 0 : 0,
     mealAllowance: flexible ? input.mealAllowance ?? 0 : 0,
