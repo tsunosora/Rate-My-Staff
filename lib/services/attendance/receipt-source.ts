@@ -1,7 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 import { aggregateAttendance } from "./aggregate";
 import { buildReceipt, type ReceiptData, type OvertimeRounding } from "./receipt";
-import { resolveReceiptRates, resolveOvertimeRounding, resolveMealAllowance } from "./receipt-rates";
+import {
+  resolveReceiptRates,
+  resolveOvertimeRounding,
+  resolveMealAllowance,
+  resolveReceiptLabels,
+  type ReceiptLabelSet,
+} from "./receipt-rates";
 import { getAllSettings } from "@/lib/settings";
 
 function monthRange(year: number, month: number) {
@@ -16,12 +22,14 @@ async function loadConfig(prisma: PrismaClient): Promise<{
   rates: ReturnType<typeof resolveReceiptRates>;
   rounding: OvertimeRounding;
   mealAllowance: number;
+  labels: ReceiptLabelSet;
 }> {
   const [cats, settings] = await Promise.all([prisma.overtimeCategory.findMany(), getAllSettings()]);
   return {
     rates: resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })), settings),
     rounding: resolveOvertimeRounding(settings),
     mealAllowance: resolveMealAllowance(settings),
+    labels: resolveReceiptLabels(settings),
   };
 }
 
@@ -38,7 +46,7 @@ export async function buildEmployeeReceipt(
   });
   if (!emp) return null;
   const { startStr, endStr } = monthRange(year, month);
-  const [{ rows }, { rates, rounding, mealAllowance }] = await Promise.all([
+  const [{ rows }, { rates, rounding, mealAllowance, labels }] = await Promise.all([
     aggregateAttendance(prisma, { startStr, endStr, employeeId: String(employeeId) }),
     loadConfig(prisma),
   ]);
@@ -56,6 +64,7 @@ export async function buildEmployeeReceipt(
     flexible,
     flexRatePerHour,
     mealAllowance,
+    labels,
     rows: rows.map((r) => ({
       date: r.date,
       shift: r.shift,
@@ -65,6 +74,7 @@ export async function buildEmployeeReceipt(
       lateMinutes: r.lateMinutes,
       overtimeMinutes: r.overtimeMinutes,
       mealEligible: r.mealEligible,
+      undertimeMinutes: r.undertimeMinutes,
       status: r.status,
     })),
   });

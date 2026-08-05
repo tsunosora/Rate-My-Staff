@@ -13,22 +13,25 @@ describe("computeFlexible — lembur berbasis durasi (jam masuk bebas)", () => {
     expect(FLEX_MEAL_THRESHOLD_MINUTES).toBe(600);
   });
 
-  test("tepat 8 jam -> tidak ada lembur, tidak ada uang makan", () => {
+  test("tepat 8 jam -> tidak ada lembur, tidak ada kekurangan, tidak ada uang makan", () => {
     // 08:00 -> 16:00 = 480 menit
     expect(computeFlexible(hm(8), hm(16))).toEqual({
       workedMinutes: 480,
       overtimeMinutes: 0,
+      undertimeMinutes: 0,
       mealEligible: false,
       status: "on_time",
     });
   });
 
-  test("kurang dari 8 jam -> lembur 0", () => {
-    // 09:00 -> 16:00 = 420 menit
-    expect(computeFlexible(hm(9), hm(16))).toMatchObject({
+  test("kurang dari 8 jam -> lembur 0, tandai kekurangan jam (undertime)", () => {
+    // 09:00 -> 16:00 = 420 menit -> kurang 60 menit
+    expect(computeFlexible(hm(9), hm(16))).toEqual({
       workedMinutes: 420,
       overtimeMinutes: 0,
+      undertimeMinutes: 60,
       mealEligible: false,
+      status: "undertime",
     });
   });
 
@@ -73,13 +76,15 @@ describe("computeFlexible — lembur berbasis durasi (jam masuk bebas)", () => {
     });
   });
 
-  test("data tak lengkap (salah satu null) -> semua 0, tak eligible", () => {
+  test("data tak lengkap (salah satu null) -> semua 0, TAK dianggap kurang jam", () => {
+    // Lupa absen salah satu sisi tak boleh terhitung sebagai undertime 480 menit.
     expect(computeFlexible(hm(8), null)).toEqual({
       workedMinutes: 0,
       overtimeMinutes: 0,
+      undertimeMinutes: 0,
       mealEligible: false,
       status: "on_time",
     });
-    expect(computeFlexible(null, hm(18))).toMatchObject({ workedMinutes: 0, overtimeMinutes: 0 });
+    expect(computeFlexible(null, hm(18))).toMatchObject({ undertimeMinutes: 0, overtimeMinutes: 0 });
   });
 });

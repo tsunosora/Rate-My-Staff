@@ -41,16 +41,19 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
   ws.addRow([]);
   if (data.flexible) {
     ws.addRow([
-      "Lembur (per jam)",
+      data.labels.flexOvertime,
       rp(data.flexRatePerHour),
       Number((data.totals.overtimeMinutes / 60).toFixed(2)),
       rp(data.totals.overtimeAmount),
     ]);
-    ws.addRow(["Uang Makan", rp(data.mealAllowance), data.totals.mealCount, rp(data.totals.mealAmount)]);
+    ws.addRow([data.labels.meal, rp(data.mealAllowance), data.totals.mealCount, rp(data.totals.mealAmount)]);
+    if (data.totals.undertimeMinutes > 0) {
+      ws.addRow(["Kekurangan jam", "", Number((data.totals.undertimeMinutes / 60).toFixed(2)), "—"]);
+    }
   } else {
-    ws.addRow(["Lembur Harian", rp(data.rates.daily), data.totals.lsCount, rp(data.totals.dailyAmount)]);
-    ws.addRow(["Lembur Libur", rp(data.rates.holiday), data.totals.llCount, rp(data.totals.holidayAmount)]);
-    ws.addRow(["Lembur Cetak", rp(data.rates.cetak), data.totals.lcHours, rp(data.totals.cetakAmount)]);
+    ws.addRow([data.labels.daily, rp(data.rates.daily), data.totals.lsCount, rp(data.totals.dailyAmount)]);
+    ws.addRow([data.labels.holiday, rp(data.rates.holiday), data.totals.llCount, rp(data.totals.holidayAmount)]);
+    ws.addRow([data.labels.cetak, rp(data.rates.cetak), data.totals.lcHours, rp(data.totals.cetakAmount)]);
   }
   const tot = ws.addRow(["Jumlah", "", "", rp(data.totals.grandTotal)]);
   tot.font = { bold: true };

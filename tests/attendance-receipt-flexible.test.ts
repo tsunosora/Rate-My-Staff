@@ -86,6 +86,41 @@ describe("buildReceipt — mode flexible (jam masuk bebas)", () => {
     const d = buildReceipt({ ...base, rows: [mk({ clockOut: "16:00", overtimeMinutes: 0 })] });
     expect(d.totals.grandTotal).toBe(0);
   });
+
+  test("kekurangan jam ditandai & dijumlah (informasional, tak memotong uang)", () => {
+    const d = buildReceipt({
+      ...base,
+      rows: [
+        mk({ date: "2026-04-01", clockOut: "14:00", overtimeMinutes: 0, undertimeMinutes: 120 }),
+        mk({ date: "2026-04-02", clockOut: "15:30", overtimeMinutes: 0, undertimeMinutes: 30 }),
+      ],
+    });
+    expect(d.rows[0].undertimeMinutes).toBe(120);
+    expect(d.totals.undertimeMinutes).toBe(150);
+    expect(d.totals.grandTotal).toBe(0); // undertime tidak mengurangi rupiah
+  });
+
+  test("label default terisi bila tak dikirim", () => {
+    const d = buildReceipt({ ...base, rows: [mk({})] });
+    expect(d.labels.flexOvertime).toBe("Lembur (per jam)");
+    expect(d.labels.meal).toBe("Uang Makan");
+  });
+
+  test("label bisa di-override (dari Pengaturan)", () => {
+    const d = buildReceipt({
+      ...base,
+      labels: {
+        daily: "Lembur Harian",
+        holiday: "Lembur Libur",
+        cetak: "Cetak Foto",
+        flexOvertime: "Uang Lembur",
+        meal: "Uang Makan Malam",
+      },
+      rows: [mk({})],
+    });
+    expect(d.labels.flexOvertime).toBe("Uang Lembur");
+    expect(d.labels.meal).toBe("Uang Makan Malam");
+  });
 });
 
 describe("buildReceipt — mode fixed tak terpengaruh field flexible", () => {

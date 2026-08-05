@@ -1,4 +1,7 @@
 import type { ReportRow } from "./report";
+import { DEFAULT_RECEIPT_LABELS, type ReceiptLabelSet } from "./receipt-rates";
+
+export type { ReceiptLabelSet };
 
 export type ReceiptRateSet = {
   /** Lembur Harian: per hari longshift (acuan 20000). */
@@ -29,6 +32,8 @@ export type ReceiptInputRow = Pick<
 > & {
   /** Mode flexible: hari ini berhak uang makan (durasi di atas 10 jam). */
   mealEligible?: boolean;
+  /** Mode flexible: menit kekurangan jam bila durasi di bawah 8 jam. */
+  undertimeMinutes?: number;
 };
 
 export type ReceiptInput = {
@@ -47,6 +52,8 @@ export type ReceiptInput = {
   flexRatePerHour?: number;
   /** Nominal uang makan flat per hari di atas 10 jam — dipakai hanya di mode flexible. */
   mealAllowance?: number;
+  /** Label istilah pembayaran (bisa diganti dari Pengaturan). Default DEFAULT_RECEIPT_LABELS. */
+  labels?: ReceiptLabelSet;
   rows: ReceiptInputRow[];
 };
 
@@ -64,6 +71,8 @@ export type ReceiptDayRow = {
   ll: number; // 0 | 1
   /** Mode flexible: hari ini berhak uang makan (durasi di atas 10 jam). */
   mealEligible: boolean;
+  /** Mode flexible: menit kekurangan jam (durasi di bawah 8 jam). */
+  undertimeMinutes: number;
   worked: boolean;
 };
 
@@ -81,6 +90,8 @@ export type ReceiptData = {
   flexRatePerHour: number;
   /** Mode flexible: nominal uang makan flat per hari. 0 di mode fixed. */
   mealAllowance: number;
+  /** Label istilah pembayaran (hasil resolusi Setting; dipakai UI/PDF/Excel). */
+  labels: ReceiptLabelSet;
   rows: ReceiptDayRow[];
   totals: {
     lsCount: number;
@@ -97,6 +108,8 @@ export type ReceiptData = {
     mealCount: number;
     /** Mode flexible: rupiah uang makan (mealCount × nominal). */
     mealAmount: number;
+    /** Mode flexible: total menit kekurangan jam sebulan (informasional). */
+    undertimeMinutes: number;
     grandTotal: number;
   };
   rates: ReceiptRateSet;
@@ -132,6 +145,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     const lc =
       !flexible && worked && !r.isHoliday && (r.shift === "siang" || r.shift === "longshift") ? otHours : 0;
     const mealEligible = flexible && worked && Boolean(r.mealEligible);
+    const undertimeMinutes = flexible ? Math.max(0, r.undertimeMinutes ?? 0) : 0;
     const [y, m, d] = r.date.split("-").map(Number);
     const dayName = DAY_NAMES[new Date(y, m - 1, d).getDay()];
     return {
@@ -147,6 +161,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
       lc,
       ll,
       mealEligible,
+      undertimeMinutes,
       worked,
     };
   });
@@ -165,6 +180,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     : 0;
   const mealCount = rows.reduce((s, r) => s + (r.mealEligible ? 1 : 0), 0);
   const mealAmount = flexible ? mealCount * (input.mealAllowance ?? 0) : 0;
+  const undertimeMinutes = rows.reduce((s, r) => s + r.undertimeMinutes, 0);
 
   const grandTotal = flexible
     ? overtimeAmount + mealAmount
@@ -181,6 +197,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     flexible,
     flexRatePerHour: flexible ? input.flexRatePerHour ?? 0 : 0,
     mealAllowance: flexible ? input.mealAllowance ?? 0 : 0,
+    labels: input.labels ?? DEFAULT_RECEIPT_LABELS,
     rows,
     totals: {
       lsCount,
@@ -193,6 +210,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
       overtimeAmount,
       mealCount,
       mealAmount,
+      undertimeMinutes,
       grandTotal,
     },
     rates: input.rates,

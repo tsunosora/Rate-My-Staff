@@ -17,6 +17,32 @@ export const RECEIPT_SETTING_KEYS = {
 /** Nominal uang makan default (mode flexible) bila belum diatur. */
 export const DEFAULT_MEAL_ALLOWANCE = 0;
 
+/** Label istilah pembayaran di struk (bisa diganti dari Pengaturan). */
+export type ReceiptLabelSet = {
+  daily: string; // LS — default "Lembur Harian"
+  holiday: string; // LL — default "Lembur Libur"
+  cetak: string; // LC — default "Lembur Cetak"
+  flexOvertime: string; // mode flexible — default "Lembur (per jam)"
+  meal: string; // mode flexible — default "Uang Makan"
+};
+
+export const DEFAULT_RECEIPT_LABELS: ReceiptLabelSet = {
+  daily: "Lembur Harian",
+  holiday: "Lembur Libur",
+  cetak: "Lembur Cetak",
+  flexOvertime: "Lembur (per jam)",
+  meal: "Uang Makan",
+};
+
+/** Key pengaturan label istilah struk di tabel Setting. */
+export const RECEIPT_LABEL_KEYS = {
+  daily: "label_lembur_harian",
+  holiday: "label_lembur_libur",
+  cetak: "label_lembur_cetak",
+  flexOvertime: "label_lembur_flex",
+  meal: "label_uang_makan",
+} as const;
+
 export type CategoryLike = { name: string; rate: number | { toString(): string } };
 export type SettingsMap = Record<string, string | null>;
 
@@ -69,4 +95,19 @@ export function resolveOvertimeRounding(settings?: SettingsMap): OvertimeRoundin
 /** Baca nominal uang makan (mode flexible) dari Setting; default 0 bila kosong/bukan angka. */
 export function resolveMealAllowance(settings?: SettingsMap): number {
   return settingNum(settings, RECEIPT_SETTING_KEYS.mealAllowance) ?? DEFAULT_MEAL_ALLOWANCE;
+}
+
+/** Baca label istilah struk dari Setting; label kosong/tak diisi memakai default. */
+export function resolveReceiptLabels(settings?: SettingsMap): ReceiptLabelSet {
+  const pick = (key: string, d: string) => {
+    const v = settings?.[key];
+    return v != null && v.trim() !== "" ? v : d;
+  };
+  return {
+    daily: pick(RECEIPT_LABEL_KEYS.daily, DEFAULT_RECEIPT_LABELS.daily),
+    holiday: pick(RECEIPT_LABEL_KEYS.holiday, DEFAULT_RECEIPT_LABELS.holiday),
+    cetak: pick(RECEIPT_LABEL_KEYS.cetak, DEFAULT_RECEIPT_LABELS.cetak),
+    flexOvertime: pick(RECEIPT_LABEL_KEYS.flexOvertime, DEFAULT_RECEIPT_LABELS.flexOvertime),
+    meal: pick(RECEIPT_LABEL_KEYS.meal, DEFAULT_RECEIPT_LABELS.meal),
+  };
 }

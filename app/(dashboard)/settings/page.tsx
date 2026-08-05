@@ -389,6 +389,61 @@ export default function SettingsPage() {
             <strong>Uang makan</strong> hanya berlaku untuk jadwal “jam masuk bebas” dan dibayar flat
             sekali per hari bila durasi kerja melewati 10 jam (lemburnya dihitung per-menit).
           </p>
+
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-3 text-sm font-medium text-muted">Ubah istilah di struk</p>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <label className="space-y-1">
+                <span className="text-muted">Istilah “Lembur Harian”</span>
+                <input
+                  className="input"
+                  placeholder="Lembur Harian"
+                  value={settings.label_lembur_harian ?? ""}
+                  onChange={(e) => setSettings({ ...settings, label_lembur_harian: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Istilah “Lembur Libur”</span>
+                <input
+                  className="input"
+                  placeholder="Lembur Libur"
+                  value={settings.label_lembur_libur ?? ""}
+                  onChange={(e) => setSettings({ ...settings, label_lembur_libur: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Istilah “Lembur Cetak”</span>
+                <input
+                  className="input"
+                  placeholder="Lembur Cetak"
+                  value={settings.label_lembur_cetak ?? ""}
+                  onChange={(e) => setSettings({ ...settings, label_lembur_cetak: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Istilah lembur “jam masuk bebas”</span>
+                <input
+                  className="input"
+                  placeholder="Lembur (per jam)"
+                  value={settings.label_lembur_flex ?? ""}
+                  onChange={(e) => setSettings({ ...settings, label_lembur_flex: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Istilah “Uang Makan”</span>
+                <input
+                  className="input"
+                  placeholder="Uang Makan"
+                  value={settings.label_uang_makan ?? ""}
+                  onChange={(e) => setSettings({ ...settings, label_uang_makan: e.target.value })}
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-xs text-subtle">
+              Kosongkan untuk memakai istilah bawaan. Perubahan berlaku di struk (layar, PDF, Excel).
+            </p>
+          </div>
+
           <button onClick={saveSettings} className="btn-primary mt-3">
             Simpan pengaturan
           </button>

@@ -3,7 +3,9 @@ import { buildReceipt, type ReceiptInput } from "@/lib/services/attendance/recei
 import {
   resolveReceiptRates,
   resolveOvertimeRounding,
+  resolveReceiptLabels,
   DEFAULT_RECEIPT_RATES,
+  DEFAULT_RECEIPT_LABELS,
 } from "@/lib/services/attendance/receipt-rates";
 
 const rates = { daily: 20000, holiday: 70000, cetak: 10000 };
@@ -169,5 +171,18 @@ describe("resolveOvertimeRounding", () => {
   });
   test("'decimal' bila diset eksplisit", () => {
     expect(resolveOvertimeRounding({ overtime_rounding: "decimal" })).toBe("decimal");
+  });
+});
+
+describe("resolveReceiptLabels", () => {
+  test("default bila tak diset", () => {
+    expect(resolveReceiptLabels()).toEqual(DEFAULT_RECEIPT_LABELS);
+    expect(resolveReceiptLabels({})).toEqual(DEFAULT_RECEIPT_LABELS);
+  });
+  test("override sebagian; kosong -> tetap default", () => {
+    const r = resolveReceiptLabels({ label_lembur_cetak: "Cetak Foto", label_uang_makan: "" });
+    expect(r.cetak).toBe("Cetak Foto");
+    expect(r.meal).toBe(DEFAULT_RECEIPT_LABELS.meal); // kosong -> default
+    expect(r.daily).toBe(DEFAULT_RECEIPT_LABELS.daily);
   });
 });

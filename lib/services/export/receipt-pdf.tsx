@@ -74,34 +74,42 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
         {data.flexible ? (
           <>
             <View style={styles.fRow}>
-              <Text style={styles.fLabel}>Lembur (per jam)</Text>
+              <Text style={styles.fLabel}>{data.labels.flexOvertime}</Text>
               <Text style={styles.fRate}>{rp(data.flexRatePerHour)}</Text>
               <Text style={styles.fQty}>{(data.totals.overtimeMinutes / 60).toFixed(2)} jam</Text>
               <Text style={styles.fAmount}>{rp(data.totals.overtimeAmount)}</Text>
             </View>
             <View style={styles.fRow}>
-              <Text style={styles.fLabel}>Uang Makan</Text>
+              <Text style={styles.fLabel}>{data.labels.meal}</Text>
               <Text style={styles.fRate}>{rp(data.mealAllowance)}</Text>
               <Text style={styles.fQty}>{data.totals.mealCount}</Text>
               <Text style={styles.fAmount}>{rp(data.totals.mealAmount)}</Text>
             </View>
+            {data.totals.undertimeMinutes > 0 && (
+              <View style={styles.fRow}>
+                <Text style={styles.fLabel}>Kekurangan jam</Text>
+                <Text style={styles.fRate} />
+                <Text style={styles.fQty}>{(data.totals.undertimeMinutes / 60).toFixed(2)} jam</Text>
+                <Text style={styles.fAmount}>—</Text>
+              </View>
+            )}
           </>
         ) : (
           <>
             <View style={styles.fRow}>
-              <Text style={styles.fLabel}>Lembur Harian</Text>
+              <Text style={styles.fLabel}>{data.labels.daily}</Text>
               <Text style={styles.fRate}>{rp(data.rates.daily)}</Text>
               <Text style={styles.fQty}>{data.totals.lsCount}</Text>
               <Text style={styles.fAmount}>{rp(data.totals.dailyAmount)}</Text>
             </View>
             <View style={styles.fRow}>
-              <Text style={styles.fLabel}>Lembur Libur</Text>
+              <Text style={styles.fLabel}>{data.labels.holiday}</Text>
               <Text style={styles.fRate}>{rp(data.rates.holiday)}</Text>
               <Text style={styles.fQty}>{data.totals.llCount}</Text>
               <Text style={styles.fAmount}>{rp(data.totals.holidayAmount)}</Text>
             </View>
             <View style={styles.fRow}>
-              <Text style={styles.fLabel}>Lembur Cetak</Text>
+              <Text style={styles.fLabel}>{data.labels.cetak}</Text>
               <Text style={styles.fRate}>{rp(data.rates.cetak)}</Text>
               <Text style={styles.fQty}>{data.totals.lcHours.toFixed(2)}</Text>
               <Text style={styles.fAmount}>{rp(data.totals.cetakAmount)}</Text>
