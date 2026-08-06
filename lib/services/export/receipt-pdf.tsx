@@ -16,6 +16,8 @@ const styles = StyleSheet.create({
   cShift: { width: "10%", paddingHorizontal: 2 },
   cNum: { width: "9%", paddingHorizontal: 2, textAlign: "right" },
   cSmall: { width: "7%", paddingHorizontal: 2, textAlign: "right" },
+  cFNum: { width: "14%", paddingHorizontal: 2, textAlign: "right" },
+  cFMeal: { width: "18%", paddingHorizontal: 2, textAlign: "right" },
   footer: { marginTop: 12, borderTopWidth: 1, borderTopColor: "#94a3b8", paddingTop: 6 },
   fRow: { flexDirection: "row", paddingVertical: 2 },
   fLabel: { width: "30%", fontFamily: "Helvetica-Bold" },
@@ -28,7 +30,7 @@ const styles = StyleSheet.create({
   note: { marginTop: 10, fontSize: 7, color: "#94a3b8" },
 });
 
-function DayRow({ r }: { r: ReceiptDayRow }) {
+function DayRow({ r, data }: { r: ReceiptDayRow; data: ReceiptData }) {
   const empty = r.isHoliday && !r.worked;
   return (
     <View style={empty ? styles.rowHoliday : styles.row}>
@@ -37,11 +39,21 @@ function DayRow({ r }: { r: ReceiptDayRow }) {
       <Text style={styles.cJam}>{r.clockIn ?? ""}</Text>
       <Text style={styles.cJam}>{r.clockOut ?? ""}</Text>
       <Text style={styles.cShift}>{r.shiftLabel}</Text>
-      <Text style={styles.cNum}>{r.lateMinutes || 0}</Text>
-      <Text style={styles.cNum}>{r.overtimeHours ? r.overtimeHours.toFixed(2) : ""}</Text>
-      <Text style={styles.cSmall}>{r.ls || ""}</Text>
-      <Text style={styles.cSmall}>{r.lc ? r.lc.toFixed(2) : ""}</Text>
-      <Text style={styles.cSmall}>{r.ll || ""}</Text>
+      {data.flexible ? (
+        <>
+          <Text style={styles.cFNum}>{r.overtimeHours ? r.overtimeHours.toFixed(2) : ""}</Text>
+          <Text style={styles.cFMeal}>{r.mealEligible ? rp(data.mealAllowance) : ""}</Text>
+          <Text style={styles.cFNum}>{r.undertimeMinutes ? (r.undertimeMinutes / 60).toFixed(2) : ""}</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.cNum}>{r.lateMinutes || 0}</Text>
+          <Text style={styles.cNum}>{r.overtimeHours ? r.overtimeHours.toFixed(2) : ""}</Text>
+          <Text style={styles.cSmall}>{r.ls || ""}</Text>
+          <Text style={styles.cSmall}>{r.lc ? r.lc.toFixed(2) : ""}</Text>
+          <Text style={styles.cSmall}>{r.ll || ""}</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -60,14 +72,24 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
         <Text style={styles.cJam}>Masuk</Text>
         <Text style={styles.cJam}>Pulang</Text>
         <Text style={styles.cShift}>Shift</Text>
-        <Text style={styles.cNum}>Telat</Text>
-        <Text style={styles.cNum}>Lembur</Text>
-        <Text style={styles.cSmall}>LS</Text>
-        <Text style={styles.cSmall}>LC</Text>
-        <Text style={styles.cSmall}>LL</Text>
+        {data.flexible ? (
+          <>
+            <Text style={styles.cFNum}>Lembur</Text>
+            <Text style={styles.cFMeal}>{data.labels.meal}</Text>
+            <Text style={styles.cFNum}>Kurang</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.cNum}>Telat</Text>
+            <Text style={styles.cNum}>Lembur</Text>
+            <Text style={styles.cSmall}>LS</Text>
+            <Text style={styles.cSmall}>LC</Text>
+            <Text style={styles.cSmall}>LL</Text>
+          </>
+        )}
       </View>
       {data.rows.map((r) => (
-        <DayRow key={r.date} r={r} />
+        <DayRow key={r.date} r={r} data={data} />
       ))}
 
       <View style={styles.footer}>

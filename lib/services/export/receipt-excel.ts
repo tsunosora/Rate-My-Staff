@@ -12,25 +12,42 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
   ws.addRow([`${data.department ?? "-"} · ${data.monthLabel}`]);
   ws.addRow([]);
 
-  const head = ws.addRow(["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Terlambat", "Lembur", "LS", "LC", "LL"]);
+  const head = ws.addRow(
+    data.flexible
+      ? ["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Lembur", data.labels.meal, "Kurang"]
+      : ["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Terlambat", "Lembur", "LS", "LC", "LL"]
+  );
   head.font = { bold: true };
   head.eachCell((c) => {
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
   });
 
   for (const r of data.rows) {
-    const row = ws.addRow([
-      r.dayName,
-      r.date,
-      r.clockIn ?? "",
-      r.clockOut ?? "",
-      r.shiftLabel,
-      r.lateMinutes || 0,
-      r.overtimeHours || "",
-      r.ls || "",
-      r.lc || "",
-      r.ll || "",
-    ]);
+    const row = ws.addRow(
+      data.flexible
+        ? [
+            r.dayName,
+            r.date,
+            r.clockIn ?? "",
+            r.clockOut ?? "",
+            r.shiftLabel,
+            r.overtimeHours || "",
+            r.mealEligible ? data.mealAllowance : "",
+            r.undertimeMinutes ? Number((r.undertimeMinutes / 60).toFixed(2)) : "",
+          ]
+        : [
+            r.dayName,
+            r.date,
+            r.clockIn ?? "",
+            r.clockOut ?? "",
+            r.shiftLabel,
+            r.lateMinutes || 0,
+            r.overtimeHours || "",
+            r.ls || "",
+            r.lc || "",
+            r.ll || "",
+          ]
+    );
     if (r.isHoliday && !r.worked) {
       row.eachCell({ includeEmpty: true }, (c) => {
         c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } };

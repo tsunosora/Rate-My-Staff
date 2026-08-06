@@ -415,11 +415,21 @@ export default function AttendanceReceiptPage() {
                     <th className="px-3 py-3 font-medium">Masuk</th>
                     <th className="px-3 py-3 font-medium">Pulang</th>
                     <th className="px-3 py-3 font-medium">Shift</th>
-                    <th className="px-3 py-3 text-right font-medium">Telat</th>
-                    <th className="px-3 py-3 text-right font-medium">Lembur</th>
-                    <th className="px-3 py-3 text-right font-medium">LS</th>
-                    <th className="px-3 py-3 text-right font-medium">LC</th>
-                    <th className="px-3 py-3 text-right font-medium">LL</th>
+                    {data.flexible ? (
+                      <>
+                        <th className="px-3 py-3 text-right font-medium">Lembur</th>
+                        <th className="px-3 py-3 text-right font-medium">{data.labels.meal}</th>
+                        <th className="px-3 py-3 text-right font-medium">Kurang</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="px-3 py-3 text-right font-medium">Telat</th>
+                        <th className="px-3 py-3 text-right font-medium">Lembur</th>
+                        <th className="px-3 py-3 text-right font-medium">LS</th>
+                        <th className="px-3 py-3 text-right font-medium">LC</th>
+                        <th className="px-3 py-3 text-right font-medium">LL</th>
+                      </>
+                    )}
                     <th className="px-3 py-3 text-right font-medium">Aksi</th>
                   </tr>
                 </thead>
@@ -435,11 +445,21 @@ export default function AttendanceReceiptPage() {
                       <td className="px-3 py-2.5 tabular text-muted">{r.clockIn ?? "—"}</td>
                       <td className="px-3 py-2.5 tabular text-muted">{r.clockOut ?? "—"}</td>
                       <td className="px-3 py-2.5 text-muted">{r.shiftLabel}</td>
-                      <td className="px-3 py-2.5 text-right tabular text-muted">{r.lateMinutes || "—"}</td>
-                      <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeHours ? r.overtimeHours.toFixed(2) : "—"}</td>
-                      <td className="px-3 py-2.5 text-right tabular text-fg">{r.ls || "—"}</td>
-                      <td className="px-3 py-2.5 text-right tabular text-fg">{r.lc ? r.lc.toFixed(2) : "—"}</td>
-                      <td className="px-3 py-2.5 text-right tabular text-fg">{r.ll || "—"}</td>
+                      {data.flexible ? (
+                        <>
+                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeHours ? r.overtimeHours.toFixed(2) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-fg">{r.mealEligible ? rp(data.mealAllowance) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-warning">{r.undertimeMinutes ? (r.undertimeMinutes / 60).toFixed(2) : "—"}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.lateMinutes || "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeHours ? r.overtimeHours.toFixed(2) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-fg">{r.ls || "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-fg">{r.lc ? r.lc.toFixed(2) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-fg">{r.ll || "—"}</td>
+                        </>
+                      )}
                       <td className="px-3 py-2.5 text-right">
                         <button
                           onClick={() => openEdit(r)}
