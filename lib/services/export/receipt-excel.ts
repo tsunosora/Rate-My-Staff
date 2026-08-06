@@ -14,7 +14,7 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
 
   const head = ws.addRow(
     data.flexible
-      ? ["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Lembur", data.labels.meal, "Kurang"]
+      ? ["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Lembur (mnt)", data.labels.meal, "Kurang (mnt)"]
       : ["Hari", "Tanggal", "Masuk", "Pulang", "Shift", "Terlambat", "Lembur", "LS", "LC", "LL"]
   );
   head.font = { bold: true };
@@ -31,9 +31,9 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
             r.clockIn ?? "",
             r.clockOut ?? "",
             r.shiftLabel,
-            r.overtimeHours || "",
+            r.overtimeMinutes || "",
             r.mealEligible ? data.mealAllowance : "",
-            r.undertimeMinutes ? Number((r.undertimeMinutes / 60).toFixed(2)) : "",
+            r.undertimeMinutes || "",
           ]
         : [
             r.dayName,
@@ -59,13 +59,13 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
   if (data.flexible) {
     ws.addRow([
       data.labels.flexOvertime,
-      rp(data.flexRatePerHour),
-      Number((data.totals.overtimeMinutes / 60).toFixed(2)),
+      `${rp(Math.round(data.flexRatePerHour / 60))}/mnt`,
+      `${data.totals.overtimeMinutes} mnt`,
       rp(data.totals.overtimeAmount),
     ]);
     ws.addRow([data.labels.meal, rp(data.mealAllowance), data.totals.mealCount, rp(data.totals.mealAmount)]);
     if (data.totals.undertimeMinutes > 0) {
-      ws.addRow(["Kekurangan jam", "", Number((data.totals.undertimeMinutes / 60).toFixed(2)), "—"]);
+      ws.addRow(["Kekurangan jam", "", `${data.totals.undertimeMinutes} mnt`, "—"]);
     }
   } else {
     ws.addRow([data.labels.daily, rp(data.rates.daily), data.totals.lsCount, rp(data.totals.dailyAmount)]);

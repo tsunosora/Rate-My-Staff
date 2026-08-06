@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { formatHoursMinutes } from "@/lib/services/attendance/receipt";
 import type { ReceiptData, ReceiptDayRow } from "@/lib/services/attendance/receipt";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
@@ -41,9 +42,9 @@ function DayRow({ r, data }: { r: ReceiptDayRow; data: ReceiptData }) {
       <Text style={styles.cShift}>{r.shiftLabel}</Text>
       {data.flexible ? (
         <>
-          <Text style={styles.cFNum}>{r.overtimeHours ? r.overtimeHours.toFixed(2) : ""}</Text>
+          <Text style={styles.cFNum}>{r.overtimeMinutes ? formatHoursMinutes(r.overtimeMinutes) : ""}</Text>
           <Text style={styles.cFMeal}>{r.mealEligible ? rp(data.mealAllowance) : ""}</Text>
-          <Text style={styles.cFNum}>{r.undertimeMinutes ? (r.undertimeMinutes / 60).toFixed(2) : ""}</Text>
+          <Text style={styles.cFNum}>{r.undertimeMinutes ? formatHoursMinutes(r.undertimeMinutes) : ""}</Text>
         </>
       ) : (
         <>
@@ -97,8 +98,8 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
           <>
             <View style={styles.fRow}>
               <Text style={styles.fLabel}>{data.labels.flexOvertime}</Text>
-              <Text style={styles.fRate}>{rp(data.flexRatePerHour)}</Text>
-              <Text style={styles.fQty}>{(data.totals.overtimeMinutes / 60).toFixed(2)} jam</Text>
+              <Text style={styles.fRate}>{rp(Math.round(data.flexRatePerHour / 60))}/mnt</Text>
+              <Text style={styles.fQty}>{data.totals.overtimeMinutes} mnt ({formatHoursMinutes(data.totals.overtimeMinutes)})</Text>
               <Text style={styles.fAmount}>{rp(data.totals.overtimeAmount)}</Text>
             </View>
             <View style={styles.fRow}>
@@ -111,7 +112,7 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
               <View style={styles.fRow}>
                 <Text style={styles.fLabel}>Kekurangan jam</Text>
                 <Text style={styles.fRate} />
-                <Text style={styles.fQty}>{(data.totals.undertimeMinutes / 60).toFixed(2)} jam</Text>
+                <Text style={styles.fQty}>{formatHoursMinutes(data.totals.undertimeMinutes)}</Text>
                 <Text style={styles.fAmount}>—</Text>
               </View>
             )}

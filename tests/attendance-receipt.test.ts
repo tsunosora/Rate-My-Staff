@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildReceipt, type ReceiptInput } from "@/lib/services/attendance/receipt";
+import { buildReceipt, formatHoursMinutes, type ReceiptInput } from "@/lib/services/attendance/receipt";
 import {
   resolveReceiptRates,
   resolveOvertimeRounding,
@@ -199,5 +199,31 @@ describe("resolveReceiptLabels", () => {
     expect(r.cetak).toBe("Cetak Foto");
     expect(r.meal).toBe(DEFAULT_RECEIPT_LABELS.meal); // kosong -> default
     expect(r.daily).toBe(DEFAULT_RECEIPT_LABELS.daily);
+  });
+});
+
+describe("formatHoursMinutes", () => {
+  test("jam + menit", () => {
+    expect(formatHoursMinutes(210)).toBe("3j 30m");
+    expect(formatHoursMinutes(208)).toBe("3j 28m");
+  });
+  test("jam bulat / menit saja / nol", () => {
+    expect(formatHoursMinutes(240)).toBe("4j");
+    expect(formatHoursMinutes(30)).toBe("30m");
+    expect(formatHoursMinutes(0)).toBe("0m");
+    expect(formatHoursMinutes(-5)).toBe("0m"); // negatif diklem ke 0
+  });
+});
+
+describe("buildReceipt: detail menit lembur (flexible)", () => {
+  test("overtimeMinutes mentah tersedia per-hari", () => {
+    const d = buildReceipt({
+      ...base,
+      flexible: true,
+      flexRatePerHour: 10000,
+      rows: [mk({ clockIn: "08:00", clockOut: "19:28", overtimeMinutes: 208, status: "on_time" })],
+    });
+    expect(d.rows[0].overtimeMinutes).toBe(208);
+    expect(formatHoursMinutes(d.rows[0].overtimeMinutes)).toBe("3j 28m");
   });
 });

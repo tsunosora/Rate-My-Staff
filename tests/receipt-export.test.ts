@@ -19,11 +19,11 @@ const sample: ReceiptData = {
   rows: [
     {
       date: "2026-04-01", dayName: "Rabu", isHoliday: false, clockIn: "08:00", clockOut: "22:00",
-      shiftLabel: "Long", lateMinutes: 0, overtimeHours: 1, ls: 1, lc: 1, ll: 0, mealEligible: false, undertimeMinutes: 0, worked: true,
+      shiftLabel: "Long", lateMinutes: 0, overtimeHours: 1, overtimeMinutes: 60, ls: 1, lc: 1, ll: 0, mealEligible: false, undertimeMinutes: 0, worked: true,
     },
     {
       date: "2026-04-06", dayName: "Minggu", isHoliday: true, clockIn: null, clockOut: null,
-      shiftLabel: "—", lateMinutes: 0, overtimeHours: 0, ls: 0, lc: 0, ll: 0, mealEligible: false, undertimeMinutes: 0, worked: false,
+      shiftLabel: "—", lateMinutes: 0, overtimeHours: 0, overtimeMinutes: 0, ls: 0, lc: 0, ll: 0, mealEligible: false, undertimeMinutes: 0, worked: false,
     },
   ],
   totals: {
@@ -55,7 +55,7 @@ const flexSample: ReceiptData = {
   rows: [
     {
       date: "2026-04-01", dayName: "Rabu", isHoliday: false, clockIn: "08:00", clockOut: "18:31",
-      shiftLabel: "Bebas", lateMinutes: 0, overtimeHours: 2.52, ls: 0, lc: 0, ll: 0, mealEligible: true, undertimeMinutes: 0, worked: true,
+      shiftLabel: "Bebas", lateMinutes: 0, overtimeHours: 2.52, overtimeMinutes: 151, ls: 0, lc: 0, ll: 0, mealEligible: true, undertimeMinutes: 0, worked: true,
     },
   ],
   totals: {

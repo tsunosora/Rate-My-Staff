@@ -5,6 +5,7 @@ import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
 import { weekPeriod } from "@/lib/services/attendance/period";
+import { formatHoursMinutes } from "@/lib/services/attendance/receipt";
 
 type ReceiptDayRow = {
   date: string;
@@ -15,6 +16,7 @@ type ReceiptDayRow = {
   shiftLabel: string;
   lateMinutes: number;
   overtimeHours: number;
+  overtimeMinutes: number;
   ls: number;
   lc: number;
   ll: number;
@@ -447,9 +449,9 @@ export default function AttendanceReceiptPage() {
                       <td className="px-3 py-2.5 text-muted">{r.shiftLabel}</td>
                       {data.flexible ? (
                         <>
-                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeHours ? r.overtimeHours.toFixed(2) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeMinutes ? formatHoursMinutes(r.overtimeMinutes) : "—"}</td>
                           <td className="px-3 py-2.5 text-right tabular text-fg">{r.mealEligible ? rp(data.mealAllowance) : "—"}</td>
-                          <td className="px-3 py-2.5 text-right tabular text-warning">{r.undertimeMinutes ? (r.undertimeMinutes / 60).toFixed(2) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-warning">{r.undertimeMinutes ? formatHoursMinutes(r.undertimeMinutes) : "—"}</td>
                         </>
                       ) : (
                         <>
@@ -479,17 +481,18 @@ export default function AttendanceReceiptPage() {
             <div className="space-y-2 text-sm">
               {data.flexible ? (
                 <>
-                  <SubTotal
-                    label={data.labels.flexOvertime}
-                    rate={data.flexRatePerHour}
-                    qty={Math.round((data.totals.overtimeMinutes / 60) * 100) / 100}
-                    amount={data.totals.overtimeAmount}
-                  />
+                  <div className="flex items-center justify-between gap-3 border-b border-border py-1.5">
+                    <span className="text-muted">{data.labels.flexOvertime}</span>
+                    <span className="tabular text-xs text-subtle">
+                      {rp(Math.round(data.flexRatePerHour / 60))}/mnt × {data.totals.overtimeMinutes} mnt ({formatHoursMinutes(data.totals.overtimeMinutes)})
+                    </span>
+                    <span className="tabular font-medium text-fg">{rp(data.totals.overtimeAmount)}</span>
+                  </div>
                   <SubTotal label={data.labels.meal} rate={data.mealAllowance} qty={data.totals.mealCount} amount={data.totals.mealAmount} />
                   {data.totals.undertimeMinutes > 0 && (
                     <div className="flex items-center justify-between border-t border-border pt-2 text-warning">
                       <span>Kekurangan jam kerja</span>
-                      <span className="tabular">{(Math.round((data.totals.undertimeMinutes / 60) * 100) / 100).toFixed(2)} jam</span>
+                      <span className="tabular">{formatHoursMinutes(data.totals.undertimeMinutes)}</span>
                     </div>
                   )}
                 </>

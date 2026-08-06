@@ -26,6 +26,16 @@ export function billableOvertimeHours(minutes: number, rounding: OvertimeRoundin
   return Math.floor(minutes / 60);
 }
 
+/** Format menit -> "Xj Ym" (210 -> "3j 30m", 180 -> "3j", 30 -> "30m", 0 -> "0m"). */
+export function formatHoursMinutes(min: number): string {
+  const total = Math.max(0, Math.round(min));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h && m) return `${h}j ${m}m`;
+  if (h) return `${h}j`;
+  return `${m}m`;
+}
+
 export type ReceiptInputRow = Pick<
   ReportRow,
   "date" | "shift" | "isHoliday" | "clockIn" | "clockOut" | "lateMinutes" | "overtimeMinutes" | "status"
@@ -68,6 +78,8 @@ export type ReceiptDayRow = {
   shiftLabel: string; // "Long" | "Pagi" | "Siang" | "—"
   lateMinutes: number;
   overtimeHours: number; // overtimeMinutes/60, 2 desimal (kolom Keterangan>Lembur)
+  /** Mode flexible: menit lembur mentah hari ini (untuk detail "Xj Ym" di struk). */
+  overtimeMinutes: number;
   ls: number; // 0 | 1
   lc: number; // jam, 2 desimal
   ll: number; // 0 | 1
@@ -159,6 +171,7 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
       shiftLabel: flexible ? "Bebas" : r.shift ? SHIFT_LABEL[r.shift] ?? "—" : "—",
       lateMinutes: r.lateMinutes,
       overtimeHours: otHours,
+      overtimeMinutes: Math.max(0, r.overtimeMinutes),
       ls,
       lc,
       ll,
