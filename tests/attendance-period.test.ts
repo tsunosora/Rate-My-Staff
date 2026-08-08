@@ -4,6 +4,7 @@ import {
   weekRange,
   weekLabel,
   weekPeriod,
+  customPeriod,
   periodFileTag,
   resolveReceiptPeriod,
 } from "@/lib/services/attendance/period";
@@ -53,12 +54,30 @@ describe("weekPeriod", () => {
   });
 });
 
+describe("customPeriod", () => {
+  test("rentang bebas + label + year/month dari tanggal awal", () => {
+    const p = customPeriod("2026-04-03", "2026-04-20");
+    expect(p).toMatchObject({ mode: "custom", year: 2026, month: 4, startStr: "2026-04-03", endStr: "2026-04-20" });
+    expect(p.label).toBe("03–20 Apr 2026");
+  });
+  test("tanggal terbalik -> otomatis ditukar", () => {
+    const p = customPeriod("2026-04-20", "2026-04-03");
+    expect(p).toMatchObject({ startStr: "2026-04-03", endStr: "2026-04-20" });
+  });
+  test("lintas bulan -> label rentang", () => {
+    expect(customPeriod("2026-04-27", "2026-05-03").label).toBe("27 Apr – 03 Mei 2026");
+  });
+});
+
 describe("periodFileTag", () => {
   test("bulan", () => {
     expect(periodFileTag(monthPeriod(2026, 4))).toBe("2026-4");
   });
   test("minggu", () => {
     expect(periodFileTag(weekPeriod("2026-04-08"))).toBe("2026-04-06_2026-04-12");
+  });
+  test("custom", () => {
+    expect(periodFileTag(customPeriod("2026-04-03", "2026-04-20"))).toBe("2026-04-03_2026-04-20");
   });
 });
 
@@ -79,5 +98,13 @@ describe("resolveReceiptPeriod", () => {
     const p = resolveReceiptPeriod(new URLSearchParams("period=week"), now);
     // 2026-07-15 = Rabu -> Senin 13 Jul
     expect(p).toMatchObject({ mode: "week", startStr: "2026-07-13", endStr: "2026-07-19" });
+  });
+  test("custom pakai start & end", () => {
+    const p = resolveReceiptPeriod(new URLSearchParams("period=custom&start=2026-04-03&end=2026-04-20"), now);
+    expect(p).toMatchObject({ mode: "custom", startStr: "2026-04-03", endStr: "2026-04-20" });
+  });
+  test("custom tanpa start/end valid -> fallback bulan berjalan", () => {
+    const p = resolveReceiptPeriod(new URLSearchParams("period=custom&start=xx"), now);
+    expect(p).toMatchObject({ mode: "month", year: 2026, month: 7 });
   });
 });

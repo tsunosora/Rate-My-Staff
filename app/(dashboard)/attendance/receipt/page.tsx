@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { IconDownload, IconPencil, IconCheck } from "@/components/ui/icons";
-import { weekPeriod } from "@/lib/services/attendance/period";
+import { weekPeriod, customPeriod } from "@/lib/services/attendance/period";
 import { formatHoursMinutes } from "@/lib/services/attendance/receipt";
 
 type ReceiptDayRow = {
@@ -77,10 +77,12 @@ const TODAY_ISO = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2,
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 export default function AttendanceReceiptPage() {
-  const [periodMode, setPeriodMode] = useState<"month" | "week">("month");
+  const [periodMode, setPeriodMode] = useState<"month" | "week" | "custom">("month");
   const [month, setMonth] = useState(NOW.getMonth() + 1); // 1-12
   const [year, setYear] = useState(NOW.getFullYear());
   const [weekDate, setWeekDate] = useState(TODAY_ISO); // sembarang hari dalam minggu terpilih
+  const [customStart, setCustomStart] = useState(TODAY_ISO); // rentang bebas: tanggal awal
+  const [customEnd, setCustomEnd] = useState(TODAY_ISO); // rentang bebas: tanggal akhir
   const [employeeId, setEmployeeId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [employees, setEmployees] = useState<Ref[]>([]);
@@ -95,14 +97,13 @@ export default function AttendanceReceiptPage() {
     api<Ref[]>("/api/assessments/employees").then(setEmployees).catch(() => {});
   }, []);
 
-  // Pasangan query periode: mingguan (period=week&week=YYYY-MM-DD) atau bulanan (year&month).
-  const periodPairs = useCallback(
-    (): Record<string, string> =>
-      periodMode === "week"
-        ? { period: "week", week: weekDate }
-        : { year: String(year), month: String(month) },
-    [periodMode, weekDate, year, month]
-  );
+  // Pasangan query periode: mingguan (period=week&week=), custom (period=custom&start=&end=),
+  // atau bulanan (year&month).
+  const periodPairs = useCallback((): Record<string, string> => {
+    if (periodMode === "week") return { period: "week", week: weekDate };
+    if (periodMode === "custom") return { period: "custom", start: customStart, end: customEnd };
+    return { year: String(year), month: String(month) };
+  }, [periodMode, weekDate, customStart, customEnd, year, month]);
 
   const reqId = useRef(0);
   const load = useCallback(async () => {
@@ -171,7 +172,13 @@ export default function AttendanceReceiptPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${scope}-${periodMode === "week" ? weekDate : `${year}-${month}`}.${ext}`;
+      const tag =
+        periodMode === "week"
+          ? weekDate
+          : periodMode === "custom"
+            ? `${customStart}_${customEnd}`
+            : `${year}-${month}`;
+      a.download = `${scope}-${tag}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -255,10 +262,11 @@ export default function AttendanceReceiptPage() {
           <select
             className="input h-10 w-auto"
             value={periodMode}
-            onChange={(e) => setPeriodMode(e.target.value as "month" | "week")}
+            onChange={(e) => setPeriodMode(e.target.value as "month" | "week" | "custom")}
           >
             <option value="month">Bulanan</option>
             <option value="week">Mingguan</option>
+            <option value="custom">Rentang bebas</option>
           </select>
         </label>
         {periodMode === "month" ? (
@@ -280,7 +288,7 @@ export default function AttendanceReceiptPage() {
               </select>
             </label>
           </>
-        ) : (
+        ) : periodMode === "week" ? (
           <label className="space-y-1.5">
             <span className="block font-medium text-muted">
               Minggu <span className="text-subtle">· {weekPeriod(weekDate).label}</span>
@@ -292,6 +300,31 @@ export default function AttendanceReceiptPage() {
               onChange={(e) => setWeekDate(e.target.value || TODAY_ISO)}
             />
           </label>
+        ) : (
+          <>
+            <label className="space-y-1.5">
+              <span className="block font-medium text-muted">Dari tanggal</span>
+              <input
+                type="date"
+                className="input h-10 w-auto"
+                value={customStart}
+                max={customEnd || undefined}
+                onChange={(e) => setCustomStart(e.target.value || TODAY_ISO)}
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="block font-medium text-muted">
+                Hingga <span className="text-subtle">· {customPeriod(customStart, customEnd).label}</span>
+              </span>
+              <input
+                type="date"
+                className="input h-10 w-auto"
+                value={customEnd}
+                min={customStart || undefined}
+                onChange={(e) => setCustomEnd(e.target.value || TODAY_ISO)}
+              />
+            </label>
+          </>
         )}
         <label className="space-y-1.5">
           <span className="block font-medium text-muted">Karyawan</span>

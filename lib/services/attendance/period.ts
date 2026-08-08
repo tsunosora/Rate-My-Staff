@@ -11,7 +11,7 @@ const MONTHS_SHORT = [
   "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
 ];
 
-export type ReceiptPeriodMode = "month" | "week";
+export type ReceiptPeriodMode = "month" | "week" | "custom";
 
 export type ReceiptPeriod = {
   mode: ReceiptPeriodMode;
@@ -79,9 +79,17 @@ export function weekPeriod(dateStr: string): ReceiptPeriod {
   return { mode: "week", year: s.y, month: s.m, startStr, endStr, label: weekLabel(startStr, endStr) };
 }
 
-/** Potongan nama file untuk periode (bulan: "2026-4"; minggu: "2026-04-06_2026-04-12"). */
+/** Rentang bebas (custom) dari tanggal awal s/d akhir (inklusif); dibalik bila terbalik. */
+export function customPeriod(startStr: string, endStr: string): ReceiptPeriod {
+  // Format YYYY-MM-DD urut secara leksikografis = kronologis, jadi bisa dibandingkan langsung.
+  const [s, e] = endStr < startStr ? [endStr, startStr] : [startStr, endStr];
+  const sy = parseYmd(s);
+  return { mode: "custom", year: sy.y, month: sy.m, startStr: s, endStr: e, label: weekLabel(s, e) };
+}
+
+/** Potongan nama file untuk periode (bulan: "2026-4"; minggu/custom: "2026-04-06_2026-04-12"). */
 export function periodFileTag(p: ReceiptPeriod): string {
-  return p.mode === "week" ? `${p.startStr}_${p.endStr}` : `${p.year}-${p.month}`;
+  return p.mode === "month" ? `${p.year}-${p.month}` : `${p.startStr}_${p.endStr}`;
 }
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -92,6 +100,12 @@ export function resolveReceiptPeriod(sp: URLSearchParams, now: Date = new Date()
     const wk = sp.get("week");
     const dateStr = wk && YMD_RE.test(wk) ? wk : ymd(now);
     return weekPeriod(dateStr);
+  }
+  if (sp.get("period") === "custom") {
+    const start = sp.get("start");
+    const end = sp.get("end");
+    if (start && YMD_RE.test(start) && end && YMD_RE.test(end)) return customPeriod(start, end);
+    // start/end tak valid -> fallback aman ke bulan berjalan (jatuh ke bawah).
   }
   const year = Number(sp.get("year")) || now.getFullYear();
   const monthRaw = Number(sp.get("month")) || now.getMonth() + 1;
