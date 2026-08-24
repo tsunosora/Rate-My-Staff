@@ -44,6 +44,8 @@ export type ReportRow = {
   mealEligible: boolean;
   /** Mode flexible: menit kekurangan jam bila durasi kerja di bawah 8 jam. */
   undertimeMinutes: number;
+  /** Mode flexible: durasi kerja kotor (menit) — dipakai untuk lembur hari libur (semua jam). */
+  workedMinutes: number;
 };
 
 const ABSENCE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
@@ -84,6 +86,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
     isHoliday: input.isHoliday || (input.schedule?.isHoliday ?? false),
     mealEligible: false,
     undertimeMinutes: 0,
+    workedMinutes: 0,
   };
 
   // 1) Record ketidakhadiran eksplisit (Izin/Sakit/Cuti) menang.
@@ -138,6 +141,7 @@ export function computeAttendanceRow(input: DayInput): ReportRow {
       shift: "flexible",
       mealEligible: fc.mealEligible,
       undertimeMinutes: fc.undertimeMinutes,
+      workedMinutes: fc.workedMinutes,
     };
   }
 

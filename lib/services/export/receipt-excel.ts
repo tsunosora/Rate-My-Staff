@@ -31,7 +31,9 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
             r.clockIn ?? "",
             r.clockOut ?? "",
             r.shiftLabel,
-            r.overtimeMinutes || "",
+            r.holidayOvertimeMinutes
+              ? `${r.holidayOvertimeMinutes} (libur)`
+              : r.overtimeMinutes || "",
             r.mealEligible ? data.mealAllowance : "",
             r.undertimeMinutes || "",
           ]
@@ -63,6 +65,14 @@ function addSheet(wb: ExcelJS.Workbook, data: ReceiptData, idx: number) {
       `${data.totals.overtimeMinutes} mnt`,
       rp(data.totals.overtimeAmount),
     ]);
+    if (data.totals.holidayOvertimeMinutes > 0) {
+      ws.addRow([
+        data.labels.flexHoliday,
+        `${rp(Math.round(data.flexHolidayRatePerHour / 60))}/mnt`,
+        `${data.totals.holidayOvertimeMinutes} mnt`,
+        rp(data.totals.holidayOvertimeAmount),
+      ]);
+    }
     ws.addRow([data.labels.meal, rp(data.mealAllowance), data.totals.mealCount, rp(data.totals.mealAmount)]);
     if (data.totals.undertimeMinutes > 0) {
       ws.addRow(["Kekurangan jam", "", `${data.totals.undertimeMinutes} mnt`, "—"]);

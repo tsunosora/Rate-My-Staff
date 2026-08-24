@@ -42,7 +42,13 @@ function DayRow({ r, data }: { r: ReceiptDayRow; data: ReceiptData }) {
       <Text style={styles.cShift}>{r.shiftLabel}</Text>
       {data.flexible ? (
         <>
-          <Text style={styles.cFNum}>{r.overtimeMinutes ? formatHoursMinutes(r.overtimeMinutes) : ""}</Text>
+          <Text style={styles.cFNum}>
+            {r.holidayOvertimeMinutes
+              ? `${formatHoursMinutes(r.holidayOvertimeMinutes)} (libur)`
+              : r.overtimeMinutes
+                ? formatHoursMinutes(r.overtimeMinutes)
+                : ""}
+          </Text>
           <Text style={styles.cFMeal}>{r.mealEligible ? rp(data.mealAllowance) : ""}</Text>
           <Text style={styles.cFNum}>{r.undertimeMinutes ? formatHoursMinutes(r.undertimeMinutes) : ""}</Text>
         </>
@@ -102,6 +108,14 @@ function ReceiptPage({ data, generatedAt }: { data: ReceiptData; generatedAt: st
               <Text style={styles.fQty}>{data.totals.overtimeMinutes} mnt ({formatHoursMinutes(data.totals.overtimeMinutes)})</Text>
               <Text style={styles.fAmount}>{rp(data.totals.overtimeAmount)}</Text>
             </View>
+            {data.totals.holidayOvertimeMinutes > 0 && (
+              <View style={styles.fRow}>
+                <Text style={styles.fLabel}>{data.labels.flexHoliday}</Text>
+                <Text style={styles.fRate}>{rp(Math.round(data.flexHolidayRatePerHour / 60))}/mnt</Text>
+                <Text style={styles.fQty}>{data.totals.holidayOvertimeMinutes} mnt ({formatHoursMinutes(data.totals.holidayOvertimeMinutes)})</Text>
+                <Text style={styles.fAmount}>{rp(data.totals.holidayOvertimeAmount)}</Text>
+              </View>
+            )}
             <View style={styles.fRow}>
               <Text style={styles.fLabel}>{data.labels.meal}</Text>
               <Text style={styles.fRate}>{rp(data.mealAllowance)}</Text>

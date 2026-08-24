@@ -5,6 +5,7 @@ import {
   resolveReceiptRates,
   resolveOvertimeRounding,
   resolveMealAllowance,
+  resolveFlexHolidayRate,
   resolveReceiptLabels,
   type ReceiptLabelSet,
 } from "./receipt-rates";
@@ -15,6 +16,8 @@ async function loadConfig(prisma: PrismaClient): Promise<{
   rates: ReturnType<typeof resolveReceiptRates>;
   rounding: OvertimeRounding;
   mealAllowance: number;
+  /** Tarif lembur hari libur per jam (mode flexible); null = pakai tarif lembur biasa jadwal. */
+  flexHolidayRate: number | null;
   labels: ReceiptLabelSet;
 }> {
   const [cats, settings] = await Promise.all([prisma.overtimeCategory.findMany(), getAllSettings()]);
@@ -22,6 +25,7 @@ async function loadConfig(prisma: PrismaClient): Promise<{
     rates: resolveReceiptRates(cats.map((c) => ({ name: c.name, rate: c.rate })), settings),
     rounding: resolveOvertimeRounding(settings),
     mealAllowance: resolveMealAllowance(settings),
+    flexHolidayRate: resolveFlexHolidayRate(settings),
     labels: resolveReceiptLabels(settings),
   };
 }
@@ -37,12 +41,14 @@ export async function buildEmployeeReceipt(
     include: { department: true, workSchedule: true },
   });
   if (!emp) return null;
-  const [{ rows }, { rates, rounding, mealAllowance, labels }] = await Promise.all([
+  const [{ rows }, { rates, rounding, mealAllowance, flexHolidayRate, labels }] = await Promise.all([
     aggregateAttendance(prisma, { startStr: period.startStr, endStr: period.endStr, employeeId: String(employeeId) }),
     loadConfig(prisma),
   ]);
   const flexible = Boolean(emp.workSchedule?.flexibleHours);
   const flexRatePerHour = emp.workSchedule ? Number(emp.workSchedule.overtimeWagePerHour) : 0;
+  // Tarif lembur hari libur dari Setting global; bila kosong pakai tarif lembur biasa jadwal.
+  const flexHolidayRatePerHour = flexHolidayRate ?? flexRatePerHour;
   return buildReceipt({
     employeeId: emp.id,
     employeeName: emp.fullName,
@@ -55,6 +61,7 @@ export async function buildEmployeeReceipt(
     rounding,
     flexible,
     flexRatePerHour,
+    flexHolidayRatePerHour,
     mealAllowance,
     labels,
     rows: rows.map((r) => ({
@@ -67,6 +74,7 @@ export async function buildEmployeeReceipt(
       overtimeMinutes: r.overtimeMinutes,
       mealEligible: r.mealEligible,
       undertimeMinutes: r.undertimeMinutes,
+      workedMinutes: r.workedMinutes,
       status: r.status,
     })),
   });

@@ -114,12 +114,87 @@ describe("buildReceipt — mode flexible (jam masuk bebas)", () => {
         holiday: "Lembur Libur",
         cetak: "Cetak Foto",
         flexOvertime: "Uang Lembur",
+        flexHoliday: "Lembur Libur (per jam)",
         meal: "Uang Makan Malam",
       },
       rows: [mk({})],
     });
     expect(d.labels.flexOvertime).toBe("Uang Lembur");
     expect(d.labels.meal).toBe("Uang Makan Malam");
+  });
+});
+
+describe("buildReceipt — mode flexible: lembur HARI LIBUR (semua jam)", () => {
+  test("hari libur: SELURUH durasi jadi lembur libur di tarif khusus, bukan hanya di atas 8 jam", () => {
+    // 08:00 -> 17:00 = 540m. Di hari kerja lemburnya cuma 60m; di hari libur SEMUA 540m dihitung.
+    const d = buildReceipt({
+      ...base,
+      flexHolidayRatePerHour: 20000,
+      rows: [mk({ isHoliday: true, clockOut: "17:00", workedMinutes: 540, overtimeMinutes: 60 })],
+    });
+    expect(d.totals.overtimeMinutes).toBe(0); // lembur biasa tak berlaku di hari libur
+    expect(d.totals.overtimeAmount).toBe(0);
+    expect(d.totals.holidayOvertimeMinutes).toBe(540);
+    expect(d.totals.holidayOvertimeAmount).toBe(180000); // round((540/60)*20000)
+    expect(d.rows[0].holidayOvertimeMinutes).toBe(540);
+    expect(d.rows[0].overtimeMinutes).toBe(0);
+    expect(d.totals.grandTotal).toBe(180000);
+  });
+
+  test("hari libur kerja < 8 jam: tetap semua jam dibayar, TIDAK ditandai kekurangan", () => {
+    // 08:00 -> 13:00 = 300m (di bawah 8 jam).
+    const d = buildReceipt({
+      ...base,
+      flexHolidayRatePerHour: 20000,
+      rows: [mk({ isHoliday: true, clockOut: "13:00", workedMinutes: 300, undertimeMinutes: 180 })],
+    });
+    expect(d.totals.holidayOvertimeMinutes).toBe(300);
+    expect(d.totals.holidayOvertimeAmount).toBe(100000); // round((300/60)*20000)
+    expect(d.totals.undertimeMinutes).toBe(0); // hari libur tak dianggap kurang jam
+    expect(d.rows[0].undertimeMinutes).toBe(0);
+    expect(d.totals.grandTotal).toBe(100000);
+  });
+
+  test("tarif libur kosong -> fallback ke tarif lembur per jam biasa", () => {
+    const d = buildReceipt({
+      ...base, // flexRatePerHour 10000, tanpa flexHolidayRatePerHour
+      rows: [mk({ isHoliday: true, clockOut: "16:00", workedMinutes: 480 })],
+    });
+    expect(d.flexHolidayRatePerHour).toBe(10000);
+    expect(d.totals.holidayOvertimeMinutes).toBe(480);
+    expect(d.totals.holidayOvertimeAmount).toBe(80000); // round((480/60)*10000)
+  });
+
+  test("hari libur tanpa scan lengkap (workedMinutes 0) -> tak ada lembur libur", () => {
+    const d = buildReceipt({
+      ...base,
+      flexHolidayRatePerHour: 20000,
+      rows: [mk({ isHoliday: true, clockIn: "08:00", clockOut: null, workedMinutes: 0 })],
+    });
+    expect(d.totals.holidayOvertimeMinutes).toBe(0);
+    expect(d.totals.holidayOvertimeAmount).toBe(0);
+    expect(d.totals.grandTotal).toBe(0);
+  });
+
+  test("campuran hari kerja + hari libur: dua total terpisah dijumlah", () => {
+    const d = buildReceipt({
+      ...base,
+      flexHolidayRatePerHour: 20000,
+      rows: [
+        mk({ date: "2026-04-01", clockOut: "17:30", overtimeMinutes: 90 }), // kerja: lembur biasa 90m
+        mk({ date: "2026-04-05", isHoliday: true, clockOut: "18:00", workedMinutes: 600, overtimeMinutes: 120 }), // libur: semua 600m
+      ],
+    });
+    expect(d.totals.overtimeMinutes).toBe(90);
+    expect(d.totals.overtimeAmount).toBe(15000); // round((90/60)*10000)
+    expect(d.totals.holidayOvertimeMinutes).toBe(600);
+    expect(d.totals.holidayOvertimeAmount).toBe(200000); // round((600/60)*20000)
+    expect(d.totals.grandTotal).toBe(215000);
+  });
+
+  test("label lembur libur flexible: default & bisa di-override", () => {
+    const d = buildReceipt({ ...base, rows: [mk({})] });
+    expect(d.labels.flexHoliday).toBe("Lembur Libur (per jam)");
   });
 });
 

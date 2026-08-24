@@ -44,6 +44,8 @@ export type ReceiptInputRow = Pick<
   mealEligible?: boolean;
   /** Mode flexible: menit kekurangan jam bila durasi di bawah 8 jam. */
   undertimeMinutes?: number;
+  /** Mode flexible: durasi kerja kotor (menit) — untuk lembur hari libur (semua jam dihitung). */
+  workedMinutes?: number;
 };
 
 export type ReceiptInput = {
@@ -62,6 +64,11 @@ export type ReceiptInput = {
   flexible?: boolean;
   /** Tarif lembur per jam (dari jadwal karyawan) — dipakai hanya di mode flexible. */
   flexRatePerHour?: number;
+  /**
+   * Mode flexible: tarif lembur HARI LIBUR per jam. Di hari libur SEMUA jam kerja dihitung
+   * (bukan hanya di atas 8 jam). Bila tak diisi, jatuh ke `flexRatePerHour`.
+   */
+  flexHolidayRatePerHour?: number;
   /** Nominal uang makan flat per hari di atas 10 jam — dipakai hanya di mode flexible. */
   mealAllowance?: number;
   /** Label istilah pembayaran (bisa diganti dari Pengaturan). Default DEFAULT_RECEIPT_LABELS. */
@@ -78,8 +85,10 @@ export type ReceiptDayRow = {
   shiftLabel: string; // "Long" | "Pagi" | "Siang" | "—"
   lateMinutes: number;
   overtimeHours: number; // overtimeMinutes/60, 2 desimal (kolom Keterangan>Lembur)
-  /** Mode flexible: menit lembur mentah hari ini (untuk detail "Xj Ym" di struk). */
+  /** Mode flexible: menit lembur mentah hari kerja (di atas 8 jam); 0 di hari libur. */
   overtimeMinutes: number;
+  /** Mode flexible: menit lembur HARI LIBUR (seluruh durasi kerja); 0 di hari kerja. */
+  holidayOvertimeMinutes: number;
   ls: number; // 0 | 1
   lc: number; // jam, 2 desimal
   ll: number; // 0 | 1
@@ -102,6 +111,8 @@ export type ReceiptData = {
   flexible: boolean;
   /** Mode flexible: tarif lembur per jam (dari jadwal). 0 di mode fixed. */
   flexRatePerHour: number;
+  /** Mode flexible: tarif lembur hari libur per jam (efektif, setelah fallback). 0 di mode fixed. */
+  flexHolidayRatePerHour: number;
   /** Mode flexible: nominal uang makan flat per hari. 0 di mode fixed. */
   mealAllowance: number;
   /** Label istilah pembayaran (hasil resolusi Setting; dipakai UI/PDF/Excel). */
@@ -114,10 +125,14 @@ export type ReceiptData = {
     dailyAmount: number;
     holidayAmount: number;
     cetakAmount: number;
-    /** Mode flexible: total menit lembur sebulan. */
+    /** Mode flexible: total menit lembur hari KERJA sebulan (di atas 8 jam). */
     overtimeMinutes: number;
-    /** Mode flexible: rupiah lembur (per-menit dari total menit). */
+    /** Mode flexible: rupiah lembur hari kerja (per-menit dari total menit). */
     overtimeAmount: number;
+    /** Mode flexible: total menit lembur HARI LIBUR sebulan (seluruh durasi kerja di hari libur). */
+    holidayOvertimeMinutes: number;
+    /** Mode flexible: rupiah lembur hari libur (per-menit × tarif libur). */
+    holidayOvertimeAmount: number;
     /** Mode flexible: jumlah hari berhak uang makan. */
     mealCount: number;
     /** Mode flexible: rupiah uang makan (mealCount × nominal). */
@@ -159,7 +174,11 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     const lc =
       !flexible && worked && !r.isHoliday && (r.shift === "siang" || r.shift === "longshift") ? otHours : 0;
     const mealEligible = flexible && worked && Boolean(r.mealEligible);
-    const undertimeMinutes = flexible ? Math.max(0, r.undertimeMinutes ?? 0) : 0;
+    // Hari libur (mode flexible): seluruh durasi kerja jadi lembur libur — lembur biasa &
+    // kekurangan jam tak berlaku. workedMinutes 0 bila scan tak lengkap (dari computeFlexible).
+    const holidayOvertimeMinutes = flexible && r.isHoliday ? Math.max(0, r.workedMinutes ?? 0) : 0;
+    const overtimeMinutes = flexible && r.isHoliday ? 0 : Math.max(0, r.overtimeMinutes);
+    const undertimeMinutes = flexible && !r.isHoliday ? Math.max(0, r.undertimeMinutes ?? 0) : 0;
     const [y, m, d] = r.date.split("-").map(Number);
     const dayName = DAY_NAMES[new Date(y, m - 1, d).getDay()];
     return {
@@ -171,7 +190,8 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
       shiftLabel: flexible ? "Bebas" : r.shift ? SHIFT_LABEL[r.shift] ?? "—" : "—",
       lateMinutes: r.lateMinutes,
       overtimeHours: otHours,
-      overtimeMinutes: Math.max(0, r.overtimeMinutes),
+      overtimeMinutes,
+      holidayOvertimeMinutes,
       ls,
       lc,
       ll,
@@ -189,16 +209,25 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
   const cetakAmount = Math.round(lcHours * input.rates.cetak);
 
   // Mode flexible: jumlahkan menit dulu baru dikonversi (hindari galat pembulatan harian).
-  const overtimeMinutes = flexible ? input.rows.reduce((s, r) => s + Math.max(0, r.overtimeMinutes), 0) : 0;
-  const overtimeAmount = flexible
-    ? Math.round((overtimeMinutes / 60) * (input.flexRatePerHour ?? 0))
+  // Lembur hari kerja hanya dari hari NON-libur; hari libur dihitung terpisah (semua jam).
+  const flexRate = input.flexRatePerHour ?? 0;
+  const flexHolidayRate = input.flexHolidayRatePerHour ?? flexRate;
+  const overtimeMinutes = flexible
+    ? input.rows.reduce((s, r) => s + (r.isHoliday ? 0 : Math.max(0, r.overtimeMinutes)), 0)
+    : 0;
+  const overtimeAmount = flexible ? Math.round((overtimeMinutes / 60) * flexRate) : 0;
+  const holidayOvertimeMinutes = flexible
+    ? input.rows.reduce((s, r) => s + (r.isHoliday ? Math.max(0, r.workedMinutes ?? 0) : 0), 0)
+    : 0;
+  const holidayOvertimeAmount = flexible
+    ? Math.round((holidayOvertimeMinutes / 60) * flexHolidayRate)
     : 0;
   const mealCount = rows.reduce((s, r) => s + (r.mealEligible ? 1 : 0), 0);
   const mealAmount = flexible ? mealCount * (input.mealAllowance ?? 0) : 0;
   const undertimeMinutes = rows.reduce((s, r) => s + r.undertimeMinutes, 0);
 
   const grandTotal = flexible
-    ? overtimeAmount + mealAmount
+    ? overtimeAmount + holidayOvertimeAmount + mealAmount
     : dailyAmount + holidayAmount + cetakAmount;
 
   return {
@@ -210,7 +239,8 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
     month: input.month,
     monthLabel: input.periodLabel ?? `${MONTHS[input.month - 1]} ${input.year}`,
     flexible,
-    flexRatePerHour: flexible ? input.flexRatePerHour ?? 0 : 0,
+    flexRatePerHour: flexible ? flexRate : 0,
+    flexHolidayRatePerHour: flexible ? flexHolidayRate : 0,
     mealAllowance: flexible ? input.mealAllowance ?? 0 : 0,
     labels: input.labels ?? DEFAULT_RECEIPT_LABELS,
     rows,
@@ -223,6 +253,8 @@ export function buildReceipt(input: ReceiptInput): ReceiptData {
       cetakAmount,
       overtimeMinutes,
       overtimeAmount,
+      holidayOvertimeMinutes,
+      holidayOvertimeAmount,
       mealCount,
       mealAmount,
       undertimeMinutes,

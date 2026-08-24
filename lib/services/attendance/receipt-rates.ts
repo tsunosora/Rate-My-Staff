@@ -12,6 +12,8 @@ export const RECEIPT_SETTING_KEYS = {
   rounding: "overtime_rounding",
   /** Uang makan flat per hari untuk mode flexible (durasi kerja di atas 10 jam). */
   mealAllowance: "flex_meal_allowance",
+  /** Tarif lembur HARI LIBUR per jam untuk mode flexible (semua jam kerja dihitung). */
+  flexHolidayRate: "flex_holiday_rate_per_hour",
 } as const;
 
 /** Nominal uang makan default (mode flexible) bila belum diatur: Rp10.000 flat, sekali per hari >10 jam. */
@@ -23,6 +25,7 @@ export type ReceiptLabelSet = {
   holiday: string; // LL — default "Lembur Libur"
   cetak: string; // LC — default "Lembur Cetak"
   flexOvertime: string; // mode flexible — default "Lembur (per jam)"
+  flexHoliday: string; // mode flexible hari libur — default "Lembur Libur (per jam)"
   meal: string; // mode flexible — default "Uang Makan"
 };
 
@@ -31,6 +34,7 @@ export const DEFAULT_RECEIPT_LABELS: ReceiptLabelSet = {
   holiday: "Lembur Libur",
   cetak: "Lembur Cetak",
   flexOvertime: "Lembur (per jam)",
+  flexHoliday: "Lembur Libur (per jam)",
   meal: "Uang Makan",
 };
 
@@ -40,6 +44,7 @@ export const RECEIPT_LABEL_KEYS = {
   holiday: "label_lembur_libur",
   cetak: "label_lembur_cetak",
   flexOvertime: "label_lembur_flex",
+  flexHoliday: "label_lembur_flex_libur",
   meal: "label_uang_makan",
 } as const;
 
@@ -97,6 +102,14 @@ export function resolveMealAllowance(settings?: SettingsMap): number {
   return settingNum(settings, RECEIPT_SETTING_KEYS.mealAllowance) ?? DEFAULT_MEAL_ALLOWANCE;
 }
 
+/**
+ * Baca tarif lembur hari libur per jam (mode flexible) dari Setting.
+ * `null` bila belum diatur — pemanggil memakai tarif lembur biasa (overtimeWagePerHour) sebagai fallback.
+ */
+export function resolveFlexHolidayRate(settings?: SettingsMap): number | null {
+  return settingNum(settings, RECEIPT_SETTING_KEYS.flexHolidayRate);
+}
+
 /** Baca label istilah struk dari Setting; label kosong/tak diisi memakai default. */
 export function resolveReceiptLabels(settings?: SettingsMap): ReceiptLabelSet {
   const pick = (key: string, d: string) => {
@@ -108,6 +121,7 @@ export function resolveReceiptLabels(settings?: SettingsMap): ReceiptLabelSet {
     holiday: pick(RECEIPT_LABEL_KEYS.holiday, DEFAULT_RECEIPT_LABELS.holiday),
     cetak: pick(RECEIPT_LABEL_KEYS.cetak, DEFAULT_RECEIPT_LABELS.cetak),
     flexOvertime: pick(RECEIPT_LABEL_KEYS.flexOvertime, DEFAULT_RECEIPT_LABELS.flexOvertime),
+    flexHoliday: pick(RECEIPT_LABEL_KEYS.flexHoliday, DEFAULT_RECEIPT_LABELS.flexHoliday),
     meal: pick(RECEIPT_LABEL_KEYS.meal, DEFAULT_RECEIPT_LABELS.meal),
   };
 }

@@ -381,6 +381,20 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, flex_meal_allowance: e.target.value })}
               />
             </label>
+            <label className="space-y-1">
+              <span className="text-muted">Lembur hari libur / Minggu per jam (jam masuk bebas)</span>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                className="input"
+                placeholder="= tarif lembur biasa"
+                value={settings.flex_holiday_rate_per_hour ?? ""}
+                onChange={(e) =>
+                  setSettings({ ...settings, flex_holiday_rate_per_hour: e.target.value })
+                }
+              />
+            </label>
           </div>
           <p className="mt-2 text-xs text-subtle">
             Tarif kosong memakai default (20.000 / 70.000 / 10.000) atau nilai dari kategori lembur.
@@ -388,7 +402,11 @@ export default function SettingsPage() {
             bawah 60 (mis. 30 atau 50 menit) tidak dihitung.{" "}
             <strong>Uang makan</strong> hanya berlaku untuk jadwal “jam masuk bebas” dan dibayar flat
             sekali per hari bila durasi kerja melewati 10 jam (lemburnya dihitung per-menit). Kosong =
-            default Rp10.000.
+            default Rp10.000.{" "}
+            <strong>Lembur hari libur / Minggu</strong> (jadwal “jam masuk bebas”): di hari libur
+            terdaftar atau Minggu (bila “Minggu otomatis hari libur” aktif), <em>seluruh</em> jam kerja
+            dihitung lembur memakai tarif ini — bukan hanya jam di atas 8. Kosong = memakai tarif
+            lembur biasa jadwal.
           </p>
 
           <div className="mt-5 border-t border-border pt-4">
@@ -428,6 +446,17 @@ export default function SettingsPage() {
                   placeholder="Lembur (per jam)"
                   value={settings.label_lembur_flex ?? ""}
                   onChange={(e) => setSettings({ ...settings, label_lembur_flex: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Istilah lembur libur “jam masuk bebas”</span>
+                <input
+                  className="input"
+                  placeholder="Lembur Libur (per jam)"
+                  value={settings.label_lembur_flex_libur ?? ""}
+                  onChange={(e) =>
+                    setSettings({ ...settings, label_lembur_flex_libur: e.target.value })
+                  }
                 />
               </label>
               <label className="space-y-1">

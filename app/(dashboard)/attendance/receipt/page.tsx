@@ -17,6 +17,7 @@ type ReceiptDayRow = {
   lateMinutes: number;
   overtimeHours: number;
   overtimeMinutes: number;
+  holidayOvertimeMinutes: number;
   ls: number;
   lc: number;
   ll: number;
@@ -32,12 +33,14 @@ type ReceiptData = {
   monthLabel: string;
   flexible: boolean;
   flexRatePerHour: number;
+  flexHolidayRatePerHour: number;
   mealAllowance: number;
   labels: {
     daily: string;
     holiday: string;
     cetak: string;
     flexOvertime: string;
+    flexHoliday: string;
     meal: string;
   };
   rows: ReceiptDayRow[];
@@ -50,6 +53,8 @@ type ReceiptData = {
     cetakAmount: number;
     overtimeMinutes: number;
     overtimeAmount: number;
+    holidayOvertimeMinutes: number;
+    holidayOvertimeAmount: number;
     mealCount: number;
     mealAmount: number;
     undertimeMinutes: number;
@@ -482,7 +487,15 @@ export default function AttendanceReceiptPage() {
                       <td className="px-3 py-2.5 text-muted">{r.shiftLabel}</td>
                       {data.flexible ? (
                         <>
-                          <td className="px-3 py-2.5 text-right tabular text-muted">{r.overtimeMinutes ? formatHoursMinutes(r.overtimeMinutes) : "—"}</td>
+                          <td className="px-3 py-2.5 text-right tabular text-muted">
+                            {r.holidayOvertimeMinutes ? (
+                              <span className="text-danger">{formatHoursMinutes(r.holidayOvertimeMinutes)} <span className="text-[10px]">libur</span></span>
+                            ) : r.overtimeMinutes ? (
+                              formatHoursMinutes(r.overtimeMinutes)
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td className="px-3 py-2.5 text-right tabular text-fg">{r.mealEligible ? rp(data.mealAllowance) : "—"}</td>
                           <td className="px-3 py-2.5 text-right tabular text-warning">{r.undertimeMinutes ? formatHoursMinutes(r.undertimeMinutes) : "—"}</td>
                         </>
@@ -521,6 +534,15 @@ export default function AttendanceReceiptPage() {
                     </span>
                     <span className="tabular font-medium text-fg">{rp(data.totals.overtimeAmount)}</span>
                   </div>
+                  {data.totals.holidayOvertimeMinutes > 0 && (
+                    <div className="flex items-center justify-between gap-3 border-b border-border py-1.5">
+                      <span className="text-danger">{data.labels.flexHoliday}</span>
+                      <span className="tabular text-xs text-subtle">
+                        {rp(Math.round(data.flexHolidayRatePerHour / 60))}/mnt × {data.totals.holidayOvertimeMinutes} mnt ({formatHoursMinutes(data.totals.holidayOvertimeMinutes)})
+                      </span>
+                      <span className="tabular font-medium text-fg">{rp(data.totals.holidayOvertimeAmount)}</span>
+                    </div>
+                  )}
                   <SubTotal label={data.labels.meal} rate={data.mealAllowance} qty={data.totals.mealCount} amount={data.totals.mealAmount} />
                   {data.totals.undertimeMinutes > 0 && (
                     <div className="flex items-center justify-between border-t border-border pt-2 text-warning">
