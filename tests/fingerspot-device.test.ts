@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { decodeRecords, toRawScans } from "@/lib/services/fingerspot/device";
+import { decodeRecords, toRawScans, decodeUserPins } from "@/lib/services/fingerspot/device";
 
 /** Bangun satu record general-log 48 byte sesuai format mesin Revo W-230N (ZDC2911). */
 function makeRecord(pin: string, y: number, mo: number, d: number, h: number, mi: number, s: number, action = 1): Buffer {
@@ -53,5 +53,24 @@ describe("decodeRecords", () => {
     const recs = decodeRecords(makeRecord("1001", 2026, 9, 16, 8, 5, 39));
     const raw = toRawScans(recs);
     expect(raw[0]).toEqual({ pin: "1001", scanAt: recs[0].scanAt });
+  });
+});
+
+/** Bangun satu record daftar-user 36 byte (PIN di 24 byte pertama, sisanya info sidik jari). */
+function makeUser(pin: string): Buffer {
+  const r = Buffer.alloc(36);
+  r.write(pin, 0, "latin1");
+  return r;
+}
+
+describe("decodeUserPins", () => {
+  test("ekstrak daftar PIN dari blok user", () => {
+    const buf = Buffer.concat(["1", "12", "27"].map(makeUser));
+    expect(decodeUserPins(buf)).toEqual(["1", "12", "27"]);
+  });
+
+  test("lewati record kosong & sisa byte tak genap", () => {
+    const buf = Buffer.concat([makeUser("6"), makeUser(""), makeUser("22"), Buffer.alloc(10)]);
+    expect(decodeUserPins(buf)).toEqual(["6", "22"]);
   });
 });

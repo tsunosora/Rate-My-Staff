@@ -5,6 +5,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Modal } from "@/components/ui/Modal";
 import {
   IconPlus,
+  IconDownload,
   IconSearch,
   IconPencil,
   IconTrash,
@@ -204,6 +205,29 @@ export default function EmployeesPage() {
     load();
   }
 
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
+
+  async function syncFromDevice() {
+    setSyncBusy(true);
+    setSyncMsg("");
+    try {
+      const res = await api<{ total: number; created: number; existing: number }>(
+        "/api/employees/device-sync",
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      setSyncMsg(
+        `${res.created} karyawan baru dibuat dari ${res.total} PIN di mesin (${res.existing} sudah ada). ` +
+          "Nama masih placeholder — silakan edit."
+      );
+      load();
+    } catch (e) {
+      setSyncMsg("Gagal: " + (e as Error).message);
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
   return (
@@ -213,10 +237,22 @@ export default function EmployeesPage() {
           <h1 className="font-display text-2xl font-bold text-fg">Direktori</h1>
           <p className="mt-0.5 text-sm text-muted">Kelola data karyawan &amp; PIN mesin.</p>
         </div>
-        <button onClick={openAdd} className="btn-primary h-10">
-          <IconPlus className="text-[17px]" /> Karyawan
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={syncFromDevice} disabled={syncBusy} className="btn-ghost h-10 disabled:opacity-60">
+            <IconDownload className="text-[17px]" /> {syncBusy ? "Sinkron…" : "Sinkron dari Mesin"}
+          </button>
+          <button onClick={openAdd} className="btn-primary h-10">
+            <IconPlus className="text-[17px]" /> Karyawan
+          </button>
+        </div>
       </div>
+
+      {syncMsg && (
+        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
+          <span className={syncMsg.startsWith("Gagal") ? "text-danger" : "text-fg"}>{syncMsg}</span>
+          <button onClick={() => setSyncMsg("")} className="btn-ghost shrink-0 px-3 py-1.5 text-xs">Tutup</button>
+        </div>
+      )}
 
       <div className="glass flex flex-wrap gap-3 rounded-2xl p-3">
         <label className="relative flex min-w-56 flex-1 items-center">

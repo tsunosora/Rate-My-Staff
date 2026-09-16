@@ -20,6 +20,7 @@ import net from "node:net";
 import type { RawScan } from "./mapper";
 
 const REC = 48;
+const UREC = 36; // ukuran record daftar user (enroll) — hanya PIN + info sidik jari, TANPA nama
 const CHUNK = 1024;
 const MARKER_CMD = [0x55, 0xaa];
 const MARKER_ACK = [0xaa, 0x55];
@@ -96,6 +97,90 @@ export function decodeRecords(all: Buffer): DeviceRecord[] {
 /** Ubah record device → bentuk RawScan yang dimengerti mapScanlogs. */
 export function toRawScans(records: DeviceRecord[]): RawScan[] {
   return records.map((r) => ({ pin: r.pin, scanAt: r.scanAt }));
+}
+
+/** Dekode blok daftar user (kelipatan 36 byte) → daftar PIN. Fungsi murni. */
+export function decodeUserPins(all: Buffer): string[] {
+  const out: string[] = [];
+  for (let i = 0; i + UREC <= all.length; i += UREC) {
+    const pin = all.toString("latin1", i, i + 24).replace(/\0+$/, "").trim();
+    if (pin) out.push(pin);
+  }
+  return out;
+}
+
+/**
+ * Tarik DAFTAR USER (PIN yang terdaftar) dari mesin.
+ * CATATAN: mesin Revo W-230N hanya menyimpan PIN + sidik jari, TIDAK menyimpan nama.
+ * Jadi hasilnya hanya daftar PIN — nama harus diisi di app / dari sumber lain.
+ */
+export function pullDeviceUsers(opts: PullOptions): Promise<{ pins: string[] }> {
+  const { ip, port = 5005, timeoutMs = 15000 } = opts;
+  return new Promise((resolve, reject) => {
+    const sock = net.connect(port, ip);
+    sock.setTimeout(timeoutMs);
+
+    let buf = Buffer.alloc(0);
+    let seq = 0;
+    let hi = 0;
+    let phase: "hs" | "countA" | "countB" | "read" | "done" = "hs";
+    let countA = 0;
+    let total = 0;
+    let off = 0;
+    let chunk = 0;
+    const hs = handshakePackets();
+    const data: Buffer[] = [];
+    let settled = false;
+
+    const finish = (fn: () => void) => { if (settled) return; settled = true; sock.end(); fn(); };
+    const fail = (msg: string) => finish(() => { sock.destroy(); reject(new Error(msg)); });
+
+    const sendHS = () => { seq++; const p = Buffer.from(hs[hi].packet); p.writeUInt16LE(seq & 0xffff, 14); hi++; sock.write(p); };
+    const sendCountA = () => { seq++; sock.write(cmd(0xb4, 2, 0xffff0000, 0, seq)); };
+    const sendCountB = () => { seq++; sock.write(cmd(0xb4, 1, (0xffff0000 | countA) >>> 0, 0, seq)); };
+    const sendRead = () => {
+      seq++;
+      const totalBytes = total * UREC;
+      chunk = Math.min(CHUNK, totalBytes - off);
+      const idx = Math.floor(off / CHUNK);
+      const p2 = idx === 0 ? totalBytes : (idx << 16) >>> 0;
+      sock.write(cmd(0x97, totalBytes, p2, chunk, seq));
+    };
+
+    sock.on("connect", () => sendHS());
+    sock.on("timeout", () => fail(`Timeout menghubungi mesin ${ip}:${port} (fase ${phase}).`));
+    sock.on("error", (e) => fail(`Tidak bisa terhubung ke mesin ${ip}:${port}: ${e.message}`));
+
+    sock.on("data", (d) => {
+      buf = Buffer.concat([buf, d]);
+      while (buf.length >= 10 && buf[0] === MARKER_ACK[0] && buf[1] === MARKER_ACK[1]) {
+        const status = buf.readUInt32LE(4);
+        const clen = phase === "hs" ? (hs[hi - 1]?.dataLen ?? 0) : phase === "read" ? chunk : 0;
+        const need = clen > 0 ? 10 + 2 + clen + 4 : 10;
+        if (buf.length < need) break;
+        if (clen > 0) {
+          if (buf[10] !== MARKER_CMD[0] || buf[11] !== MARKER_CMD[1]) return fail(`Bingkai data user tak valid (fase ${phase}).`);
+          if (phase === "read") { data.push(Buffer.from(buf.subarray(12, 12 + clen))); off += clen; }
+        }
+        buf = buf.subarray(need);
+
+        if (phase === "hs") { if (hi < hs.length) sendHS(); else { phase = "countA"; sendCountA(); } continue; }
+        if (phase === "countA") { countA = status; phase = "countB"; sendCountB(); continue; }
+        if (phase === "countB") {
+          total = countA + status;
+          if (total === 0) { phase = "done"; return finish(() => resolve({ pins: [] })); }
+          phase = "read";
+          sendRead();
+          continue;
+        }
+        if (phase === "read") {
+          if (off >= total * UREC) { phase = "done"; return finish(() => resolve({ pins: decodeUserPins(Buffer.concat(data)) })); }
+          sendRead();
+          continue;
+        }
+      }
+    });
+  });
 }
 
 /**
