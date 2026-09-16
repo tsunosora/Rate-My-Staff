@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
 
 // Next.js 16: konvensi "middleware" -> "proxy". Kita buat instance Auth.js
@@ -11,6 +12,14 @@ const { auth } = NextAuth(authConfig);
 // di dalam tiap route API (requireManager/requireAdmin).
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+
+  // Mesin Fingerspot mode Web mem-POST ke "/" dgn header request_code (protokol realtime).
+  // Alihkan ke penerima khusus sebelum cek auth (mesin tak bisa login).
+  if (req.method === "POST" && req.headers.get("request_code")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/api/fingerspot/realtime";
+    return NextResponse.rewrite(url);
+  }
 
   const isPublic =
     pathname.startsWith("/login") ||

@@ -68,6 +68,29 @@ export async function relabelDeviceScans(): Promise<number> {
 export type IngestResult = { mapped: number; synced: number; unmatched: string[] };
 
 /**
+ * Buat/perbarui karyawan dari data enroll mesin (PIN + nama). Nama placeholder
+ * "Karyawan <PIN>" ditimpa dgn nama asli; nama yg sudah diedit manual tidak disentuh.
+ */
+export async function upsertEmployeeFromDevice(pin: string, name?: string | null): Promise<"created" | "renamed" | "skipped"> {
+  const { randomUUID } = await import("node:crypto");
+  const { nextEmployeeCode } = await import("@/lib/services/employee-code");
+  const clean = (name ?? "").trim();
+  const placeholder = `Karyawan ${pin}`;
+  const emp = await prisma.employee.findUnique({ where: { machinePin: pin }, select: { id: true, fullName: true } });
+  if (emp) {
+    if (clean && emp.fullName === placeholder) {
+      await prisma.employee.update({ where: { id: emp.id }, data: { fullName: clean } });
+      return "renamed";
+    }
+    return "skipped";
+  }
+  const fullName = clean || placeholder;
+  const code = await nextEmployeeCode(prisma, fullName);
+  await prisma.employee.create({ data: { employeeCode: code, machinePin: pin, publicToken: randomUUID(), fullName } });
+  return "created";
+}
+
+/**
  * Petakan scanlog (PIN→karyawan via machinePin), simpan yang baru (dedup employee+waktu).
  * Dipakai bersama jalur PULL (direct-IP) & PUSH (ADMS /iclock). Label in/out sementara
  * dari mapper; penentuan final via relabelDeviceScans().
