@@ -7,12 +7,67 @@ export type DeviceSyncResult = {
   total: number;
   mapped: number;
   synced: number;
+  relabeled: number;
   unmatchedCount: number;
   unmatchedPins: string[];
 };
 
+const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
+
+/** Kunci hari kalender lokal untuk mengelompokkan scan per hari. */
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+export type ScanRow = { id: number; employeeId: number; scanDate: Date; scanType: string | null };
+
 /**
- * Tarik scanlog dari mesin (IP di setting) → petakan PIN→karyawan → simpan yang baru.
+ * Fungsi murni: tentukan label in/out per (karyawan, hari) berdasarkan urutan waktu —
+ * scan paling awal = "in", sisanya = "out". Kembalikan hanya baris yang labelnya
+ * berubah, sebagai { id, scanType }.
+ */
+export function computeInOutLabels(rows: ScanRow[]): { id: number; scanType: "in" | "out" }[] {
+  const groups = new Map<string, ScanRow[]>();
+  for (const r of rows) {
+    const key = `${r.employeeId}|${dayKey(r.scanDate)}`;
+    const arr = groups.get(key) ?? [];
+    arr.push(r);
+    groups.set(key, arr);
+  }
+  const changes: { id: number; scanType: "in" | "out" }[] = [];
+  for (const arr of groups.values()) {
+    arr.sort((a, b) => a.scanDate.getTime() - b.scanDate.getTime());
+    arr.forEach((r, i) => {
+      const want = i === 0 ? "in" : "out";
+      if (r.scanType !== want) changes.push({ id: r.id, scanType: want });
+    });
+  }
+  return changes;
+}
+
+/**
+ * Tentukan in/out berdasarkan URUTAN WAKTU per (karyawan, hari): scan paling awal
+ * = "in", sisanya = "out". Shift-agnostik (benar untuk shift pagi/siang/malam),
+ * menggantikan heuristik jam-12 yang salah untuk shift sore.
+ * Menyimpan koreksi ke DB untuk baris mesin yang labelnya berbeda. Idempoten.
+ * Mengembalikan jumlah baris yang labelnya diperbaiki.
+ */
+export async function relabelDeviceScans(): Promise<number> {
+  const rows = await prisma.attendance.findMany({
+    where: { machineName: { in: DEVICE_MACHINES } },
+    select: { id: true, employeeId: true, scanDate: true, scanType: true },
+  });
+
+  const changes = computeInOutLabels(rows);
+  for (const c of changes) {
+    await prisma.attendance.update({ where: { id: c.id }, data: { scanType: c.scanType } });
+  }
+  return changes.length;
+}
+
+/**
+ * Tarik scanlog dari mesin (IP di setting) → petakan PIN→karyawan → simpan yang baru,
+ * lalu tentukan in/out per hari berdasarkan urutan waktu (termasuk perbaiki data lama).
  * Dipakai oleh route manual (/api/attendance/device) & cron (/api/fingerspot/cron-pull).
  * Melempar Error bila IP belum diatur atau mesin tak terjangkau.
  */
@@ -29,6 +84,8 @@ export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
   });
   const codeToId = Object.fromEntries(employees.map((e) => [e.machinePin as string, e.id]));
 
+  // mapScanlogs dipakai utk mapping PIN→karyawan + dedup; label scanType-nya diabaikan,
+  // ditentukan ulang per-hari oleh relabelDeviceScans() di bawah.
   const { mapped, unmatched } = mapScanlogs(toRawScans(records), { codeToId });
   const sn = (await getSetting("fingerspot_sn")) || null;
 
@@ -43,7 +100,7 @@ export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
       data: {
         employeeId: m.employeeId,
         scanDate: m.scanDate,
-        scanType: m.scanType,
+        scanType: m.scanType, // sementara; diperbaiki oleh relabel
         status: "on_time",
         machineName: "fingerspot-ip",
         snMachine: sn,
@@ -52,11 +109,14 @@ export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
     synced++;
   }
 
+  const relabeled = await relabelDeviceScans();
+
   const unmatchedPins = Array.from(new Set(unmatched));
   return {
     total: count,
     mapped: mapped.length,
     synced,
+    relabeled,
     unmatchedCount: unmatchedPins.length,
     unmatchedPins: unmatchedPins.slice(0, 50),
   };
