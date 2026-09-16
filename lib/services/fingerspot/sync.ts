@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
-import { mapScanlogs } from "./mapper";
+import { mapScanlogs, type RawScan } from "./mapper";
 import { pullDeviceLogs, toRawScans } from "./device";
 
 export type DeviceSyncResult = {
@@ -65,29 +65,24 @@ export async function relabelDeviceScans(): Promise<number> {
   return changes.length;
 }
 
+export type IngestResult = { mapped: number; synced: number; unmatched: string[] };
+
 /**
- * Tarik scanlog dari mesin (IP di setting) → petakan PIN→karyawan → simpan yang baru,
- * lalu tentukan in/out per hari berdasarkan urutan waktu (termasuk perbaiki data lama).
- * Dipakai oleh route manual (/api/attendance/device) & cron (/api/fingerspot/cron-pull).
- * Melempar Error bila IP belum diatur atau mesin tak terjangkau.
+ * Petakan scanlog (PIN→karyawan via machinePin), simpan yang baru (dedup employee+waktu).
+ * Dipakai bersama jalur PULL (direct-IP) & PUSH (ADMS /iclock). Label in/out sementara
+ * dari mapper; penentuan final via relabelDeviceScans().
  */
-export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
-  const ip = (await getSetting("fp_device_ip"))?.trim();
-  const port = Number(await getSetting("fp_device_port")) || 5005;
-  if (!ip) throw new Error("IP mesin belum diatur di Pengaturan.");
-
-  const { count, records } = await pullDeviceLogs({ ip, port });
-
+export async function ingestScans(
+  raws: RawScan[],
+  opts: { machineName: string; snMachine?: string | null }
+): Promise<IngestResult> {
   const employees = await prisma.employee.findMany({
     where: { deletedAt: null, machinePin: { not: null } },
     select: { id: true, machinePin: true },
   });
   const codeToId = Object.fromEntries(employees.map((e) => [e.machinePin as string, e.id]));
 
-  // mapScanlogs dipakai utk mapping PIN→karyawan + dedup; label scanType-nya diabaikan,
-  // ditentukan ulang per-hari oleh relabelDeviceScans() di bawah.
-  const { mapped, unmatched } = mapScanlogs(toRawScans(records), { codeToId });
-  const sn = (await getSetting("fingerspot_sn")) || null;
+  const { mapped, unmatched } = mapScanlogs(raws, { codeToId });
 
   let synced = 0;
   for (const m of mapped) {
@@ -100,21 +95,43 @@ export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
       data: {
         employeeId: m.employeeId,
         scanDate: m.scanDate,
-        scanType: m.scanType, // sementara; diperbaiki oleh relabel
+        scanType: m.scanType,
         status: "on_time",
-        machineName: "fingerspot-ip",
-        snMachine: sn,
+        machineName: opts.machineName,
+        snMachine: opts.snMachine ?? null,
       },
     });
     synced++;
   }
+  return { mapped: mapped.length, synced, unmatched };
+}
+
+/**
+ * Tarik scanlog dari mesin (IP di setting) → petakan PIN→karyawan → simpan yang baru,
+ * lalu tentukan in/out per hari berdasarkan urutan waktu (termasuk perbaiki data lama).
+ * Dipakai oleh route manual (/api/attendance/device) & cron (/api/fingerspot/cron-pull).
+ * Melempar Error bila IP belum diatur atau mesin tak terjangkau.
+ */
+export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
+  const ip = (await getSetting("fp_device_ip"))?.trim();
+  const port = Number(await getSetting("fp_device_port")) || 5005;
+  if (!ip) throw new Error("IP mesin belum diatur di Pengaturan.");
+
+  const { count, records } = await pullDeviceLogs({ ip, port });
+  const sn = (await getSetting("fingerspot_sn")) || null;
+
+  // Label scanType dari mapper diabaikan; ditentukan ulang per-hari oleh relabel di bawah.
+  const { mapped, synced, unmatched } = await ingestScans(toRawScans(records), {
+    machineName: "fingerspot-ip",
+    snMachine: sn,
+  });
 
   const relabeled = await relabelDeviceScans();
 
   const unmatchedPins = Array.from(new Set(unmatched));
   return {
     total: count,
-    mapped: mapped.length,
+    mapped,
     synced,
     relabeled,
     unmatchedCount: unmatchedPins.length,

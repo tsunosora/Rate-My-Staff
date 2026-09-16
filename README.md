@@ -112,3 +112,35 @@ Logika ini dipakai konsisten di import scanlog, input manual, dan laporan absens
 
 Produksi berjalan di homelab via PM2 + Cloudflare Tunnel (`absensi.volikoprint.com`).
 Update: `git pull && npm ci && npx prisma migrate deploy && npm run build && pm2 restart ratemystaff`
+
+## Tarik absensi saat aplikasi online (mode Web / push mesin)
+
+Kalau RateMyStaff dihosting online (VPS), server **tidak bisa** menjangkau IP privat
+mesin di LAN kantor, jadi "Tarik dari Mesin" (mode Ethernet, port 5005) tak berlaku.
+Gunakan **mode Web**: mesin yang menelepon keluar & mendorong (push) data scan ke server.
+Mesin memulai koneksi dari kantor ke internet, jadi tak butuh akses masuk ke LAN.
+
+**Penerima push** sudah tersedia: `POST /iclock/cdata` (protokol ADMS Fingerspot/ZK),
+publik (di-whitelist proxy, mesin tak perlu login). Scan dipetakan via **`machinePin`**,
+di-dedup, lalu in/out ditentukan per hari berdasarkan urutan waktu (sama seperti jalur
+direct-IP; benar untuk shift sore).
+
+**Langkah:**
+1. **Sinkron karyawan dulu** (atau isi `machinePin` tiap karyawan) agar PIN mesin cocok.
+2. **VPS:** arahkan domain (mis. `absensi.domainku.com`) ke app (`next start -p 3007`)
+   lewat reverse-proxy (Nginx/Caddy). Path `/iclock/*` harus bisa dijangkau publik.
+3. **Mesin (menu Koneksi → Web/Server):** isi alamat server = domain kamu, port sesuai
+   reverse-proxy, dan SN mesin. Firmware otomatis memakai path `/iclock/`.
+
+> **Penting soal HTTPS:** banyak firmware Revo/ZK mode ADMS hanya bicara **HTTP polos**
+> (bukan TLS). Jadi walau UI RateMyStaff pakai HTTPS, sediakan juga jalur **HTTP** untuk
+> `/iclock/*` (mis. Nginx dengarkan `:80` untuk path `/iclock` dan teruskan ke app), atau
+> arahkan mesin ke `http://domain:port`. Uji dulu apakah firmware mesinmu mendukung HTTPS.
+
+**Verifikasi tanpa mesin** (simulasi push):
+```bash
+curl "https://absensi.domainku.com/iclock/cdata?SN=SN01&options=all"   # handshake
+printf '6\t2026-09-17 13:10:00\t0\t1\n' | \
+  curl -X POST "https://absensi.domainku.com/iclock/cdata?SN=SN01&table=ATTLOG" --data-binary @-
+```
+Scan akan muncul di **Laporan Absensi** untuk karyawan ber-`machinePin` 6.

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { parseAttlog, handshakeResponse } from "@/lib/services/fingerspot/adms";
-import { mapScanlogs } from "@/lib/services/fingerspot/mapper";
+import { ingestScans, relabelDeviceScans } from "@/lib/services/fingerspot/sync";
 
 const textPlain = { "Content-Type": "text/plain" };
 
@@ -36,32 +36,13 @@ export async function POST(req: Request) {
   if (table.toUpperCase() === "ATTLOG") {
     const records = parseAttlog(body);
     if (records.length > 0) {
-      const employees = await prisma.employee.findMany({
-        where: { deletedAt: null },
-        select: { id: true, employeeCode: true },
-      });
-      const codeToId = Object.fromEntries(employees.map((e) => [e.employeeCode, e.id]));
-      const { mapped } = mapScanlogs(
+      // Mapping via machinePin + dedup (logika bersama dgn jalur direct-IP),
+      // lalu tentukan in/out per hari (benar utk shift sore).
+      await ingestScans(
         records.map((r) => ({ pin: r.pin, scanAt: r.time.replace(" ", "T") })),
-        { codeToId }
+        { machineName: "fingerspot", snMachine: sn }
       );
-      for (const m of mapped) {
-        const exists = await prisma.attendance.findFirst({
-          where: { employeeId: m.employeeId, scanDate: m.scanDate },
-          select: { id: true },
-        });
-        if (exists) continue;
-        await prisma.attendance.create({
-          data: {
-            employeeId: m.employeeId,
-            scanDate: m.scanDate,
-            scanType: m.scanType,
-            status: "on_time",
-            machineName: "fingerspot",
-            snMachine: sn,
-          },
-        });
-      }
+      await relabelDeviceScans();
     }
   }
 
