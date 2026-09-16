@@ -212,13 +212,12 @@ export default function EmployeesPage() {
     setSyncBusy(true);
     setSyncMsg("");
     try {
-      const res = await api<{ total: number; created: number; existing: number }>(
+      const res = await api<{ total: number; created: number; renamed: number; existing: number }>(
         "/api/employees/device-sync",
         { method: "POST", body: JSON.stringify({}) }
       );
       setSyncMsg(
-        `${res.created} karyawan baru dibuat dari ${res.total} PIN di mesin (${res.existing} sudah ada). ` +
-          "Nama masih placeholder — silakan edit."
+        `Dari ${res.total} user di mesin: ${res.created} karyawan baru, ${res.renamed} nama diperbarui.`
       );
       load();
     } catch (e) {
