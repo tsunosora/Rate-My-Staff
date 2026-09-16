@@ -74,6 +74,8 @@ export default function AttendanceReportPage() {
   const [editForm, setEditForm] = useState({ clockIn: "", clockOut: "" });
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [deviceMsg, setDeviceMsg] = useState("");
 
   const reqId = useRef(0);
   const load = useCallback(async () => {
@@ -110,6 +112,26 @@ export default function AttendanceReportPage() {
     if (sd) setStartDate(sd);
     if (ed) setEndDate(ed);
   }, []);
+
+  async function pullFromDevice() {
+    setDeviceBusy(true);
+    setDeviceMsg("");
+    try {
+      const res = await api<{ synced: number; total: number; unmatchedCount: number }>(
+        "/api/attendance/device",
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      setDeviceMsg(
+        `Tersimpan ${res.synced} scan baru dari ${res.total} record mesin` +
+          (res.unmatchedCount ? ` · ${res.unmatchedCount} PIN tak dikenal` : "")
+      );
+      await load();
+    } catch (e) {
+      setDeviceMsg("Gagal: " + (e as Error).message);
+    } finally {
+      setDeviceBusy(false);
+    }
+  }
 
   const exportUrl = (() => {
     const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
@@ -160,10 +182,22 @@ export default function AttendanceReportPage() {
           <h1 className="font-display text-2xl font-bold text-fg">Laporan Absensi</h1>
           <p className="mt-0.5 text-sm text-muted">Rekap kehadiran per bulan atau rentang tanggal.</p>
         </div>
-        <a href={exportUrl} className="btn-ghost h-10">
-          <IconDownload className="text-[17px]" /> Export Excel
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={pullFromDevice} disabled={deviceBusy} className="btn-ghost h-10 disabled:opacity-60">
+            <IconDownload className="text-[17px]" /> {deviceBusy ? "Menarik…" : "Tarik dari Mesin"}
+          </button>
+          <a href={exportUrl} className="btn-ghost h-10">
+            <IconDownload className="text-[17px]" /> Export Excel
+          </a>
+        </div>
       </div>
+
+      {deviceMsg && (
+        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
+          <span className={deviceMsg.startsWith("Gagal") ? "text-danger" : "text-fg"}>{deviceMsg}</span>
+          <button onClick={() => setDeviceMsg("")} className="btn-ghost shrink-0 px-3 py-1.5 text-xs">Tutup</button>
+        </div>
+      )}
 
       <div className="glass flex flex-wrap items-end gap-3 rounded-2xl p-4 text-sm">
         <label className="space-y-1.5">
