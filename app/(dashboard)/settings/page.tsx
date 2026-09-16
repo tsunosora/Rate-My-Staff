@@ -286,6 +286,17 @@ export default function SettingsPage() {
                 />
               </label>
             </div>
+            <label className="flex items-center gap-2 text-muted">
+              <input
+                type="checkbox"
+                className="accent-[color:var(--primary)]"
+                checked={settings.fp_device_auto === "true"}
+                onChange={(e) =>
+                  setSettings({ ...settings, fp_device_auto: e.target.checked ? "true" : "false" })
+                }
+              />
+              Tarik absensi otomatis tiap 15 menit
+            </label>
             <div className="flex items-center gap-2">
               <button onClick={saveSettings} className="btn-primary">
                 Simpan pengaturan
