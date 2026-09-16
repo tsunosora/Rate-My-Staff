@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
-  // Repo ini punya dua lockfile (Laravel lama di root + web-next). Kunci root
-  // workspace ke folder ini supaya Turbopack tidak salah infer root.
+  // Kunci root workspace Turbopack ke folder ini supaya tidak salah infer root
+  // bila ada lockfile lain di folder induk.
   turbopack: {
     root: path.join(__dirname),
   },
