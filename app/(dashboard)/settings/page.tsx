@@ -19,6 +19,8 @@ export default function SettingsPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [msg, setMsg] = useState("");
+  const [deviceTesting, setDeviceTesting] = useState(false);
+  const [deviceTest, setDeviceTest] = useState("");
 
   const [newDept, setNewDept] = useState("");
   const [newPos, setNewPos] = useState("");
@@ -96,6 +98,24 @@ export default function SettingsPage() {
     setSettings(updated);
     setMsg("Pengaturan tersimpan.");
     setTimeout(() => setMsg(""), 2500);
+  }
+
+  async function testDevice() {
+    setDeviceTesting(true);
+    setDeviceTest("");
+    try {
+      // Simpan dulu supaya IP/port terbaru dipakai server.
+      await api("/api/settings", { method: "PUT", body: JSON.stringify(settings) });
+      const res = await api<{ count: number; message: string }>("/api/attendance/device", {
+        method: "POST",
+        body: JSON.stringify({ test: true }),
+      });
+      setDeviceTest(res.message);
+    } catch (e) {
+      setDeviceTest("Gagal: " + (e as Error).message);
+    } finally {
+      setDeviceTesting(false);
+    }
   }
 
   return (
@@ -246,9 +266,37 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, fingerspot_sn: e.target.value })}
               />
             </label>
-            <button onClick={saveSettings} className="btn-primary">
-              Simpan pengaturan
-            </button>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="col-span-2 space-y-1">
+                <span className="text-muted">IP Mesin (tarik langsung)</span>
+                <input
+                  className="input"
+                  placeholder="192.168.1.160"
+                  value={settings.fp_device_ip ?? ""}
+                  onChange={(e) => setSettings({ ...settings, fp_device_ip: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">Port</span>
+                <input
+                  className="input"
+                  placeholder="5005"
+                  value={settings.fp_device_port ?? ""}
+                  onChange={(e) => setSettings({ ...settings, fp_device_port: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={saveSettings} className="btn-primary">
+                Simpan pengaturan
+              </button>
+              <button onClick={testDevice} disabled={deviceTesting} className="btn-ghost disabled:opacity-60">
+                {deviceTesting ? "Menguji…" : "Uji Koneksi Mesin"}
+              </button>
+            </div>
+            {deviceTest && (
+              <p className={deviceTest.startsWith("Gagal") ? "text-danger" : "text-primary"}>{deviceTest}</p>
+            )}
           </div>
         </Card>
 

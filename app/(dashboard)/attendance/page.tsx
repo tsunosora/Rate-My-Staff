@@ -8,6 +8,7 @@ import { keyIncompleteRows, type KeyedIncompleteRow } from "@/lib/services/atten
 import {
   IconPlus,
   IconUpload,
+  IconDownload,
   IconLink,
   IconCopy,
   IconAlert,
@@ -69,6 +70,8 @@ export default function AttendancePage() {
   const [importBusy, setImportBusy] = useState(false);
   const [importError, setImportError] = useState("");
   const [overwriteConflicts, setOverwriteConflicts] = useState(false);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [deviceMsg, setDeviceMsg] = useState("");
   const [incomplete, setIncomplete] = useState<IncompleteRow[]>([]);
   const [completeList, setCompleteList] = useState<KeyedIncompleteRow<IncompleteRow>[]>([]);
   const [incompleteOpen, setIncompleteOpen] = useState(false);
@@ -251,6 +254,26 @@ export default function AttendancePage() {
     }
   }
 
+  async function pullFromDevice() {
+    setDeviceBusy(true);
+    setDeviceMsg("");
+    try {
+      const res = await api<{ synced: number; total: number; mapped: number; unmatchedCount: number }>(
+        "/api/attendance/device",
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      setDeviceMsg(
+        `Tersimpan ${res.synced} baru dari ${res.total} record mesin` +
+          (res.unmatchedCount ? ` · ${res.unmatchedCount} PIN tak dikenal` : "")
+      );
+      await load();
+    } catch (e) {
+      setDeviceMsg("Gagal: " + (e as Error).message);
+    } finally {
+      setDeviceBusy(false);
+    }
+  }
+
   function closeImport() {
     setImportOpen(false);
     setImportFile(null);
@@ -280,6 +303,9 @@ export default function AttendancePage() {
           <button onClick={shareLeaveLink} className="btn-ghost h-10">
             <IconLink className="text-[17px]" /> Link Izin
           </button>
+          <button onClick={pullFromDevice} disabled={deviceBusy} className="btn-ghost h-10 disabled:opacity-60">
+            <IconDownload className="text-[17px]" /> {deviceBusy ? "Menarik…" : "Tarik dari Mesin"}
+          </button>
           <button onClick={() => setImportOpen(true)} className="btn-ghost h-10">
             <IconUpload className="text-[17px]" /> Import Scanlog
           </button>
@@ -291,6 +317,13 @@ export default function AttendancePage() {
           </button>
         </div>
       </div>
+
+      {deviceMsg && (
+        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
+          <span className={deviceMsg.startsWith("Gagal") ? "text-danger" : "text-fg"}>{deviceMsg}</span>
+          <button onClick={() => setDeviceMsg("")} className="btn-ghost shrink-0 px-3 py-1.5 text-xs">Tutup</button>
+        </div>
+      )}
 
       {leaveUrl && (
         <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
