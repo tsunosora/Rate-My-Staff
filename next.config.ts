@@ -9,6 +9,20 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingRoot: path.join(__dirname),
 
+  // Mesin Fingerspot (mode Web) mem-POST ke "/" dgn header request_code.
+  // Rewrite INTERNAL ke penerima realtime (berlaku semua method, tak loop keluar).
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/:path*",
+          has: [{ type: "header", key: "request_code" }],
+          destination: "/api/fingerspot/realtime",
+        },
+      ],
+    };
+  },
+
   // Header keamanan + larangan indeks untuk SEMUA respons (halaman & API).
   async headers() {
     return [

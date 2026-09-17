@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
 
 // Next.js 16: konvensi "middleware" -> "proxy". Kita buat instance Auth.js
@@ -14,11 +13,11 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Mesin Fingerspot mode Web mem-POST ke "/" dgn header request_code (protokol realtime).
-  // Alihkan ke penerima khusus sebelum cek auth (mesin tak bisa login).
+  // Diarahkan ke /api/fingerspot/realtime lewat rewrite INTERNAL di next.config.ts
+  // (bukan rewrite di middleware — itu memakai host publik & menyebabkan loop lewat
+  // Cloudflare → error 1000). Di sini cukup biarkan lolos (jangan redirect ke login).
   if (req.method === "POST" && req.headers.get("request_code")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/api/fingerspot/realtime";
-    return NextResponse.rewrite(url);
+    return;
   }
 
   const isPublic =
