@@ -10,6 +10,8 @@ export const GET = route(async () => {
     orderBy: { name: "asc" },
     include: { _count: { select: { enrollments: true, attendances: true } } },
   });
+  const ONLINE_MS = 10 * 60 * 1000; // terhubung bila terlihat < 10 menit lalu
+  const now = Date.now();
   return json(
     machines.map((m) => ({
       id: m.id,
@@ -18,7 +20,10 @@ export const GET = route(async () => {
       mode: m.mode,
       ip: m.ip,
       port: m.port,
+      autoPull: m.autoPull,
+      pullIntervalMinutes: m.pullIntervalMinutes,
       lastSeenAt: m.lastSeenAt,
+      online: m.lastSeenAt ? now - m.lastSeenAt.getTime() < ONLINE_MS : false,
       employees: m._count.enrollments,
       attendances: m._count.attendances,
     }))

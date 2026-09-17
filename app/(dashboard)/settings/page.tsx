@@ -7,7 +7,7 @@ import { IconTrash } from "@/components/ui/icons";
 type Dept = { id: number; name: string; _count?: { employees: number } };
 type Pos = { id: number; name: string; department?: { name: string } | null };
 type Holiday = { id: number; date: string; name: string };
-type Machine = { id: number; sn: string; name: string; mode: string; ip: string | null; port: number | null; lastSeenAt: string | null; employees: number; attendances: number };
+type Machine = { id: number; sn: string; name: string; mode: string; ip: string | null; port: number | null; autoPull: boolean; pullIntervalMinutes: number; online: boolean; lastSeenAt: string | null; employees: number; attendances: number };
 type Settings = Record<string, string | null>;
 
 function softChip(c: string): React.CSSProperties {
@@ -86,6 +86,20 @@ export default function SettingsPage() {
     } catch (e) {
       setMachineMsg("Gagal: " + (e as Error).message);
     }
+  }
+  async function testMachine(id: number) {
+    setMachineMsg("Menguji koneksi…");
+    try {
+      const r = await api<{ message: string }>(`/api/machines/${id}/pull`, { method: "POST", body: JSON.stringify({ test: true }) });
+      setMachineMsg(r.message);
+      loadAll();
+    } catch (e) {
+      setMachineMsg("Gagal: " + (e as Error).message);
+    }
+  }
+  async function patchMachine(id: number, data: Record<string, unknown>) {
+    await api(`/api/machines/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+    loadAll();
   }
   useEffect(() => {
     loadAll();
@@ -409,7 +423,7 @@ export default function SettingsPage() {
           ) : (
             <ul className="divide-y divide-border text-sm">
               {machines.map((m) => (
-                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} />
+                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} onTest={testMachine} onPatch={patchMachine} />
               ))}
             </ul>
           )}
@@ -658,35 +672,59 @@ function DeleteLink({ onClick }: { onClick: () => void }) {
 }
 
 function MachineRow({
-  machine, onRename, onDelete, onPull,
+  machine, onRename, onDelete, onPull, onTest, onPatch,
 }: {
   machine: Machine;
   onRename: (id: number, name: string) => void;
   onDelete: (id: number) => void;
   onPull: (id: number, users: boolean) => void;
+  onTest: (id: number) => void;
+  onPatch: (id: number, data: Record<string, unknown>) => void;
 }) {
   const [name, setName] = useState(machine.name);
+  const [interval, setIntervalMin] = useState(String(machine.pullIntervalMinutes));
   const dirty = name.trim() !== machine.name && name.trim() !== "";
-  const lastSeen = machine.lastSeenAt ? new Date(machine.lastSeenAt).toLocaleString("id-ID") : "—";
-  const badge = machine.mode === "lan"
+  const lastSeen = machine.lastSeenAt ? new Date(machine.lastSeenAt).toLocaleString("id-ID") : "belum pernah";
+  const modeBadge = machine.mode === "lan"
     ? { label: `LAN ${machine.ip ?? ""}:${machine.port ?? 5005}`, c: "var(--warning)" }
     : { label: "Cloud", c: "var(--primary)" };
+  const status = machine.online
+    ? { label: "● Terhubung", c: "var(--success)" }
+    : { label: "● Tidak terhubung", c: "var(--danger)" };
   return (
-    <li className="space-y-1 py-2">
+    <li className="space-y-1.5 py-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <input className="input h-9 w-40" value={name} onChange={(e) => setName(e.target.value)} />
         <button onClick={() => onRename(machine.id, name.trim())} disabled={!dirty} className="btn-ghost h-9 px-3 text-xs disabled:opacity-40">Simpan</button>
-        <span className="rounded-md px-2 py-0.5 text-[11px]" style={softChip(badge.c)}>{badge.label}</span>
-        {machine.mode === "lan" && (
-          <>
-            <button onClick={() => onPull(machine.id, false)} className="btn-ghost h-9 px-2.5 text-xs">Tarik Absensi</button>
-            <button onClick={() => onPull(machine.id, true)} className="btn-ghost h-9 px-2.5 text-xs">Sinkron Karyawan</button>
-          </>
-        )}
+        <span className="rounded-md px-2 py-0.5 text-[11px] font-medium" style={softChip(status.c)}>{status.label}</span>
+        <span className="rounded-md px-2 py-0.5 text-[11px]" style={softChip(modeBadge.c)}>{modeBadge.label}</span>
         <button onClick={() => onDelete(machine.id)} className="btn-ghost h-9 px-2.5 text-xs text-danger">Hapus</button>
       </div>
-      <span className="text-xs text-subtle">
-        SN {machine.sn} · {machine.employees} karyawan · {machine.attendances} absensi · terakhir: {lastSeen}
+      {machine.mode === "lan" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => onTest(machine.id)} className="btn-ghost h-8 px-2.5 text-xs">Test Koneksi</button>
+          <button onClick={() => onPull(machine.id, false)} className="btn-ghost h-8 px-2.5 text-xs">Tarik Absensi</button>
+          <button onClick={() => onPull(machine.id, true)} className="btn-ghost h-8 px-2.5 text-xs">Sinkron Karyawan</button>
+          <label className="flex items-center gap-1.5 text-xs text-muted">
+            <input
+              type="checkbox"
+              className="accent-[color:var(--primary)]"
+              checked={machine.autoPull}
+              onChange={(e) => onPatch(machine.id, { autoPull: e.target.checked })}
+            />
+            Tarik otomatis tiap
+          </label>
+          <input
+            className="input h-8 w-16 text-xs"
+            value={interval}
+            onChange={(e) => setIntervalMin(e.target.value.replace(/\D/g, ""))}
+            onBlur={() => { const n = Number(interval) || 15; if (n !== machine.pullIntervalMinutes) onPatch(machine.id, { pullIntervalMinutes: n }); }}
+          />
+          <span className="text-xs text-muted">menit</span>
+        </div>
+      )}
+      <span className="block text-xs text-subtle">
+        SN {machine.sn} · {machine.employees} karyawan · {machine.attendances} absensi · terakhir aktif: {lastSeen}
       </span>
     </li>
   );

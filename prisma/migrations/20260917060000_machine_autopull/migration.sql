@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `Machine` ADD COLUMN `autoPull` BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE `Machine` ADD COLUMN `pullIntervalMinutes` INTEGER NOT NULL DEFAULT 15;

@@ -127,6 +127,8 @@ model Machine {
   mode       String    @default("cloud") @db.VarChar(20) // "cloud" (push) | "lan" (tarik IP)
   ip         String?   @db.VarChar(64)
   port       Int?
+  autoPull            Boolean @default(false) // mode LAN: tarik otomatis terjadwal
+  pullIntervalMinutes Int     @default(15)
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

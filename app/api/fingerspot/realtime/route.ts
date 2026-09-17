@@ -37,21 +37,21 @@ export async function POST(req: Request) {
       },
     });
 
-    if (requestCode === "realtime_glog") {
+    // Sentuh lastSeenAt di SETIAP kontak (termasuk polling receive_cmd) + auto-daftar
+    // mesin → status "terhubung" akurat.
+    const machine = devId ? await resolveMachine(devId) : null;
+
+    if (machine && requestCode === "realtime_glog") {
       const pin = String(data.user_id ?? "").trim();
       const scanAt = parseIoTime(data.io_time);
       if (pin && scanAt) {
-        const machine = await resolveMachine(devId);
         await ingestScansForMachine(machine.id, machine.sn, [{ pin, scanAt }]);
         await relabelDeviceScans();
       }
-    } else if (requestCode === "realtime_enroll_data") {
+    } else if (machine && requestCode === "realtime_enroll_data") {
       const pin = String(data.user_id ?? "").trim();
       const name = (data.user_name as string | undefined) ?? null;
-      if (pin) {
-        const machine = await resolveMachine(devId);
-        await upsertEnrollment(machine.id, pin, name);
-      }
+      if (pin) await upsertEnrollment(machine.id, pin, name);
     }
     // receive_cmd / send_cmd_result / lainnya: cukup di-ack (belum ada antrean perintah).
   } catch (e) {

@@ -8,6 +8,8 @@ const patchSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   ip: z.string().trim().max(64).nullable().optional(),
   port: z.coerce.number().int().min(1).max(65535).nullable().optional(),
+  autoPull: z.boolean().optional(),
+  pullIntervalMinutes: z.coerce.number().int().min(1).max(1440).optional(),
 });
 
 /** Ubah nama (label cabang) / IP / port mesin. */
