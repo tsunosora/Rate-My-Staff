@@ -19,6 +19,10 @@ export const GET = route(async (req: Request) => {
   const dateStr = sp.get("date") ?? new Date().toISOString().slice(0, 10);
   const start = new Date(`${dateStr}T00:00:00`);
   const end = new Date(start.getTime() + 86400000);
+  // Hari yang dicek = hari ini (lokal)? Kalau iya, orang yang baru scan masuk &
+  // belum pulang BUKAN "tidak komplit" — harinya masih berjalan (belum waktunya pulang).
+  const now = new Date();
+  const isToday = dateStr === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const scans = await prisma.attendance.findMany({
     where: { scanDate: { gte: start, lt: end } },
@@ -45,6 +49,8 @@ export const GET = route(async (req: Request) => {
     if (!hasIn && !hasOut) continue; // tak ada scan berwaktu
 
     const missing: "in" | "out" = hasIn ? "out" : "in";
+    // Hari ini + baru masuk (belum pulang) → belum waktunya, jangan ditandai.
+    if (isToday && missing === "out") continue;
     const inMin = hasIn ? minOfDay(ins[0].scanDate) : null;
     const outMin = hasOut ? minOfDay(outs[outs.length - 1].scanDate) : null;
     const shift = computeShift(inMin, outMin, cfg).shift;
