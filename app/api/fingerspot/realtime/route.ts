@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { extractJson, parseIoTime } from "@/lib/services/fingerspot/realtime";
 import { resolveMachine, ingestScansForMachine, relabelDeviceScans, upsertEnrollment } from "@/lib/services/fingerspot/sync";
+import { dequeueCommandForDevice, frameCommandBody } from "@/lib/services/fingerspot/command-queue";
 
 /**
  * PENERIMA PROTOKOL REALTIME FINGERSPOT (mode Web mesin Revo).
@@ -53,10 +54,27 @@ export async function POST(req: Request) {
       const name = (data.user_name as string | undefined) ?? null;
       if (pin) await upsertEnrollment(machine.id, pin, name);
     }
-    // receive_cmd / send_cmd_result / lainnya: cukup di-ack (belum ada antrean perintah).
+    // send_cmd_result / lainnya: hasil eksekusi perintah sudah tercatat di FingerspotRawLog.
   } catch (e) {
     console.error("[realtime] gagal proses:", (e as Error).message);
     // Tetap balas OK agar mesin tak retry-storm; data mentah sudah tersimpan utk audit.
+  }
+
+  // Mesin polling perintah: bila ada perintah pending utk SN ini, kirim (response_code CMD).
+  // INERT bila antrian kosong/tak ada → balas OK biasa (perilaku lama tak berubah).
+  if (requestCode === "receive_cmd" && devId) {
+    const cmd = dequeueCommandForDevice(devId);
+    if (cmd) {
+      return new Response(new Uint8Array(frameCommandBody(cmd.body)), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "response_code": "CMD",
+          "cmd_code": cmd.cmdCode,
+          "trans_id": cmd.id,
+        },
+      });
+    }
   }
 
   return ack(transId);
