@@ -124,6 +124,9 @@ model Machine {
   id         Int       @id @default(autoincrement())
   sn         String    @unique @db.VarChar(100)
   name       String    @db.VarChar(100)
+  mode       String    @default("cloud") @db.VarChar(20) // "cloud" (push) | "lan" (tarik IP)
+  ip         String?   @db.VarChar(64)
+  port       Int?
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

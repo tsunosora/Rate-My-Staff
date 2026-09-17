@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
-import { pullDeviceLogs, toRawScans } from "./device";
+import { pullDeviceLogs, pullDeviceUsers, toRawScans } from "./device";
 import type { RawScan } from "./mapper";
 
 const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
@@ -174,4 +174,46 @@ export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
     unmatchedCount: unmatchedPins.length,
     unmatchedPins: unmatchedPins.slice(0, 50),
   };
+}
+
+/** Tarik absensi dari sebuah mesin mode LAN (pakai IP/port mesin itu). */
+export async function syncMachinePull(machineId: number): Promise<DeviceSyncResult> {
+  const machine = await prisma.machine.findUnique({ where: { id: machineId } });
+  if (!machine) throw new Error("Mesin tidak ditemukan.");
+  if (machine.mode !== "lan" || !machine.ip) throw new Error("Mesin ini bukan mode LAN atau IP belum diatur.");
+  const port = machine.port || 5005;
+
+  const { count, records } = await pullDeviceLogs({ ip: machine.ip, port });
+  const { synced, unmatched } = await ingestScansForMachine(machine.id, machine.sn, toRawScans(records));
+  const relabeled = await relabelDeviceScans();
+  await prisma.machine.update({ where: { id: machine.id }, data: { lastSeenAt: new Date() } });
+
+  const unmatchedPins = Array.from(new Set(unmatched));
+  return {
+    machineName: machine.name,
+    total: count,
+    synced,
+    relabeled,
+    unmatchedCount: unmatchedPins.length,
+    unmatchedPins: unmatchedPins.slice(0, 50),
+  };
+}
+
+/** Sinkron karyawan (PIN + nama) dari sebuah mesin mode LAN → enrollment mesin itu. */
+export async function syncMachineUsers(machineId: number): Promise<{ machineName: string; total: number; created: number; renamed: number }> {
+  const machine = await prisma.machine.findUnique({ where: { id: machineId } });
+  if (!machine) throw new Error("Mesin tidak ditemukan.");
+  if (machine.mode !== "lan" || !machine.ip) throw new Error("Mesin ini bukan mode LAN atau IP belum diatur.");
+  const port = machine.port || 5005;
+
+  const { users } = await pullDeviceUsers({ ip: machine.ip, port });
+  let created = 0;
+  let renamed = 0;
+  for (const u of users) {
+    const res = await upsertEnrollment(machine.id, u.pin, u.name);
+    if (res === "created") created++;
+    else if (res === "renamed") renamed++;
+  }
+  await prisma.machine.update({ where: { id: machine.id }, data: { lastSeenAt: new Date() } });
+  return { machineName: machine.name, total: users.length, created, renamed };
 }

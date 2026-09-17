@@ -7,7 +7,7 @@ import { IconTrash } from "@/components/ui/icons";
 type Dept = { id: number; name: string; _count?: { employees: number } };
 type Pos = { id: number; name: string; department?: { name: string } | null };
 type Holiday = { id: number; date: string; name: string };
-type Machine = { id: number; sn: string; name: string; lastSeenAt: string | null; employees: number; attendances: number };
+type Machine = { id: number; sn: string; name: string; mode: string; ip: string | null; port: number | null; lastSeenAt: string | null; employees: number; attendances: number };
 type Settings = Record<string, string | null>;
 
 function softChip(c: string): React.CSSProperties {
@@ -45,9 +45,47 @@ export default function SettingsPage() {
     setMachines(mc);
   }, []);
 
+  const [addMachineOpen, setAddMachineOpen] = useState(false);
+  const [newMachine, setNewMachine] = useState({ name: "", mode: "cloud", sn: "", ip: "", port: "5005" });
+  const [machineMsg, setMachineMsg] = useState("");
+
   async function renameMachine(id: number, name: string) {
     await api(`/api/machines/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
     loadAll();
+  }
+  async function deleteMachine(id: number) {
+    if (!confirm("Hapus mesin ini? Absensi tetap ada, tapi tak lagi terhubung ke mesin.")) return;
+    await api(`/api/machines/${id}`, { method: "DELETE" });
+    loadAll();
+  }
+  async function addMachine() {
+    setMachineMsg("");
+    try {
+      const b: Record<string, unknown> = { name: newMachine.name.trim(), mode: newMachine.mode };
+      if (newMachine.sn.trim()) b.sn = newMachine.sn.trim();
+      if (newMachine.mode === "lan") { b.ip = newMachine.ip.trim(); b.port = Number(newMachine.port) || 5005; }
+      await api("/api/machines", { method: "POST", body: JSON.stringify(b) });
+      setNewMachine({ name: "", mode: "cloud", sn: "", ip: "", port: "5005" });
+      setAddMachineOpen(false);
+      loadAll();
+    } catch (e) {
+      setMachineMsg((e as Error).message);
+    }
+  }
+  async function pullMachine(id: number, users: boolean) {
+    setMachineMsg("Memproses…");
+    try {
+      const r = await api<{ machineName: string; synced?: number; total?: number; created?: number; renamed?: number }>(
+        `/api/machines/${id}/pull`,
+        { method: "POST", body: JSON.stringify({ users }) }
+      );
+      setMachineMsg(users
+        ? `${r.machineName}: ${r.created} karyawan baru, ${r.renamed} nama diperbarui (dari ${r.total}).`
+        : `${r.machineName}: ${r.synced} absensi baru (dari ${r.total} record).`);
+      loadAll();
+    } catch (e) {
+      setMachineMsg("Gagal: " + (e as Error).message);
+    }
   }
   useEffect(() => {
     loadAll();
@@ -321,16 +359,57 @@ export default function SettingsPage() {
         </Card>
 
         <Card title="Mesin Absensi (Cabang)">
-          <p className="mb-3 text-xs text-muted">
-            Mesin muncul otomatis saat pertama kali mengirim data. Beri nama cabang agar
-            mudah difilter di Laporan Absensi. PIN unik per mesin — cabang boleh pakai PIN sama.
-          </p>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-xs text-muted">
+              Mode <b>Cloud</b>: mesin push ke server (otomatis muncul). Mode <b>LAN</b>: server
+              menarik dari IP mesin (server harus satu jaringan). PIN unik per mesin.
+            </p>
+            <button onClick={() => setAddMachineOpen((v) => !v)} className="btn-ghost shrink-0 px-3 py-1.5 text-xs">
+              {addMachineOpen ? "Tutup" : "+ Tambah Mesin"}
+            </button>
+          </div>
+
+          {addMachineOpen && (
+            <div className="mb-3 space-y-2 rounded-xl border border-border p-3 text-sm">
+              <input className="input" placeholder="Nama cabang (mis. Pusat, Cabang Bantul)"
+                value={newMachine.name} onChange={(e) => setNewMachine({ ...newMachine, name: e.target.value })} />
+              <div className="flex gap-3 text-xs">
+                <label className="flex items-center gap-1.5">
+                  <input type="radio" checked={newMachine.mode === "cloud"} onChange={() => setNewMachine({ ...newMachine, mode: "cloud" })} /> Cloud (push)
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input type="radio" checked={newMachine.mode === "lan"} onChange={() => setNewMachine({ ...newMachine, mode: "lan" })} /> LAN (tarik IP)
+                </label>
+              </div>
+              {newMachine.mode === "lan" ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <input className="input col-span-2" placeholder="IP mesin (192.168.1.160)"
+                    value={newMachine.ip} onChange={(e) => setNewMachine({ ...newMachine, ip: e.target.value })} />
+                  <input className="input" placeholder="Port (5005)"
+                    value={newMachine.port} onChange={(e) => setNewMachine({ ...newMachine, port: e.target.value })} />
+                </div>
+              ) : (
+                <p className="text-xs text-subtle">
+                  Arahkan mesin (menu Web/Server) ke <b>absensi.volikoprint.com</b> port <b>80</b>,
+                  Domain Name ON, HTTPS OFF. Mesin akan muncul otomatis saat push pertama.
+                </p>
+              )}
+              <input className="input" placeholder="SN mesin (opsional — dari label mesin)"
+                value={newMachine.sn} onChange={(e) => setNewMachine({ ...newMachine, sn: e.target.value })} />
+              <button onClick={addMachine} disabled={!newMachine.name.trim()} className="btn-primary disabled:opacity-40">
+                Daftarkan mesin
+              </button>
+            </div>
+          )}
+
+          {machineMsg && <p className={`mb-2 text-xs ${machineMsg.startsWith("Gagal") ? "text-danger" : "text-primary"}`}>{machineMsg}</p>}
+
           {machines.length === 0 ? (
-            <p className="text-sm text-subtle">Belum ada mesin terdeteksi.</p>
+            <p className="text-sm text-subtle">Belum ada mesin. Tambahkan atau tunggu mesin push otomatis.</p>
           ) : (
             <ul className="divide-y divide-border text-sm">
               {machines.map((m) => (
-                <MachineRow key={m.id} machine={m} onRename={renameMachine} />
+                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} />
               ))}
             </ul>
           )}
@@ -578,24 +657,34 @@ function DeleteLink({ onClick }: { onClick: () => void }) {
   );
 }
 
-function MachineRow({ machine, onRename }: { machine: Machine; onRename: (id: number, name: string) => void }) {
+function MachineRow({
+  machine, onRename, onDelete, onPull,
+}: {
+  machine: Machine;
+  onRename: (id: number, name: string) => void;
+  onDelete: (id: number) => void;
+  onPull: (id: number, users: boolean) => void;
+}) {
   const [name, setName] = useState(machine.name);
   const dirty = name.trim() !== machine.name && name.trim() !== "";
   const lastSeen = machine.lastSeenAt ? new Date(machine.lastSeenAt).toLocaleString("id-ID") : "—";
+  const badge = machine.mode === "lan"
+    ? { label: `LAN ${machine.ip ?? ""}:${machine.port ?? 5005}`, c: "var(--warning)" }
+    : { label: "Cloud", c: "var(--primary)" };
   return (
-    <li className="flex flex-wrap items-center gap-2 py-2">
-      <input
-        className="input h-9 w-44"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button
-        onClick={() => onRename(machine.id, name.trim())}
-        disabled={!dirty}
-        className="btn-ghost h-9 px-3 text-xs disabled:opacity-40"
-      >
-        Simpan
-      </button>
+    <li className="space-y-1 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input className="input h-9 w-40" value={name} onChange={(e) => setName(e.target.value)} />
+        <button onClick={() => onRename(machine.id, name.trim())} disabled={!dirty} className="btn-ghost h-9 px-3 text-xs disabled:opacity-40">Simpan</button>
+        <span className="rounded-md px-2 py-0.5 text-[11px]" style={softChip(badge.c)}>{badge.label}</span>
+        {machine.mode === "lan" && (
+          <>
+            <button onClick={() => onPull(machine.id, false)} className="btn-ghost h-9 px-2.5 text-xs">Tarik Absensi</button>
+            <button onClick={() => onPull(machine.id, true)} className="btn-ghost h-9 px-2.5 text-xs">Sinkron Karyawan</button>
+          </>
+        )}
+        <button onClick={() => onDelete(machine.id)} className="btn-ghost h-9 px-2.5 text-xs text-danger">Hapus</button>
+      </div>
       <span className="text-xs text-subtle">
         SN {machine.sn} · {machine.employees} karyawan · {machine.attendances} absensi · terakhir: {lastSeen}
       </span>
