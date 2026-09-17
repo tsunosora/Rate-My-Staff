@@ -6,6 +6,10 @@ Dibangun ulang penuh dengan **Next.js 16 (App Router) + Prisma + MySQL + Auth.js
 > Repo ini dulu berisi versi lama (Laravel + Vue). Semua kode lama sudah dihapus dan
 > diganti versi Next.js ini. Riwayat lama masih tersimpan di git (tag `pre-flatten-laravel`).
 
+> 📡 **Integrasi mesin absensi Fingerspot (cloud/LAN, multi‑cabang, diagram alur):**
+> lihat **[docs/fingerspot-integration.md](docs/fingerspot-integration.md)** — panduan
+> pemasangan mesin, arsitektur, protokol, dan troubleshooting.
+
 ## Menjalankan di lokal
 
 **Prasyarat:**
