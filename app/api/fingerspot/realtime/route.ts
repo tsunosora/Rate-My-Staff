@@ -65,10 +65,14 @@ export async function POST(req: Request) {
   if (requestCode === "receive_cmd" && devId) {
     const cmd = dequeueCommandForDevice(devId);
     if (cmd) {
-      return new Response(new Uint8Array(frameCommandBody(cmd.body)), {
+      const body = frameCommandBody(cmd.body);
+      // Firmware mesin butuh Content-Length + Connection: close (tak paham chunked).
+      return new Response(new Uint8Array(body), {
         status: 200,
         headers: {
           "Content-Type": "application/octet-stream",
+          "Content-Length": String(body.length),
+          "Connection": "close",
           "response_code": "CMD",
           "cmd_code": cmd.cmdCode,
           "trans_id": cmd.id,
