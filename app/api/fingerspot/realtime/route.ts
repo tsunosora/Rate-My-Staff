@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { extractJson, parseIoTime } from "@/lib/services/fingerspot/realtime";
-import { ingestScans, relabelDeviceScans, upsertEmployeeFromDevice } from "@/lib/services/fingerspot/sync";
+import { resolveMachine, ingestScansForMachine, relabelDeviceScans, upsertEnrollment } from "@/lib/services/fingerspot/sync";
 
 /**
  * PENERIMA PROTOKOL REALTIME FINGERSPOT (mode Web mesin Revo).
@@ -41,13 +41,17 @@ export async function POST(req: Request) {
       const pin = String(data.user_id ?? "").trim();
       const scanAt = parseIoTime(data.io_time);
       if (pin && scanAt) {
-        await ingestScans([{ pin, scanAt }], { machineName: "fingerspot", snMachine: devId });
+        const machine = await resolveMachine(devId);
+        await ingestScansForMachine(machine.id, machine.sn, [{ pin, scanAt }]);
         await relabelDeviceScans();
       }
     } else if (requestCode === "realtime_enroll_data") {
       const pin = String(data.user_id ?? "").trim();
       const name = (data.user_name as string | undefined) ?? null;
-      if (pin) await upsertEmployeeFromDevice(pin, name);
+      if (pin) {
+        const machine = await resolveMachine(devId);
+        await upsertEnrollment(machine.id, pin, name);
+      }
     }
     // receive_cmd / send_cmd_result / lainnya: cukup di-ack (belum ada antrean perintah).
   } catch (e) {

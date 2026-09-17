@@ -69,6 +69,8 @@ export default function AttendanceReportPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [departments, setDepartments] = useState<Ref[]>([]);
   const [employees, setEmployees] = useState<Ref[]>([]);
+  const [machines, setMachines] = useState<Ref[]>([]);
+  const [machineId, setMachineId] = useState("");
   const [loading, setLoading] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
   const [editForm, setEditForm] = useState({ clockIn: "", clockOut: "" });
@@ -84,6 +86,7 @@ export default function AttendanceReportPage() {
     const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
     if (departmentId) q.set("department_id", departmentId);
     if (employeeId) q.set("employee_id", employeeId);
+    if (machineId) q.set("machine_id", machineId);
     try {
       const res = await api<{ rows: Row[]; summary: Summary }>(`/api/attendance/report?${q}`);
       if (id !== reqId.current) return; // respons usang — abaikan
@@ -92,13 +95,14 @@ export default function AttendanceReportPage() {
     } finally {
       if (id === reqId.current) setLoading(false);
     }
-  }, [startDate, endDate, departmentId, employeeId, statusFilter]);
+  }, [startDate, endDate, departmentId, employeeId, statusFilter, machineId]);
   useEffect(() => {
     load();
   }, [load]);
   useEffect(() => {
     api<Ref[]>("/api/departments").then(setDepartments);
     api<Ref[]>("/api/assessments/employees").then(setEmployees);
+    api<Ref[]>("/api/machines").then(setMachines).catch(() => {});
   }, []);
   // Terapkan filter dari URL (mis. dari kartu dashboard karyawan).
   useEffect(() => {
@@ -137,6 +141,7 @@ export default function AttendanceReportPage() {
     const q = new URLSearchParams({ start_date: startDate, end_date: endDate });
     if (departmentId) q.set("department_id", departmentId);
     if (employeeId) q.set("employee_id", employeeId);
+    if (machineId) q.set("machine_id", machineId);
     return `/api/attendance/report/export-excel?${q}`;
   })();
 
@@ -244,6 +249,15 @@ export default function AttendanceReportPage() {
             {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </label>
+        {machines.length > 1 && (
+          <label className="space-y-1.5">
+            <span className="block font-medium text-muted">Mesin / Cabang</span>
+            <select className="input h-10 w-auto" value={machineId} onChange={(e) => setMachineId(e.target.value)}>
+              <option value="">Semua mesin</option>
+              {machines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </label>
+        )}
         <label className="space-y-1.5">
           <span className="block font-medium text-muted">Karyawan</span>
           <select className="input h-10 w-auto" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>

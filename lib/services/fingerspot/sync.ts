@@ -1,16 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
-import { mapScanlogs, type RawScan } from "./mapper";
+import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { pullDeviceLogs, toRawScans } from "./device";
-
-export type DeviceSyncResult = {
-  total: number;
-  mapped: number;
-  synced: number;
-  relabeled: number;
-  unmatchedCount: number;
-  unmatchedPins: string[];
-};
+import type { RawScan } from "./mapper";
 
 const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
 
@@ -23,8 +16,7 @@ export type ScanRow = { id: number; employeeId: number; scanDate: Date; scanType
 
 /**
  * Fungsi murni: tentukan label in/out per (karyawan, hari) berdasarkan urutan waktu —
- * scan paling awal = "in", sisanya = "out". Kembalikan hanya baris yang labelnya
- * berubah, sebagai { id, scanType }.
+ * scan paling awal = "in", sisanya = "out". Kembalikan hanya baris yang labelnya berubah.
  */
 export function computeInOutLabels(rows: ScanRow[]): { id: number; scanType: "in" | "out" }[] {
   const groups = new Map<string, ScanRow[]>();
@@ -45,19 +37,12 @@ export function computeInOutLabels(rows: ScanRow[]): { id: number; scanType: "in
   return changes;
 }
 
-/**
- * Tentukan in/out berdasarkan URUTAN WAKTU per (karyawan, hari): scan paling awal
- * = "in", sisanya = "out". Shift-agnostik (benar untuk shift pagi/siang/malam),
- * menggantikan heuristik jam-12 yang salah untuk shift sore.
- * Menyimpan koreksi ke DB untuk baris mesin yang labelnya berbeda. Idempoten.
- * Mengembalikan jumlah baris yang labelnya diperbaiki.
- */
+/** Perbaiki in/out per (karyawan, hari) untuk semua absensi dari mesin. Idempoten. */
 export async function relabelDeviceScans(): Promise<number> {
   const rows = await prisma.attendance.findMany({
     where: { machineName: { in: DEVICE_MACHINES } },
     select: { id: true, employeeId: true, scanDate: true, scanType: true },
   });
-
   const changes = computeInOutLabels(rows);
   for (const c of changes) {
     await prisma.attendance.update({ where: { id: c.id }, data: { scanType: c.scanType } });
@@ -65,96 +50,125 @@ export async function relabelDeviceScans(): Promise<number> {
   return changes.length;
 }
 
-export type IngestResult = { mapped: number; synced: number; unmatched: string[] };
+/** Cari/buat Mesin berdasarkan SN (dev_id). Nama default "Mesin <4 digit SN akhir>". */
+export async function resolveMachine(sn: string | null | undefined): Promise<{ id: number; name: string; sn: string }> {
+  const cleanSn = (sn ?? "").trim() || "unknown";
+  const existing = await prisma.machine.findUnique({ where: { sn: cleanSn } });
+  if (existing) {
+    await prisma.machine.update({ where: { id: existing.id }, data: { lastSeenAt: new Date() } });
+    return { id: existing.id, name: existing.name, sn: cleanSn };
+  }
+  const name = cleanSn === "unknown" ? "Mesin Tanpa SN" : `Mesin ${cleanSn.slice(-4)}`;
+  const created = await prisma.machine.create({ data: { sn: cleanSn, name, lastSeenAt: new Date() } });
+  return { id: created.id, name: created.name, sn: cleanSn };
+}
 
 /**
- * Buat/perbarui karyawan dari data enroll mesin (PIN + nama). Nama placeholder
- * "Karyawan <PIN>" ditimpa dgn nama asli; nama yg sudah diedit manual tidak disentuh.
+ * Petakan scan dari SATU mesin (PIN unik per mesin, via MachineEnrollment), simpan yang
+ * baru (dedup employee+waktu). Label scanType sementara; final via relabelDeviceScans().
  */
-export async function upsertEmployeeFromDevice(pin: string, name?: string | null): Promise<"created" | "renamed" | "skipped"> {
-  const { randomUUID } = await import("node:crypto");
-  const { nextEmployeeCode } = await import("@/lib/services/employee-code");
+export async function ingestScansForMachine(
+  machineId: number,
+  sn: string | null,
+  raws: RawScan[]
+): Promise<{ synced: number; unmatched: string[] }> {
+  const enrolls = await prisma.machineEnrollment.findMany({
+    where: { machineId },
+    select: { pin: true, employeeId: true },
+  });
+  const pinToEmp = new Map(enrolls.map((e) => [e.pin, e.employeeId]));
+
+  let synced = 0;
+  const unmatched: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of raws) {
+    const empId = pinToEmp.get(raw.pin);
+    if (empId === undefined) { unmatched.push(raw.pin); continue; }
+    const scanDate = raw.scanAt instanceof Date ? raw.scanAt : new Date(raw.scanAt);
+    if (Number.isNaN(scanDate.getTime())) continue;
+    const key = `${empId}|${scanDate.getTime()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const exists = await prisma.attendance.findFirst({
+      where: { employeeId: empId, scanDate },
+      select: { id: true },
+    });
+    if (exists) continue;
+    await prisma.attendance.create({
+      data: {
+        employeeId: empId,
+        scanDate,
+        scanType: scanDate.getHours() < 12 ? "in" : "out", // sementara; diperbaiki relabel
+        status: "on_time",
+        machineName: "fingerspot",
+        snMachine: sn,
+        machineId,
+      },
+    });
+    synced++;
+  }
+  return { synced, unmatched: Array.from(new Set(unmatched)) };
+}
+
+/**
+ * Daftarkan PIN sebuah MESIN ke karyawan (dari data enroll mesin). Kalau (mesin,PIN)
+ * belum ada → buat karyawan baru + enrollment. Nama placeholder "Karyawan <PIN>"
+ * ditimpa nama asli; nama yang sudah diedit manual tidak disentuh.
+ */
+export async function upsertEnrollment(
+  machineId: number,
+  pin: string,
+  name?: string | null
+): Promise<"created" | "renamed" | "skipped"> {
   const clean = (name ?? "").trim();
   const placeholder = `Karyawan ${pin}`;
-  const emp = await prisma.employee.findUnique({ where: { machinePin: pin }, select: { id: true, fullName: true } });
-  if (emp) {
-    if (clean && emp.fullName === placeholder) {
-      await prisma.employee.update({ where: { id: emp.id }, data: { fullName: clean } });
+  const existing = await prisma.machineEnrollment.findUnique({
+    where: { machineId_pin: { machineId, pin } },
+    include: { employee: { select: { id: true, fullName: true } } },
+  });
+  if (existing) {
+    if (clean && existing.employee.fullName === placeholder) {
+      await prisma.employee.update({ where: { id: existing.employeeId }, data: { fullName: clean } });
       return "renamed";
     }
     return "skipped";
   }
   const fullName = clean || placeholder;
   const code = await nextEmployeeCode(prisma, fullName);
-  await prisma.employee.create({ data: { employeeCode: code, machinePin: pin, publicToken: randomUUID(), fullName } });
+  const emp = await prisma.employee.create({ data: { employeeCode: code, publicToken: randomUUID(), fullName } });
+  await prisma.machineEnrollment.create({ data: { machineId, pin, employeeId: emp.id, deviceName: clean || null } });
   return "created";
 }
 
-/**
- * Petakan scanlog (PIN→karyawan via machinePin), simpan yang baru (dedup employee+waktu).
- * Dipakai bersama jalur PULL (direct-IP) & PUSH (ADMS /iclock). Label in/out sementara
- * dari mapper; penentuan final via relabelDeviceScans().
- */
-export async function ingestScans(
-  raws: RawScan[],
-  opts: { machineName: string; snMachine?: string | null }
-): Promise<IngestResult> {
-  const employees = await prisma.employee.findMany({
-    where: { deletedAt: null, machinePin: { not: null } },
-    select: { id: true, machinePin: true },
-  });
-  const codeToId = Object.fromEntries(employees.map((e) => [e.machinePin as string, e.id]));
-
-  const { mapped, unmatched } = mapScanlogs(raws, { codeToId });
-
-  let synced = 0;
-  for (const m of mapped) {
-    const exists = await prisma.attendance.findFirst({
-      where: { employeeId: m.employeeId, scanDate: m.scanDate },
-      select: { id: true },
-    });
-    if (exists) continue;
-    await prisma.attendance.create({
-      data: {
-        employeeId: m.employeeId,
-        scanDate: m.scanDate,
-        scanType: m.scanType,
-        status: "on_time",
-        machineName: opts.machineName,
-        snMachine: opts.snMachine ?? null,
-      },
-    });
-    synced++;
-  }
-  return { mapped: mapped.length, synced, unmatched };
-}
+export type DeviceSyncResult = {
+  machineName: string;
+  total: number;
+  synced: number;
+  relabeled: number;
+  unmatchedCount: number;
+  unmatchedPins: string[];
+};
 
 /**
- * Tarik scanlog dari mesin (IP di setting) → petakan PIN→karyawan → simpan yang baru,
- * lalu tentukan in/out per hari berdasarkan urutan waktu (termasuk perbaiki data lama).
- * Dipakai oleh route manual (/api/attendance/device) & cron (/api/fingerspot/cron-pull).
- * Melempar Error bila IP belum diatur atau mesin tak terjangkau.
+ * Tarik scanlog dari mesin (IP di setting) → petakan per-mesin → simpan yang baru →
+ * perbaiki in/out. Dipakai route manual (/api/attendance/device) & cron.
  */
 export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
   const ip = (await getSetting("fp_device_ip"))?.trim();
   const port = Number(await getSetting("fp_device_port")) || 5005;
   if (!ip) throw new Error("IP mesin belum diatur di Pengaturan.");
 
+  const sn = (await getSetting("fingerspot_sn"))?.trim() || `direct-ip:${ip}`;
+  const machine = await resolveMachine(sn);
+
   const { count, records } = await pullDeviceLogs({ ip, port });
-  const sn = (await getSetting("fingerspot_sn")) || null;
-
-  // Label scanType dari mapper diabaikan; ditentukan ulang per-hari oleh relabel di bawah.
-  const { mapped, synced, unmatched } = await ingestScans(toRawScans(records), {
-    machineName: "fingerspot-ip",
-    snMachine: sn,
-  });
-
+  const { synced, unmatched } = await ingestScansForMachine(machine.id, machine.sn, toRawScans(records));
   const relabeled = await relabelDeviceScans();
 
   const unmatchedPins = Array.from(new Set(unmatched));
   return {
+    machineName: machine.name,
     total: count,
-    mapped,
     synced,
     relabeled,
     unmatchedCount: unmatchedPins.length,

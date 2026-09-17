@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { parseAttlog, handshakeResponse } from "@/lib/services/fingerspot/adms";
-import { ingestScans, relabelDeviceScans } from "@/lib/services/fingerspot/sync";
+import { resolveMachine, ingestScansForMachine, relabelDeviceScans } from "@/lib/services/fingerspot/sync";
 
 const textPlain = { "Content-Type": "text/plain" };
 
@@ -36,11 +36,12 @@ export async function POST(req: Request) {
   if (table.toUpperCase() === "ATTLOG") {
     const records = parseAttlog(body);
     if (records.length > 0) {
-      // Mapping via machinePin + dedup (logika bersama dgn jalur direct-IP),
-      // lalu tentukan in/out per hari (benar utk shift sore).
-      await ingestScans(
-        records.map((r) => ({ pin: r.pin, scanAt: r.time.replace(" ", "T") })),
-        { machineName: "fingerspot", snMachine: sn }
+      // Mapping per-mesin (SN) + dedup, lalu tentukan in/out per hari.
+      const machine = await resolveMachine(sn);
+      await ingestScansForMachine(
+        machine.id,
+        machine.sn,
+        records.map((r) => ({ pin: r.pin, scanAt: r.time.replace(" ", "T") }))
       );
       await relabelDeviceScans();
     }

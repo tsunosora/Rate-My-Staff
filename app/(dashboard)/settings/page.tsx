@@ -7,6 +7,7 @@ import { IconTrash } from "@/components/ui/icons";
 type Dept = { id: number; name: string; _count?: { employees: number } };
 type Pos = { id: number; name: string; department?: { name: string } | null };
 type Holiday = { id: number; date: string; name: string };
+type Machine = { id: number; sn: string; name: string; lastSeenAt: string | null; employees: number; attendances: number };
 type Settings = Record<string, string | null>;
 
 function softChip(c: string): React.CSSProperties {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [departments, setDepartments] = useState<Dept[]>([]);
   const [positions, setPositions] = useState<Pos[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [msg, setMsg] = useState("");
   const [deviceTesting, setDeviceTesting] = useState(false);
@@ -29,17 +31,24 @@ export default function SettingsPage() {
   const [holidayName, setHolidayName] = useState("");
 
   const loadAll = useCallback(async () => {
-    const [d, p, h, s] = await Promise.all([
+    const [d, p, h, s, mc] = await Promise.all([
       api<Dept[]>("/api/departments"),
       api<Pos[]>("/api/positions"),
       api<Holiday[]>("/api/holidays"),
       api<Settings>("/api/settings"),
+      api<Machine[]>("/api/machines").catch(() => [] as Machine[]),
     ]);
     setDepartments(d);
     setPositions(p);
     setHolidays(h);
     setSettings(s);
+    setMachines(mc);
   }, []);
+
+  async function renameMachine(id: number, name: string) {
+    await api(`/api/machines/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+    loadAll();
+  }
   useEffect(() => {
     loadAll();
   }, [loadAll]);
@@ -311,6 +320,22 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        <Card title="Mesin Absensi (Cabang)">
+          <p className="mb-3 text-xs text-muted">
+            Mesin muncul otomatis saat pertama kali mengirim data. Beri nama cabang agar
+            mudah difilter di Laporan Absensi. PIN unik per mesin — cabang boleh pakai PIN sama.
+          </p>
+          {machines.length === 0 ? (
+            <p className="text-sm text-subtle">Belum ada mesin terdeteksi.</p>
+          ) : (
+            <ul className="divide-y divide-border text-sm">
+              {machines.map((m) => (
+                <MachineRow key={m.id} machine={m} onRename={renameMachine} />
+              ))}
+            </ul>
+          )}
+        </Card>
+
         <Card title="Jam Toko & Shift">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="space-y-1">
@@ -550,6 +575,31 @@ function DeleteLink({ onClick }: { onClick: () => void }) {
     >
       <IconTrash className="text-[13px]" /> Hapus
     </button>
+  );
+}
+
+function MachineRow({ machine, onRename }: { machine: Machine; onRename: (id: number, name: string) => void }) {
+  const [name, setName] = useState(machine.name);
+  const dirty = name.trim() !== machine.name && name.trim() !== "";
+  const lastSeen = machine.lastSeenAt ? new Date(machine.lastSeenAt).toLocaleString("id-ID") : "—";
+  return (
+    <li className="flex flex-wrap items-center gap-2 py-2">
+      <input
+        className="input h-9 w-44"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button
+        onClick={() => onRename(machine.id, name.trim())}
+        disabled={!dirty}
+        className="btn-ghost h-9 px-3 text-xs disabled:opacity-40"
+      >
+        Simpan
+      </button>
+      <span className="text-xs text-subtle">
+        SN {machine.sn} · {machine.employees} karyawan · {machine.attendances} absensi · terakhir: {lastSeen}
+      </span>
+    </li>
   );
 }
 

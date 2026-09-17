@@ -24,6 +24,7 @@ export type AttendanceReportParams = {
   endStr: string;
   departmentId?: string | null;
   employeeId?: string | null;
+  machineId?: string | null;
 };
 
 export type AttendanceReportResult = {
@@ -42,7 +43,7 @@ export type AttendanceReportResult = {
 /** Agregasi laporan absensi untuk rentang tanggal × karyawan (dipakai route report & export). */
 export async function aggregateAttendance(
   prisma: PrismaClient,
-  { startStr, endStr, departmentId, employeeId }: AttendanceReportParams
+  { startStr, endStr, departmentId, employeeId, machineId }: AttendanceReportParams
 ): Promise<AttendanceReportResult> {
   const start = new Date(`${startStr}T00:00:00`);
   const end = new Date(`${endStr}T00:00:00`);
@@ -51,6 +52,15 @@ export async function aggregateAttendance(
   const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
   if (departmentId) empWhere.departmentId = Number(departmentId);
   if (employeeId) empWhere.id = Number(employeeId);
+  // Filter per mesin/cabang: batasi karyawan ke yang terdaftar di mesin itu.
+  if (machineId) {
+    const enrolls = await prisma.machineEnrollment.findMany({
+      where: { machineId: Number(machineId) },
+      select: { employeeId: true },
+    });
+    const ids = enrolls.map((e) => e.employeeId);
+    empWhere.id = employeeId ? Number(employeeId) : { in: ids.length ? ids : [-1] };
+  }
 
   const employees = await prisma.employee.findMany({
     where: empWhere,
@@ -62,6 +72,7 @@ export async function aggregateAttendance(
     where: {
       employeeId: { in: employees.map((e) => e.id) },
       scanDate: { gte: start, lt: rangeEnd },
+      ...(machineId ? { machineId: Number(machineId) } : {}),
     },
     orderBy: { scanDate: "asc" },
   });

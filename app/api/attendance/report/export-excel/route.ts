@@ -12,6 +12,7 @@ export const GET = route(async (req: Request) => {
     endStr: sp.get("end_date") ?? today,
     departmentId: sp.get("department_id"),
     employeeId: sp.get("employee_id"),
+    machineId: sp.get("machine_id"),
   });
   const buffer = await buildAttendanceReportExcel(rows);
   return new Response(new Uint8Array(buffer), {
