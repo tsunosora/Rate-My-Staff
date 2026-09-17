@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `attendance` ADD COLUMN `machineId` INTEGER NULL;
+ALTER TABLE `Attendance` ADD COLUMN `machineId` INTEGER NULL;
 
 -- CreateTable
 CREATE TABLE `Machine` (
