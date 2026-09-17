@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { getSetting } from "@/lib/settings";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { pullDeviceLogs, pullDeviceUsers, toRawScans } from "./device";
 import type { RawScan } from "./mapper";
@@ -148,33 +147,6 @@ export type DeviceSyncResult = {
   unmatchedCount: number;
   unmatchedPins: string[];
 };
-
-/**
- * Tarik scanlog dari mesin (IP di setting) → petakan per-mesin → simpan yang baru →
- * perbaiki in/out. Dipakai route manual (/api/attendance/device) & cron.
- */
-export async function syncDeviceAttendance(): Promise<DeviceSyncResult> {
-  const ip = (await getSetting("fp_device_ip"))?.trim();
-  const port = Number(await getSetting("fp_device_port")) || 5005;
-  if (!ip) throw new Error("IP mesin belum diatur di Pengaturan.");
-
-  const sn = (await getSetting("fingerspot_sn"))?.trim() || `direct-ip:${ip}`;
-  const machine = await resolveMachine(sn);
-
-  const { count, records } = await pullDeviceLogs({ ip, port });
-  const { synced, unmatched } = await ingestScansForMachine(machine.id, machine.sn, toRawScans(records));
-  const relabeled = await relabelDeviceScans();
-
-  const unmatchedPins = Array.from(new Set(unmatched));
-  return {
-    machineName: machine.name,
-    total: count,
-    synced,
-    relabeled,
-    unmatchedCount: unmatchedPins.length,
-    unmatchedPins: unmatchedPins.slice(0, 50),
-  };
-}
 
 /** Tarik absensi dari sebuah mesin mode LAN (pakai IP/port mesin itu). */
 export async function syncMachinePull(machineId: number): Promise<DeviceSyncResult> {
