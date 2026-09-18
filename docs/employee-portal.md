@@ -21,16 +21,35 @@ Kirim tautan itu ke karyawan yang bersangkutan saja — mis. lewat WhatsApp, ata
 
 ### PIN
 
-Tautan saja tidak cukup untuk membuka data. Halaman dikunci **PIN 4–8 angka**:
+Tautan saja tidak cukup untuk membuka data. Halaman dikunci **PIN**, dan ada **dua PIN
+yang diterima**:
 
-- **Kali pertama dibuka**, karyawan membuat PIN-nya sendiri (isi + ulangi).
+| PIN | Asal | Dipakai siapa |
+|---|---|---|
+| **PIN portal** | dibuat sendiri di halaman ini, 4–8 angka | semua karyawan |
+| **PIN PosPro** | `Designer.pin` di PosPro (PIN piket/desainer) | karyawan yang sudah dipetakan ke akun PosPro **dan** punya PIN di sana |
+
+Saat masuk, PIN portal dicoba lebih dulu; bila tak cocok, baru ditanyakan ke PosPro
+(`POST /integrations/staff-pin/verify`, hanya menjawab benar/salah — nilai PIN tak pernah
+keluar dari PosPro). Kalau PosPro sedang mati, PIN portal tetap jalan.
+
+Layar yang muncul: **"Masuk"** bila karyawan punya salah satu PIN; **"Buat PIN"** hanya bila
+belum punya keduanya.
+
+- **Kali pertama dibuka** (tanpa PIN PosPro), karyawan membuat PIN-nya sendiri (isi + ulangi).
 - PIN disimpan sebagai **hash bcrypt**; tak pernah dikirim balik ke browser, dan kolom
   `portalPin` di-`omit` dari semua endpoint karyawan.
 - PIN yang mudah ditebak ditolak (angka sama semua, berurutan naik/turun).
 - **Lupa PIN** → admin/owner menekan *Buatkan PIN acak* (PIN tampil **sekali**, catat &
   kirim ke karyawan) atau *Hapus PIN* (karyawan membuat PIN baru saat membuka tautan lagi).
 - Karyawan bisa mengganti PIN sendiri dari dalam portal (wajib menyebut PIN lama).
-- Salah PIN dibatasi **5 kali per 15 menit** per IP+tautan (`lib/rate-limit.ts`).
+- Salah PIN dibatasi **5 kali per 15 menit** per IP+tautan (`lib/rate-limit.ts`) — berlaku
+  untuk kedua jenis PIN.
+
+> ⚠️ **Aturan kekuatan PIN tidak berlaku untuk PIN PosPro.** PIN portal menolak angka
+> berurutan/sama semua, tapi PIN PosPro dibuat di PosPro sehingga lolos apa adanya. Kalau
+> PIN PosPro seseorang lemah (mis. 4 angka berurutan), kelemahan itu ikut terbawa ke sini.
+> Perkuat dari **PosPro → Pengaturan → Desainer**; sekali ubah, berlaku di kedua aplikasi.
 
 ### Sesi
 
@@ -157,7 +176,8 @@ menghasilkan `null`, dicatat ke log server, dan tidak pernah menggagalkan halama
 | Berkas | Isi |
 |---|---|
 | `backend/src/auth/api-key.guard.ts` | Guard `x-api-key`, banding waktu-konstan; env kosong = tolak |
-| `backend/src/integrations/staff-kpi.controller.ts` | `GET /integrations/staff-list`, `GET /integrations/staff-kpi` |
+| `backend/src/integrations/staff-kpi.controller.ts` | `GET /integrations/staff-list`, `GET /integrations/staff-kpi`, `GET /integrations/staff-pin`, `POST /integrations/staff-pin/verify` |
+| `backend/src/integrations/staff-pin.service.ts` | Verifikasi PIN desainer (jawab benar/salah saja) |
 | `backend/src/integrations/staff-kpi.service.ts` | Query Prisma + penggabungan per user |
 | `backend/src/integrations/staff-kpi.aggregate.ts` | Agregasi murni (tanpa Prisma) |
 | `backend/src/integrations/staff-kpi.aggregate.spec.ts` | Unit test agregasi (jest) |

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { json, route } from "@/lib/http";
 import { requireEmployeeByToken, portalSecret } from "@/lib/services/portal/auth";
 import { PORTAL_COOKIE, verifyPortalToken } from "@/lib/services/portal/session";
+import { posproPinAvailable } from "@/lib/services/pospro/client";
 
 type Ctx = { params: Promise<{ token: string }> };
 
@@ -15,6 +16,9 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 
   const store = await cookies();
   const session = verifyPortalToken(store.get(PORTAL_COOKIE)?.value, token, portalSecret());
+  // PIN PosPro (PIN desainer/piket) boleh dipakai masuk, supaya karyawan tak perlu
+  // mengingat dua PIN. false bila belum dipetakan / tak punya PIN / PosPro mati.
+  const posproPin = await posproPinAvailable(employee.posproUserId);
 
   return json({
     employee: {
@@ -25,6 +29,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
       photoPath: employee.photoPath,
     },
     pinSet: employee.portalPin !== null,
+    posproPin,
     authenticated: session?.employeeId === employee.id,
   });
 });

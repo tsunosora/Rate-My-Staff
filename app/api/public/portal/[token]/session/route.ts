@@ -6,6 +6,7 @@ import { canAttempt, recordFailure, clearAttempts, sweep } from "@/lib/rate-limi
 import { requireEmployeeByToken, setPortalCookie, clearPortalCookie } from "@/lib/services/portal/auth";
 import { normalizePin, validatePin } from "@/lib/services/portal/pin";
 import { portalLoginSchema, portalSetPinSchema } from "@/lib/validators/portal";
+import { posproPinAvailable, verifyPosproPin } from "@/lib/services/pospro/client";
 
 type Ctx = { params: Promise<{ token: string }> };
 
@@ -66,24 +67,33 @@ export const POST = route<Ctx>(async (req, ctx) => {
   }
 
   // --- Masuk dengan PIN -------------------------------------------------------
+  // Dua PIN diterima: PIN portal (dibuat di sini) dan PIN PosPro (PIN desainer/piket),
+  // supaya karyawan tak perlu mengingat dua PIN.
   const parsed = portalLoginSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
-  if (!employee.portalPin) {
-    return NextResponse.json(
-      { message: "PIN belum dibuat.", code: "PIN_NOT_SET" },
-      { status: 409 }
-    );
-  }
 
-  const ok = await bcrypt.compare(normalizePin(parsed.data.pin), employee.portalPin);
+  const pin = normalizePin(parsed.data.pin);
+  const localOk = employee.portalPin ? await bcrypt.compare(pin, employee.portalPin) : false;
+  // PosPro hanya ditanya bila PIN lokal tidak cocok — hemat panggilan & tetap jalan
+  // walau PosPro sedang mati (verifyPosproPin mengembalikan false, bukan melempar).
+  const ok = localOk || (await verifyPosproPin(employee.posproUserId, pin));
+
   if (!ok) {
     recordFailure(key);
+    // "PIN belum dibuat" hanya benar bila memang tak ada PIN mana pun. Kalau karyawan
+    // punya PIN PosPro, kegagalan di sini artinya PIN-nya salah — bukan belum ada.
+    if (!employee.portalPin && !(await posproPinAvailable(employee.posproUserId))) {
+      return NextResponse.json(
+        { message: "PIN belum dibuat.", code: "PIN_NOT_SET" },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ message: "PIN salah." }, { status: 401 });
   }
 
   clearAttempts(key);
   await setPortalCookie(employee.id, token);
-  return json({ ok: true });
+  return json({ ok: true, via: localOk ? "portal" : "pospro" });
 });
 
 /** PUBLIK — keluar dari portal (hapus cookie sesi). */

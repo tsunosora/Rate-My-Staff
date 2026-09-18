@@ -60,13 +60,18 @@ export function posproConfigured(): boolean {
   return Boolean(process.env.POSPRO_API_URL && process.env.POSPRO_API_KEY);
 }
 
-async function call<T>(path: string): Promise<T | null> {
+async function call<T>(path: string, body?: unknown): Promise<T | null> {
   if (!posproConfigured()) return null;
   const base = process.env.POSPRO_API_URL!.replace(/\/+$/, "");
 
   try {
     const res = await fetch(`${base}${path}`, {
-      headers: { "x-api-key": process.env.POSPRO_API_KEY! },
+      method: body === undefined ? "GET" : "POST",
+      headers: {
+        "x-api-key": process.env.POSPRO_API_KEY!,
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });
@@ -107,4 +112,30 @@ export async function fetchPosproKpiForUser(
   if (!posproUserId) return null;
   const data = await fetchPosproKpi(fromStr, toStr);
   return data?.staff.find((s) => s.userId === posproUserId) ?? null;
+}
+
+/**
+ * Apakah karyawan ini punya PIN di PosPro (PIN desainer/piket) yang bisa dipakai
+ * untuk masuk ke portal? false bila belum dipetakan, tak punya PIN, atau PosPro mati.
+ */
+export async function posproPinAvailable(posproUserId: number | null): Promise<boolean> {
+  if (!posproUserId) return false;
+  const res = await call<{ hasPin: boolean }>(`/integrations/staff-pin?userId=${posproUserId}`);
+  return res?.hasPin === true;
+}
+
+/**
+ * Verifikasi PIN PosPro milik karyawan. PIN-nya sendiri tak pernah diambil ke sini —
+ * PosPro hanya menjawab benar/salah. false bila PosPro mati (portal jatuh ke PIN lokal).
+ */
+export async function verifyPosproPin(
+  posproUserId: number | null,
+  pin: string
+): Promise<boolean> {
+  if (!posproUserId || !pin) return false;
+  const res = await call<{ ok: boolean }>("/integrations/staff-pin/verify", {
+    userId: posproUserId,
+    pin,
+  });
+  return res?.ok === true;
 }

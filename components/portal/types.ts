@@ -10,7 +10,10 @@ export type PortalEmployeeInfo = {
 
 export type PortalState = {
   employee: PortalEmployeeInfo;
+  /** PIN khusus portal sudah dibuat. */
   pinSet: boolean;
+  /** Karyawan punya PIN PosPro (PIN desainer/piket) yang juga bisa dipakai masuk. */
+  posproPin: boolean;
   authenticated: boolean;
 };
 

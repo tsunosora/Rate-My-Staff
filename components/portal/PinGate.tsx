@@ -10,13 +10,18 @@ export function PinGate({
   token,
   employee,
   pinSet,
+  posproPin,
   onSuccess,
 }: {
   token: string;
   employee: PortalEmployeeInfo;
   pinSet: boolean;
+  /** PIN PosPro tersedia — karyawan boleh masuk memakai PIN itu. */
+  posproPin: boolean;
   onSuccess: () => void;
 }) {
+  // Layar "masuk" bila sudah ada PIN mana pun; "buat PIN" hanya bila belum punya keduanya.
+  const canLogin = pinSet || posproPin;
   const [pin, setPin] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -25,13 +30,13 @@ export function PinGate({
   async function submit() {
     setError("");
     if (!pin.trim()) return setError("Masukkan PIN.");
-    if (!pinSet && pin !== confirm) return setError("Konfirmasi PIN tidak sama.");
+    if (!canLogin && pin !== confirm) return setError("Konfirmasi PIN tidak sama.");
 
     setBusy(true);
     try {
       await api(`/api/public/portal/${token}/session`, {
         method: "POST",
-        body: JSON.stringify(pinSet ? { pin } : { pin, confirm }),
+        body: JSON.stringify(canLogin ? { pin } : { pin, confirm }),
       });
       onSuccess();
     } catch (e) {
@@ -65,15 +70,23 @@ export function PinGate({
         </div>
       )}
 
-      {!pinSet && (
+      {!canLogin && (
         <p className="mb-4 rounded-xl border border-border bg-surface-2 p-3 text-xs leading-relaxed text-muted">
           Ini pertama kalinya halaman ini dibuka. Buat <b className="text-fg">PIN 4–8 angka</b> untuk
           mengunci data absensi &amp; penilaian Anda. Jangan bagikan PIN ini ke siapa pun.
         </p>
       )}
 
+      {canLogin && posproPin && (
+        <p className="mb-4 rounded-xl border border-border bg-surface-2 p-3 text-xs leading-relaxed text-muted">
+          {pinSet
+            ? "Bisa pakai PIN halaman ini, atau PIN PosPro Anda (PIN piket/desainer) — keduanya diterima."
+            : "Masukkan PIN PosPro Anda — PIN yang biasa dipakai di halaman piket/desainer."}
+        </p>
+      )}
+
       <label className="mb-3 block space-y-1.5 text-sm">
-        <span className="font-medium text-muted">{pinSet ? "PIN" : "PIN baru"}</span>
+        <span className="font-medium text-muted">{canLogin ? "PIN" : "PIN baru"}</span>
         <input
           className="input h-12 text-center text-xl tracking-[0.4em]"
           type="password"
@@ -82,11 +95,11 @@ export function PinGate({
           maxLength={8}
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-          onKeyDown={(e) => e.key === "Enter" && pinSet && submit()}
+          onKeyDown={(e) => e.key === "Enter" && canLogin && submit()}
         />
       </label>
 
-      {!pinSet && (
+      {!canLogin && (
         <label className="mb-3 block space-y-1.5 text-sm">
           <span className="font-medium text-muted">Ulangi PIN</span>
           <input
@@ -103,10 +116,10 @@ export function PinGate({
       )}
 
       <button onClick={submit} disabled={busy} className="btn-primary mt-2 h-11 w-full">
-        {busy ? "Memproses…" : pinSet ? "Masuk" : "Simpan PIN & Masuk"}
+        {busy ? "Memproses…" : canLogin ? "Masuk" : "Simpan PIN & Masuk"}
       </button>
 
-      {pinSet && (
+      {canLogin && (
         <p className="mt-4 text-center text-xs text-subtle">
           Lupa PIN? Minta admin/owner mereset PIN Anda dari menu Direktori.
         </p>

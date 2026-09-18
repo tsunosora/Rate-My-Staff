@@ -108,7 +108,8 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
           token={token}
           employee={state.employee}
           pinSet={state.pinSet}
-          onSuccess={() => setState({ ...state, pinSet: true, authenticated: true })}
+          posproPin={state.posproPin}
+          onSuccess={() => setState({ ...state, authenticated: true })}
         />
       </Centered>
     );
