@@ -5,7 +5,8 @@ import type { AttendanceRow, OutputTotals } from "./types";
 
 /**
  * "Hari itu saya menghasilkan berapa" — hasil kerja dari PosPro disandingkan dengan
- * hari absen. Hanya hari yang ada scan masuk/pulang yang ditampilkan.
+ * hari absen. Omzet dipecah per peran: kasir, desainer, operator.
+ * Kolom hanya muncul untuk peran yang memang dijalani orang tersebut.
  */
 export function DailyOutputPanel({
   rows,
@@ -25,16 +26,30 @@ export function DailyOutputPanel({
       transactions: a.transactions + r.output!.transactions,
       omzet: a.omzet + r.output!.omzet,
       designJobs: a.designJobs + r.output!.designJobs,
+      designOmzet: a.designOmzet + r.output!.designOmzet,
       operatorJobs: a.operatorJobs + r.output!.operatorJobs,
+      operatorOmzet: a.operatorOmzet + r.output!.operatorOmzet,
+      totalOmzet: a.totalOmzet + r.output!.totalOmzet,
     }),
-    { transactions: 0, omzet: 0, designJobs: 0, operatorJobs: 0 }
+    {
+      transactions: 0,
+      omzet: 0,
+      designJobs: 0,
+      designOmzet: 0,
+      operatorJobs: 0,
+      operatorOmzet: 0,
+      totalOmzet: 0,
+    }
   );
   // Sisa = tercatat di PosPro tapi hari itu tak ada absensinya (mis. lupa scan).
-  const sisaOmzet = Math.round(totals.omzet - hadir.omzet);
+  const sisaOmzet = Math.round(totals.totalOmzet - hadir.totalOmzet);
 
-  const anySales = totals.transactions > 0;
-  const anyDesign = totals.designJobs > 0;
-  const anyOperator = totals.operatorJobs > 0;
+  // Peran ditentukan dari data periode penuh, bukan hari absen saja, agar kolom
+  // tidak hilang-timbul saat berpindah bulan.
+  const asKasir = totals.transactions > 0 || totals.omzet > 0;
+  const asDesainer = totals.designJobs > 0;
+  const asOperator = totals.operatorJobs > 0;
+  const multiPeran = [asKasir, asDesainer, asOperator].filter(Boolean).length > 1;
 
   return (
     <Card title={`Hasil kerja harian — ${periodLabel}`}>
@@ -43,19 +58,30 @@ export function DailyOutputPanel({
       ) : (
         <>
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {anySales && (
-              <Total label="Omzet di hari Anda absen" value={rupiah(hadir.omzet)} tone="var(--success)" />
-            )}
-            {anySales && (
-              <Total label="Nota ditutup" value={String(hadir.transactions)} tone="var(--info)" />
-            )}
-            {anyDesign && (
-              <Total label="Order desain" value={String(hadir.designJobs)} tone="var(--primary)" />
-            )}
-            {anyOperator && (
+            <Total
+              label="Total di hari Anda absen"
+              value={rupiah(hadir.totalOmzet)}
+              tone="var(--success)"
+              strong
+            />
+            {asKasir && (
               <Total
-                label="Kartu produksi"
-                value={String(Math.round(hadir.operatorJobs * 100) / 100)}
+                label={`Kasir · ${hadir.transactions} nota`}
+                value={rupiah(hadir.omzet)}
+                tone="var(--info)"
+              />
+            )}
+            {asDesainer && (
+              <Total
+                label={`Desain · ${hadir.designJobs} order`}
+                value={rupiah(hadir.designOmzet)}
+                tone="var(--primary)"
+              />
+            )}
+            {asOperator && (
+              <Total
+                label={`Produksi · ${Math.round(hadir.operatorJobs * 100) / 100} kartu`}
+                value={rupiah(hadir.operatorOmzet)}
                 tone="var(--warning)"
               />
             )}
@@ -67,52 +93,55 @@ export function DailyOutputPanel({
                 <tr className="border-b border-border text-left text-xs text-subtle">
                   <th className="pb-2 pr-3 font-medium">Tanggal</th>
                   <th className="pb-2 pr-3 font-medium">Jam kerja</th>
-                  {anySales && <th className="pb-2 pr-3 text-right font-medium">Omzet</th>}
-                  {anySales && <th className="pb-2 pr-3 text-right font-medium">Nota</th>}
-                  {anyDesign && <th className="pb-2 pr-3 text-right font-medium">Desain</th>}
-                  {anyOperator && <th className="pb-2 text-right font-medium">Produksi</th>}
+                  {asKasir && <th className="pb-2 pr-3 text-right font-medium">Kasir</th>}
+                  {asDesainer && <th className="pb-2 pr-3 text-right font-medium">Desain</th>}
+                  {asOperator && <th className="pb-2 pr-3 text-right font-medium">Produksi</th>}
+                  {multiPeran && <th className="pb-2 text-right font-medium">Total</th>}
                 </tr>
               </thead>
               <tbody>
-                {days.map((r) => (
-                  <tr key={r.date} className="border-b border-border/60 last:border-0">
-                    <td className="py-2 pr-3 text-fg">{shortDate(r.date)}</td>
-                    <td className="tabular py-2 pr-3 text-muted">
-                      {r.workedMinutes > 0 ? hm(r.workedMinutes) : "—"}
-                    </td>
-                    {anySales && (
-                      <td className="tabular py-2 pr-3 text-right font-medium text-fg">
-                        {r.output!.omzet > 0 ? rupiah(r.output!.omzet) : "—"}
+                {days.map((r) => {
+                  const o = r.output!;
+                  return (
+                    <tr key={r.date} className="border-b border-border/60 last:border-0">
+                      <td className="py-2 pr-3 text-fg">{shortDate(r.date)}</td>
+                      <td className="tabular py-2 pr-3 text-muted">
+                        {r.workedMinutes > 0 ? hm(r.workedMinutes) : "—"}
                       </td>
-                    )}
-                    {anySales && (
-                      <td className="tabular py-2 pr-3 text-right text-muted">
-                        {r.output!.transactions || "—"}
-                      </td>
-                    )}
-                    {anyDesign && (
-                      <td className="tabular py-2 pr-3 text-right text-muted">
-                        {r.output!.designJobs || "—"}
-                      </td>
-                    )}
-                    {anyOperator && (
-                      <td className="tabular py-2 text-right text-muted">
-                        {r.output!.operatorJobs || "—"}
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                      {asKasir && (
+                        <Money value={o.omzet} sub={o.transactions ? `${o.transactions} nota` : null} />
+                      )}
+                      {asDesainer && (
+                        <Money value={o.designOmzet} sub={o.designJobs ? `${o.designJobs} order` : null} />
+                      )}
+                      {asOperator && (
+                        <Money
+                          value={o.operatorOmzet}
+                          sub={o.operatorJobs ? `${Math.round(o.operatorJobs * 100) / 100} kartu` : null}
+                        />
+                      )}
+                      {multiPeran && (
+                        <td className="tabular py-2 text-right font-semibold text-fg">
+                          {o.totalOmzet > 0 ? rupiah(o.totalOmzet) : "—"}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <p className="mt-3 text-xs leading-relaxed text-subtle">
-            Angka diambil dari PosPro pada tanggal yang sama dengan absensi Anda. Omzet dihitung
-            dari nota yang <b className="text-muted">Anda tutup</b>, bukan seluruh penjualan toko.
+            Diambil dari PosPro pada tanggal yang sama dengan absensi Anda.{" "}
+            {asKasir && "Kasir = nilai nota yang Anda tutup. "}
+            {asDesainer && "Desain = nilai nota dari order yang Anda desain. "}
+            {asOperator && "Produksi = nilai item yang kartunya Anda kerjakan, dibagi rata bila dikerjakan berdua. "}
+            Angka ini menunjukkan kontribusi, bukan penjualan toko secara keseluruhan.
             {sisaOmzet > 0 && (
               <>
-                {" "}Ada <b className="text-muted">{rupiah(sisaOmzet)}</b> lagi yang tercatat atas nama
-                Anda di tanggal yang tidak ada absensinya — biasanya karena lupa scan.
+                {" "}Ada <b className="text-muted">{rupiah(sisaOmzet)}</b> lagi atas nama Anda di tanggal
+                yang tidak ada absensinya — biasanya karena lupa scan.
               </>
             )}
           </p>
@@ -122,11 +151,35 @@ export function DailyOutputPanel({
   );
 }
 
-function Total({ label, value, tone }: { label: string; value: string; tone: string }) {
+function Money({ value, sub }: { value: number; sub: string | null }) {
   return (
-    <div className="rounded-xl p-3" style={soft(tone, 12)}>
+    <td className="tabular py-2 pr-3 text-right">
+      <div className={value > 0 ? "font-medium text-fg" : "text-subtle"}>
+        {value > 0 ? rupiah(value) : "—"}
+      </div>
+      {sub && <div className="text-[11px] text-subtle">{sub}</div>}
+    </td>
+  );
+}
+
+function Total({
+  label,
+  value,
+  tone,
+  strong,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="rounded-xl p-3" style={soft(tone, strong ? 18 : 12)}>
       <div className="text-[11px] text-muted">{label}</div>
-      <div className="tabular mt-0.5 font-display text-lg font-bold" style={{ color: tone }}>
+      <div
+        className={`tabular mt-0.5 font-display font-bold ${strong ? "text-xl" : "text-lg"}`}
+        style={{ color: tone }}
+      >
         {value}
       </div>
     </div>

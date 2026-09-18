@@ -143,9 +143,16 @@ export async function verifyPosproPin(
 export type PosproDailyRow = {
   date: string;
   transactions: number;
+  /** Omzet sebagai kasir (nota yang dia tutup). */
   omzet: number;
   designJobs: number;
+  /** Omzet sebagai desainer (nilai nota dari order yang dia desain). */
+  designOmzet: number;
   operatorJobs: number;
+  /** Omzet sebagai operator (nilai item produksi, dibagi bobot kerja bersama). */
+  operatorOmzet: number;
+  /** Jumlah ketiganya. */
+  totalOmzet: number;
 };
 
 export type PosproDaily = {

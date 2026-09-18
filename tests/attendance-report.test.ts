@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   parseTimeToMinutes,
   computeAttendanceRow,
+  shouldEmitDate,
   type DayInput,
 } from "@/lib/services/attendance/report";
 import { DEFAULT_SHIFT_CONFIG } from "@/lib/services/attendance/shift";
@@ -168,5 +169,29 @@ describe("computeAttendanceRow", () => {
     expect(r.shift).toBe("flexible");
     expect(r.overtimeMinutes).toBe(151);
     expect(r.mealEligible).toBe(true);
+  });
+});
+
+describe("shouldEmitDate — hari yang belum dilalui", () => {
+  const today = "2026-09-19";
+
+  test("hari lampau tanpa catatan tetap muncul (memang tidak berangkat)", () => {
+    expect(shouldEmitDate("2026-09-18", false, today)).toBe(true);
+  });
+  test("hari ini tanpa catatan tetap muncul", () => {
+    expect(shouldEmitDate("2026-09-19", false, today)).toBe(true);
+  });
+  test("besok tanpa catatan TIDAK muncul — bukan 'tidak berangkat'", () => {
+    expect(shouldEmitDate("2026-09-20", false, today)).toBe(false);
+  });
+  test("akhir bulan yang belum tiba TIDAK muncul", () => {
+    expect(shouldEmitDate("2026-09-30", false, today)).toBe(false);
+  });
+  test("cuti yang sudah disetujui untuk minggu depan TETAP muncul", () => {
+    expect(shouldEmitDate("2026-09-25", true, today)).toBe(true);
+  });
+  test("pergantian tahun dibandingkan benar", () => {
+    expect(shouldEmitDate("2027-01-01", false, "2026-12-31")).toBe(false);
+    expect(shouldEmitDate("2026-12-31", false, "2027-01-01")).toBe(true);
   });
 });

@@ -50,6 +50,18 @@ export type ReportRow = {
 
 const ABSENCE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
 
+/**
+ * Apakah satu tanggal layak dibuatkan baris laporan?
+ *
+ * Hari yang BELUM dilalui tidak boleh muncul sebagai "tidak berangkat" — orangnya
+ * memang belum sempat absen. Tapi tanggal depan yang sudah punya catatan (mis. cuti
+ * yang sudah disetujui untuk minggu depan) tetap ditampilkan.
+ * Semua tanggal berformat "YYYY-MM-DD" sehingga bisa dibandingkan sebagai teks.
+ */
+export function shouldEmitDate(date: string, hasRecords: boolean, todayStr: string): boolean {
+  return date <= todayStr || hasRecords;
+}
+
 export function parseTimeToMinutes(time: string | null | undefined): number | null {
   if (!time) return null;
   const m = /^(\d{1,2}):(\d{2})/.exec(time);

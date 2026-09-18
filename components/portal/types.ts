@@ -34,9 +34,16 @@ export type AttendanceRow = {
 export type DailyOutput = {
   date: string;
   transactions: number;
+  /** Omzet sebagai kasir. */
   omzet: number;
   designJobs: number;
+  /** Omzet sebagai desainer. */
+  designOmzet: number;
   operatorJobs: number;
+  /** Omzet sebagai operator. */
+  operatorOmzet: number;
+  /** Jumlah ketiga peran. */
+  totalOmzet: number;
 };
 
 export type OutputTotals = Omit<DailyOutput, "date">;

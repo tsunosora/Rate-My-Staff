@@ -1,5 +1,5 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
-import { buildReport, type DayInput } from "./report";
+import { buildReport, shouldEmitDate, type DayInput } from "./report";
 import { loadShiftConfig } from "./shift";
 import { getSetting } from "@/lib/settings";
 
@@ -92,6 +92,10 @@ export async function aggregateAttendance(
 
   const allDates = eachDate(start, end);
   const showAllDates = Boolean(employeeId);
+  // Hari yang BELUM dilalui tidak boleh dihitung "tidak berangkat" — orangnya memang
+  // belum sempat absen. Tanggal setelah hari ini hanya muncul bila sudah punya catatan
+  // (mis. cuti yang sudah disetujui untuk minggu depan).
+  const todayKey = dateKey(new Date());
 
   const days: (DayInput & { fullName: string; department: string | null })[] = [];
   for (const emp of employees) {
@@ -107,6 +111,7 @@ export async function aggregateAttendance(
     for (const date of allDates) {
       const scans = byEmpDate.get(`${emp.id}|${date}`) ?? [];
       if (!showAllDates && scans.length === 0) continue;
+      if (!shouldEmitDate(date, scans.length > 0, todayKey)) continue;
       const isHoliday =
         holidaySet.has(date) || (autoSunday && new Date(`${date}T00:00:00`).getDay() === 0);
       days.push({
