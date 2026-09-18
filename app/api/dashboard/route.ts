@@ -16,10 +16,11 @@ export const GET = route(async () => {
   const sevenDaysAgo = new Date(now.getTime() - 6 * 86400000);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
-  const [employees, pendingReviews, completed, unread, recentAssessments, recentAttendance] =
+  const [employees, pendingReviews, pendingLeave, completed, unread, recentAssessments, recentAttendance] =
     await Promise.all([
       prisma.employee.count({ where: { deletedAt: null, isActive: true } }),
       prisma.assessment.count({ where: { deletedAt: null, status: "draft" } }),
+      prisma.leaveRequest.count({ where: { status: "pending" } }),
       prisma.assessment.findMany({
         where: { deletedAt: null, status: "completed", isPublic: false },
         select: { totalScore: true, assessmentDate: true },
@@ -91,12 +92,13 @@ export const GET = route(async () => {
   const alerts: string[] = [];
   const absentToday = new Set(todayAtt.filter((a) => a.scanType === "absence").map((a) => a.employeeId)).size;
   if (absentToday > 0) alerts.push(`${absentToday} karyawan tidak hadir hari ini.`);
+  if (pendingLeave > 0) alerts.push(`${pendingLeave} pengajuan izin menunggu persetujuan.`);
   if (pendingReviews > 0) alerts.push(`${pendingReviews} penilaian masih draft.`);
   const lowScorers = scores.filter((s) => s < 3.0).length;
   if (lowScorers > 0) alerts.push(`${lowScorers} penilaian di bawah 3.0.`);
 
   return json({
-    kpis: { employees, pendingReviews, avgScore, unread },
+    kpis: { employees, pendingReviews, pendingLeave, avgScore, unread },
     performanceTrend,
     attendanceTrend,
     alerts,

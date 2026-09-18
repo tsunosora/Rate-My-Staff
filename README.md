@@ -10,6 +10,10 @@ Dibangun ulang penuh dengan **Next.js 16 (App Router) + Prisma + MySQL + Auth.js
 > lihat **[docs/fingerspot-integration.md](docs/fingerspot-integration.md)** — panduan
 > pemasangan mesin, arsitektur, protokol, dan troubleshooting.
 
+> 👤 **Portal karyawan & persetujuan izin:** lihat
+> **[docs/employee-portal.md](docs/employee-portal.md)** — halaman pribadi `/me/[token]`,
+> kunci PIN, alur approval owner, dan titik sambung data PosPro.
+
 ## Menjalankan di lokal
 
 **Prasyarat:**
@@ -59,7 +63,7 @@ Salin `.env.example` → `.env`, lalu isi:
 app/            Halaman & API (App Router)
   (auth)/       Halaman login
   (dashboard)/  Halaman terproteksi (dashboard, employees, attendance, dll)
-  (public)/     Halaman publik token (rate, absence)
+  (public)/     Halaman publik token (rate, absence, me — portal karyawan)
   api/          Route handler backend
   iclock/       Penerima push mesin Fingerspot (protokol ADMS)
 lib/            Logika bisnis (services, auth, prisma, validators)
@@ -111,6 +115,35 @@ shift pagi 08:00–16:00, shift siang 13:00–21:00.
 - **Telat:** menit lewat jam mulai shift di atas toleransi (default 15 menit).
 
 Logika ini dipakai konsisten di import scanlog, input manual, dan laporan absensi.
+
+## Halaman karyawan (`/me/[token]`)
+
+Tiap karyawan punya halaman pribadi berisi **absensi**, **penilaian kinerja** (skor per
+indikator + catatan penilai), **masukan tamu dari QR rating**, **estimasi lembur**, dan
+**pengajuan izin**. Tautan + QR-nya diambil dari **Direktori → tombol QR → tab "Portal
+Karyawan"**.
+
+Halaman dikunci **PIN 4–8 angka** yang dibuat karyawan sendiri saat pertama membuka tautan
+(admin bisa membuatkan PIN acak atau menghapusnya bila karyawan lupa). Sesi bertahan 8 jam
+lewat cookie httpOnly bertanda tangan — tanpa akun login.
+
+## Izin & cuti (dengan persetujuan owner)
+
+Pengajuan izin/sakit/cuti — dari portal karyawan maupun form tautan `/absence/[token]` —
+masuk sebagai **`pending`** dan **tidak mengubah absensi**. Owner/HR/Admin memutuskan di
+**Absensi → Izin & Cuti**:
+
+- **Setujui** → ketidakhadiran ditulis ke absensi, satu baris per hari. Tanggal yang sudah
+  punya scan mesin **dilewati** (bukti kehadiran asli tidak pernah ditimpa) dan dilaporkan.
+- **Tolak** → absensi tidak disentuh; alasan penolakan terlihat oleh karyawan.
+- **Batalkan persetujuan** → hanya baris absensi hasil persetujuan (`machineName =
+  leave-approval`) yang ditarik kembali.
+
+Aturan lain: satu hari tidak boleh punya dua pengajuan aktif, maksimal 31 hari per
+pengajuan, mundur maksimal 30 hari, maju maksimal 1 tahun. Pengajuan baru memunculkan
+notifikasi untuk OWNER/ADMIN/HR.
+
+Detail lengkap: **[docs/employee-portal.md](docs/employee-portal.md)**.
 
 ## Deploy
 

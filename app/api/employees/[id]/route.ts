@@ -9,6 +9,8 @@ export const GET = route<Ctx>(async (_req, ctx) => {
   const { id } = await ctx.params;
   const employee = await prisma.employee.findFirst({
     where: { id: Number(id), deletedAt: null },
+    // portalPin adalah hash PIN portal — jangan pernah ikut keluar ke klien.
+    omit: { portalPin: true },
     include: {
       department: true,
       position: true,
@@ -52,6 +54,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
       ...(d.phone !== undefined && { phone: d.phone || null }),
       ...(d.isActive !== undefined && { isActive: d.isActive }),
     },
+    omit: { portalPin: true },
     include: { department: true, position: true, workSchedule: true },
   });
   return json(employee);

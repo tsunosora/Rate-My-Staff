@@ -34,6 +34,8 @@ export const GET = route(async (req: Request) => {
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
       orderBy: { fullName: "asc" },
+      // portalPin adalah hash PIN portal — jangan pernah ikut keluar ke klien.
+      omit: { portalPin: true },
       include: { department: true, position: true, workSchedule: true },
     }),
     prisma.employee.count({ where }),

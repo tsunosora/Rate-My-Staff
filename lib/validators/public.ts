@@ -6,9 +6,5 @@ export const publicRateSchema = z.object({
   feedback: z.string().max(1000).optional().nullable(),
 });
 
-export const publicAbsenceSchema = z.object({
-  employeeId: z.coerce.number().int().positive(),
-  date: z.string().min(1), // YYYY-MM-DD
-  status: z.enum(["Izin", "Sakit", "Cuti"]),
-  reason: z.string().min(1).max(1000),
-});
+// Skema form ketidakhadiran pindah ke lib/validators/portal.ts (publicLeaveRequestSchema)
+// sejak pengajuan izin melewati persetujuan owner.

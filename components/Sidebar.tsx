@@ -33,6 +33,7 @@ const NAV: NavGroup[] = [
       { label: "Dashboard", href: "/attendance" },
       { label: "Laporan Detail", href: "/attendance/report" },
       { label: "Struk", href: "/attendance/receipt" },
+      { label: "Izin & Cuti", href: "/leave-requests" },
     ],
   },
   { label: "Direktori", href: "/employees", icon: IconUsers, require: "manager" },

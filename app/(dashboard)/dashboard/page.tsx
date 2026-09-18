@@ -16,13 +16,13 @@ import {
   type ChartOptions,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
-import { IconUsers, IconClock, IconStar, IconBell, IconAlert, IconCheck, IconAttendance } from "@/components/ui/icons";
+import { IconUsers, IconClock, IconStar, IconBell, IconAlert, IconCheck, IconAttendance, IconArrowRight } from "@/components/ui/icons";
 import { C, cleanX, cleanY, dotLegend, glassTooltip, areaGradient, pillBars } from "@/components/charts/theme";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler);
 
 type Dash = {
-  kpis: { employees: number; pendingReviews: number; avgScore: number; unread: number };
+  kpis: { employees: number; pendingReviews: number; pendingLeave: number; avgScore: number; unread: number };
   performanceTrend: { month: string; avg: number }[];
   attendanceTrend: { date: string; onTime: number; late: number; absent: number }[];
   alerts: string[];
@@ -93,6 +93,14 @@ export default function DashboardPage() {
               <span>{a}</span>
             </div>
           ))}
+          {d.kpis.pendingLeave > 0 && (
+            <Link
+              href="/leave-requests"
+              className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-warning hover:underline"
+            >
+              Tinjau pengajuan izin <IconArrowRight className="text-[15px]" />
+            </Link>
+          )}
         </div>
       )}
 

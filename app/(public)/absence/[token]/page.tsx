@@ -21,6 +21,7 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
   const [loading, setLoading] = useState(true);
   const [employeeId, setEmployeeId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("Izin");
   const [reason, setReason] = useState("");
   const [done, setDone] = useState(false);
@@ -51,12 +52,19 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
     const res = await fetch(`/api/public/absence-form/${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employeeId: Number(employeeId), date, status, reason }),
+      body: JSON.stringify({
+        employeeId: Number(employeeId),
+        startDate: date,
+        endDate: endDate || null,
+        type: status,
+        reason,
+      }),
     });
     setSaving(false);
-    if (res.ok) setDone(true);
-    else if (res.status === 410) setExpired(true);
-    else setError("Gagal mengirim. Coba lagi.");
+    if (res.ok) return setDone(true);
+    if (res.status === 410) return setExpired(true);
+    const body = await res.json().catch(() => ({}));
+    setError(body.message ?? "Gagal mengirim. Coba lagi.");
   }
 
   if (loading) return <Centered><Spinner /></Centered>;
@@ -70,7 +78,9 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
             <IconCheck className="text-[28px]" />
           </span>
           <h2 className="font-display text-xl font-bold text-fg">Terkirim!</h2>
-          <p className="mt-1 text-muted">Laporan ketidakhadiran Anda telah dicatat.</p>
+          <p className="mt-1 text-muted">
+            Pengajuan Anda menunggu persetujuan owner. Absensi baru berubah setelah disetujui.
+          </p>
         </div>
       </Centered>
     );
@@ -84,7 +94,7 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
             <IconAttendance className="text-[22px]" />
           </span>
           <h1 className="font-display text-xl font-bold text-fg">Formulir Ketidakhadiran</h1>
-          <p className="text-sm text-muted">Laporkan izin, sakit, atau cuti Anda.</p>
+          <p className="text-sm text-muted">Ajukan izin, sakit, atau cuti — menunggu persetujuan owner.</p>
         </div>
 
         {error && (
@@ -101,10 +111,16 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
           </select>
         </label>
 
-        <label className="mb-3 block space-y-1.5 text-sm">
-          <span className="font-medium text-muted">Tanggal *</span>
-          <input type="date" className="input h-11" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <label className="block space-y-1.5 text-sm">
+            <span className="font-medium text-muted">Tanggal mulai *</span>
+            <input type="date" className="input h-11" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <label className="block space-y-1.5 text-sm">
+            <span className="font-medium text-muted">Sampai (opsional)</span>
+            <input type="date" className="input h-11" min={date} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+        </div>
 
         <div className="mb-3">
           <span className="mb-1.5 block text-sm font-medium text-muted">Jenis *</span>

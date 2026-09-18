@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import { Modal } from "@/components/ui/Modal";
+import { EmployeeLinksModal } from "@/components/employees/EmployeeLinksModal";
 import {
   IconPlus,
   IconDownload,
@@ -21,6 +21,7 @@ type Employee = {
   employeeCode: string;
   machinePin: string | null;
   publicToken: string | null;
+  portalPinSetAt: string | null;
   fullName: string;
   nickname: string | null;
   isActive: boolean;
@@ -431,19 +432,14 @@ export default function EmployeesPage() {
       )}
 
       {modal === "qr" && editing?.publicToken && (
-        <Modal title="QR Penilaian Publik" onClose={() => setModal(null)}>
-          <div className="flex flex-col items-center gap-4 py-2">
-            <div className="rounded-2xl bg-white p-4">
-              <QRCodeCanvas
-                value={`${typeof window !== "undefined" ? window.location.origin : ""}/rate/${editing.publicToken}`}
-                size={200}
-              />
-            </div>
-            <code className="break-all rounded-lg bg-surface px-3 py-1.5 text-xs text-muted">
-              /rate/{editing.publicToken}
-            </code>
-          </div>
-        </Modal>
+        <EmployeeLinksModal
+          employeeId={editing.id}
+          employeeName={editing.fullName}
+          publicToken={editing.publicToken}
+          portalPinSetAt={editing.portalPinSetAt}
+          onClose={() => setModal(null)}
+          onChanged={load}
+        />
       )}
     </div>
   );

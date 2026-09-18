@@ -20,6 +20,13 @@ enum AssessmentStatus {
   approved
 }
 
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
 enum OvertimeType {
   flat
   hourly
@@ -38,9 +45,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  assessments   Assessment[]   @relation("Evaluator")
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  assessments    Assessment[]   @relation("Evaluator")
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  leaveDecisions LeaveRequest[] @relation("LeaveDecider")
 }
 
 model Department {
@@ -105,33 +113,37 @@ model Employee {
   email          String?
   phone          String?
   isActive       Boolean   @default(true)
+  // Portal karyawan (/me/[token]): hash bcrypt PIN. Null = PIN belum dibuat.
+  portalPin      String?   @db.VarChar(100)
+  portalPinSetAt DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position     Position?     @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  workSchedule WorkSchedule? @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
-  assessments  Assessment[]
-  attendances  Attendance[]
-  enrollments  MachineEnrollment[]
+  department    Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position      Position?           @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  workSchedule  WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  assessments   Assessment[]
+  attendances   Attendance[]
+  enrollments   MachineEnrollment[]
+  leaveRequests LeaveRequest[]
 
   @@index([isActive])
 }
 
 // Mesin absensi fisik (per cabang). Dikenali dari SN (dev_id) yang dikirim mesin.
 model Machine {
-  id         Int       @id @default(autoincrement())
-  sn         String    @unique @db.VarChar(100)
-  name       String    @db.VarChar(100)
-  mode       String    @default("cloud") @db.VarChar(20) // "cloud" (push) | "lan" (tarik IP)
-  ip         String?   @db.VarChar(64)
-  port       Int?
-  autoPull            Boolean @default(false) // mode LAN: tarik otomatis terjadwal
-  pullIntervalMinutes Int     @default(15)
-  lastSeenAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id                  Int       @id @default(autoincrement())
+  sn                  String    @unique @db.VarChar(100)
+  name                String    @db.VarChar(100)
+  mode                String    @default("cloud") @db.VarChar(20) // "cloud" (push) | "lan" (tarik IP)
+  ip                  String?   @db.VarChar(64)
+  port                Int?
+  autoPull            Boolean   @default(false) // mode LAN: tarik otomatis terjadwal
+  pullIntervalMinutes Int       @default(15)
+  lastSeenAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   enrollments MachineEnrollment[]
   attendances Attendance[]
@@ -274,6 +286,31 @@ model Attendance {
   @@index([scanDate])
   @@index([status])
   @@index([machineId])
+}
+
+// Pengajuan izin/sakit/cuti. Baru menyentuh Attendance SETELAH disetujui owner/manajemen.
+model LeaveRequest {
+  id           Int         @id @default(autoincrement())
+  employeeId   Int
+  startDate    DateTime
+  endDate      DateTime
+  type         String      @db.VarChar(20) // "Izin" | "Sakit" | "Cuti"
+  reason       String      @db.Text
+  status       LeaveStatus @default(pending)
+  // "portal" (halaman karyawan) | "link" (form publik) | "admin"
+  source       String      @default("portal") @db.VarChar(20)
+  decidedById  Int?
+  decidedAt    DateTime?
+  decisionNote String?     @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  decidedBy User?    @relation("LeaveDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate])
 }
 
 model Holiday {

@@ -14,3 +14,15 @@ export async function notifyAll(type: string, data: Prisma.InputJsonValue) {
     data: users.map((u) => ({ userId: u.id, type, data: data as Prisma.InputJsonValue })),
   });
 }
+
+/** Buat notifikasi untuk pemegang keputusan (OWNER/ADMIN/HR) — mis. pengajuan izin masuk. */
+export async function notifyManagers(type: string, data: Prisma.InputJsonValue) {
+  const users = await prisma.user.findMany({
+    where: { isActive: true, role: { in: ["OWNER", "ADMIN", "HR"] } },
+    select: { id: true },
+  });
+  if (users.length === 0) return;
+  await prisma.notification.createMany({
+    data: users.map((u) => ({ userId: u.id, type, data })),
+  });
+}

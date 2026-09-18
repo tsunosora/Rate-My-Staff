@@ -24,6 +24,8 @@ export default auth((req) => {
     pathname.startsWith("/login") ||
     pathname.startsWith("/rate") ||
     pathname.startsWith("/absence") ||
+    pathname === "/me" ||
+    pathname.startsWith("/me/") ||
     pathname.startsWith("/link-expired") ||
     pathname.startsWith("/api/public") ||
     pathname.startsWith("/api/fingerspot") ||

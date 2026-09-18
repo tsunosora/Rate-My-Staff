@@ -20,6 +20,7 @@ export const GET = route(async (req: Request) => {
   const data = await prisma.employee.findMany({
     where,
     orderBy: { fullName: "asc" },
+    omit: { portalPin: true },
     include: { department: true, position: true },
   });
   return json(data);
