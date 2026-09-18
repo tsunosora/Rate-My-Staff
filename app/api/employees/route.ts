@@ -67,6 +67,7 @@ export const POST = route(async (req: Request) => {
       salary: d.salary ?? null,
       email: d.email || null,
       phone: d.phone || null,
+      posproUserId: d.posproUserId || null,
     },
     include: { department: true, position: true, workSchedule: true },
   });

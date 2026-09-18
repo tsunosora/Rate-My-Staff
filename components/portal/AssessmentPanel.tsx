@@ -2,6 +2,7 @@
 
 import { IconStar } from "@/components/ui/icons";
 import { Card, Empty, longDate, soft } from "./ui";
+import { PosproPanel } from "./PosproPanel";
 import type { Assessment, Overview, ScoreRow } from "./types";
 
 /** Detail penilaian kinerja terakhir + riwayat skor + masukan tamu. */
@@ -11,6 +12,8 @@ export function AssessmentPanel({ data }: { data: Overview }) {
 
   return (
     <div className="space-y-4">
+      {data.pospro && <PosproPanel kpi={data.pospro} periodLabel={data.period.label} />}
+
       {latest ? (
         <Card title="Penilaian terakhir">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

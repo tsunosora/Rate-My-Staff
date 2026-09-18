@@ -53,6 +53,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
       ...(d.email !== undefined && { email: d.email || null }),
       ...(d.phone !== undefined && { phone: d.phone || null }),
       ...(d.isActive !== undefined && { isActive: d.isActive }),
+      ...(d.posproUserId !== undefined && { posproUserId: d.posproUserId || null }),
     },
     omit: { portalPin: true },
     include: { department: true, position: true, workSchedule: true },

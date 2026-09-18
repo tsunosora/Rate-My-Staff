@@ -11,6 +11,8 @@ export const employeeCreateSchema = z.object({
   salary: z.coerce.number().nonnegative().optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal("")),
   phone: z.string().max(30).optional().nullable(),
+  /** Pemetaan ke akun PosPro (User.id di sana); null = tidak dipetakan. */
+  posproUserId: z.coerce.number().int().positive().optional().nullable(),
 });
 
 export const employeeUpdateSchema = employeeCreateSchema.partial().extend({

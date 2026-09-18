@@ -92,6 +92,16 @@ export type Receipt = {
   totals: ReceiptTotals;
 };
 
+export type PosproKpi = {
+  userId: number;
+  name: string;
+  branchId: number | null;
+  isActive: boolean;
+  csRating: { count: number; avgStars: number; satisfiedCount: number; satisfactionRate: number };
+  tasks: { assigned: number; done: number; late: number; completionRate: number };
+  sales: { transactions: number; grandTotal: number; averageTicket: number };
+};
+
 export type Overview = {
   period: { label: string; startStr: string; endStr: string; year: number; month: number };
   attendance: { summary: AttendanceSummary; rows: AttendanceRow[] };
@@ -106,6 +116,8 @@ export type Overview = {
     count: number;
     items: { id: number; date: string; stars: number; raterName: string | null; comment: string | null }[];
   };
+  /** null = karyawan belum dipetakan ke akun PosPro, atau PosPro tak bisa dihubungi. */
+  pospro: PosproKpi | null;
 };
 
 export type LeaveRequestItem = {

@@ -3,6 +3,7 @@ import { aggregateAttendance } from "@/lib/services/attendance/aggregate";
 import { buildEmployeeReceipt } from "@/lib/services/attendance/receipt-source";
 import type { ReceiptData } from "@/lib/services/attendance/receipt";
 import type { ReceiptPeriod } from "@/lib/services/attendance/period";
+import { fetchPosproKpiForUser, type PosproStaffKpi } from "@/lib/services/pospro/client";
 
 /** Status yang berarti karyawan tidak masuk dengan keterangan. */
 const LEAVE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
@@ -73,6 +74,12 @@ export type PortalOverview = {
     count: number;
     items: { id: number; date: string; stars: number; raterName: string | null; comment: string | null }[];
   };
+  /**
+   * KPI dari PosPro (kasir) bila karyawan sudah dipetakan & PosPro bisa dihubungi.
+   * null = belum dipetakan, integrasi mati, atau PosPro sedang tak bisa dihubungi —
+   * halaman tetap tampil tanpa bagian ini.
+   */
+  pospro: PosproStaffKpi | null;
 };
 
 function ymd(d: Date): string {
@@ -113,9 +120,10 @@ export function summarizeRows(rows: PortalAttendanceRow[]): PortalAttendanceSumm
 export async function buildPortalOverview(
   prisma: PrismaClient,
   employeeId: number,
-  period: ReceiptPeriod
+  period: ReceiptPeriod,
+  posproUserId: number | null = null
 ): Promise<PortalOverview> {
-  const [attendance, receipt, assessments, publicAgg, publicItems] = await Promise.all([
+  const [attendance, receipt, assessments, publicAgg, publicItems, pospro] = await Promise.all([
     aggregateAttendance(prisma, {
       startStr: period.startStr,
       endStr: period.endStr,
@@ -142,6 +150,7 @@ export async function buildPortalOverview(
       take: 5,
       select: { id: true, totalScore: true, raterName: true, evaluatorNotes: true, assessmentDate: true },
     }),
+    fetchPosproKpiForUser(posproUserId, period.startStr, period.endStr),
   ]);
 
   const rows: PortalAttendanceRow[] = attendance.rows.map((r) => ({
@@ -215,5 +224,6 @@ export async function buildPortalOverview(
         comment: p.evaluatorNotes,
       })),
     },
+    pospro,
   };
 }

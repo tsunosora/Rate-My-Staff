@@ -116,6 +116,9 @@ model Employee {
   // Portal karyawan (/me/[token]): hash bcrypt PIN. Null = PIN belum dibuat.
   portalPin      String?   @db.VarChar(100)
   portalPinSetAt DateTime?
+  // Pemetaan ke akun PosPro (User.id di sana) untuk menarik KPI kinerja.
+  // Null = belum dipetakan; KPI PosPro tidak ditampilkan untuk karyawan ini.
+  posproUserId   Int?      @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?

@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/icons";
 
 type Ref = { id: number; name: string };
+type PosproStaff = { userId: number; name: string; isActive: boolean };
 type Employee = {
   id: number;
   employeeCode: string;
   machinePin: string | null;
   publicToken: string | null;
   portalPinSetAt: string | null;
+  posproUserId: number | null;
   fullName: string;
   nickname: string | null;
   isActive: boolean;
@@ -43,6 +45,7 @@ type FormState = {
   salary: string;
   email: string;
   phone: string;
+  posproUserId: string;
   isActive: boolean;
 };
 
@@ -57,6 +60,7 @@ const emptyForm: FormState = {
   salary: "",
   email: "",
   phone: "",
+  posproUserId: "",
   isActive: true,
 };
 
@@ -93,6 +97,7 @@ export default function EmployeesPage() {
   const [schedules, setSchedules] = useState<Ref[]>([]);
 
   const [modal, setModal] = useState<null | "add" | "edit" | "delete" | "qr">(null);
+  const [posproStaff, setPosproStaff] = useState<PosproStaff[] | null>(null);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
@@ -125,6 +130,9 @@ export default function EmployeesPage() {
     api<{ id: number; name: string }[]>("/api/positions").then((d) =>
       setPositions(d.map((x) => ({ id: x.id, name: x.name })))
     );
+    api<{ staff: PosproStaff[] }>("/api/pospro/staff-list")
+      .then((d) => setPosproStaff(d.staff))
+      .catch(() => setPosproStaff([]));
     api<{ id: number; name: string }[]>("/api/work-schedules").then((d) =>
       setSchedules(d.map((x) => ({ id: x.id, name: x.name })))
     );
@@ -150,6 +158,7 @@ export default function EmployeesPage() {
       salary: "",
       email: "",
       phone: "",
+      posproUserId: e.posproUserId ? String(e.posproUserId) : "",
       isActive: e.isActive,
     });
     setError("");
@@ -168,6 +177,7 @@ export default function EmployeesPage() {
       salary: form.salary ? Number(form.salary) : null,
       email: form.email || null,
       phone: form.phone || null,
+      posproUserId: form.posproUserId ? Number(form.posproUserId) : null,
       isActive: form.isActive,
     };
   }
@@ -397,6 +407,30 @@ export default function EmployeesPage() {
             <Field label="Telepon">
               <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input" />
             </Field>
+            <Field label="Akun PosPro (untuk KPI kinerja)" className="col-span-2">
+              <select
+                value={form.posproUserId}
+                onChange={(e) => setForm({ ...form, posproUserId: e.target.value })}
+                className="input"
+                disabled={!posproStaff || posproStaff.length === 0}
+              >
+                <option value="">— tidak dipetakan —</option>
+                {(posproStaff ?? []).map((u) => (
+                  <option key={u.userId} value={u.userId}>
+                    {u.name}
+                    {u.isActive ? "" : " (nonaktif)"}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-subtle">
+                {posproStaff === null
+                  ? "Memuat daftar akun PosPro…"
+                  : posproStaff.length === 0
+                    ? "PosPro tak bisa dihubungi atau integrasi belum diaktifkan (POSPRO_API_URL/POSPRO_API_KEY)."
+                    : "Menarik rating pelanggan, tugas/piket, dan penjualan dari PosPro ke halaman karyawan."}
+              </span>
+            </Field>
+
             {modal === "edit" && (
               <label className="col-span-2 flex items-center gap-2 text-sm text-muted">
                 <input type="checkbox" className="accent-[color:var(--primary)]" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />

@@ -96,34 +96,71 @@ yang belum sempat memakai portal pribadinya.
 
 ---
 
-## 3. Titik sambung data PosPro (belum tersambung)
+## 3. Integrasi KPI dari PosPro
 
-Penilaian kinerja saat ini bersumber dari dalam RateMyStaff saja: `Assessment` (template +
-indikator berbobot) dan `Attendance`. PosPro (`/home/homelab/pos/pospro`, NestJS + Prisma +
-MySQL) menyimpan data operasional yang bisa jadi **indikator objektif** per karyawan:
+Penilaian kinerja kini punya dua sumber: penilaian manual di RateMyStaff (`Assessment`)
+dan **KPI operasional dari PosPro** (aplikasi kasir, repo `/home/homelab/pos/pospro`).
 
-| Data di PosPro | Calon indikator |
+### Jalur data
+
+```
+RateMyStaff                                   PosPro (NestJS, :3001)
+  portal /me/[token]  ──┐
+  Direktori → Edit     ─┤  GET /integrations/staff-list   ← daftar akun (dropdown pemetaan)
+                        └► GET /integrations/staff-kpi    ← KPI per userId, rentang tanggal
+                             header: x-api-key
+```
+
+Keduanya berjalan di mesin yang sama, jadi panggilannya lewat `127.0.0.1` — tidak keluar internet.
+
+### Konfigurasi
+
+| Sisi | Variabel | Isi |
+|---|---|---|
+| PosPro | `STAFF_KPI_API_KEY` | kunci acak; **kosong = integrasi mati** (semua request ditolak) |
+| RateMyStaff | `POSPRO_API_URL` | `http://127.0.0.1:3001` |
+| RateMyStaff | `POSPRO_API_KEY` | harus sama persis dengan `STAFF_KPI_API_KEY` |
+
+Buat kunci baru: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`
+
+### Pemetaan karyawan ↔ akun PosPro
+
+**Direktori → Edit karyawan → "Akun PosPro"**. Tanpa pemetaan ini, KPI tidak muncul untuk
+karyawan tersebut. Tersimpan di `Employee.posproUserId` (unik — satu akun PosPro hanya
+boleh dipetakan ke satu karyawan).
+
+### KPI yang ditarik
+
+| KPI | Sumber di PosPro | Cara mengenali orangnya |
+|---|---|---|
+| Rating pelanggan | `CsRatingResponse` | `assignedCsId` → FK `User` — **andal** |
+| Tugas & piket | `TaskItem` (`assigneeId`, `status`, `dueDate`, `completedAt`) | FK `User` — **andal** |
+| Penjualan | `Transaction` status `PAID` | **nama kasir** (`checkoutCashierName`, jatuh ke `cashierName`) — lihat catatan di bawah |
+
+- **Penjualan dicocokkan lewat nama**, karena tabel transaksi PosPro tidak menyimpan id user.
+  Pencocokan memakai nama yang dinormalisasi (huruf kecil, spasi dirapikan), dan kredit
+  diberikan ke **penutup transaksi**, bukan pembuat nota.
+  Nama kasir yang tak cocok dengan satu pun akun dikembalikan di `unmatchedCashierNames`
+  supaya ketahuan ada penjualan yang belum terhitung.
+- **Terlambat** pada tugas = selesai melewati tenggat, atau belum selesai padahal tenggat lewat.
+  Tugas tanpa tenggat tidak pernah dihitung terlambat.
+- **Puas** pada rating = jawaban "ya", atau bintang 4–5.
+
+### Kalau PosPro mati
+
+Portal karyawan **tetap tampil**; bagian KPI hilang begitu saja. Semua kegagalan
+(integrasi belum diisi, PosPro tak bisa dihubungi, HTTP bukan 2xx, batas waktu 6 detik)
+menghasilkan `null`, dicatat ke log server, dan tidak pernah menggagalkan halaman.
+
+### Berkas di sisi PosPro
+
+| Berkas | Isi |
 |---|---|
-| `CsRatingResponse` (rating pelanggan, punya `staffId`) | Kepuasan pelanggan per staf |
-| `Transaction` (per kasir/`User`) | Jumlah & nilai transaksi, rata-rata nota |
-| `ShiftReport` | Selisih kas saat tutup shift |
-| `ProductionJob` / `JerseyWorkOrder` | Beban & ketepatan waktu order produksi |
-| `ClickLog` / `MachineReject` | Volume cetak & tingkat reject mesin |
-| `BonusTarget` / `BonusAdjustment` | Pencapaian target |
-| Task board / piket | Kedisiplinan tugas rutin |
-
-Yang perlu disiapkan saat integrasi dikerjakan:
-
-1. **Pemetaan identitas** — `Employee.id` (RateMyStaff) ↔ `User.id` (PosPro). Paling aman
-   lewat kolom pemetaan baru di `Employee`, bukan pencocokan nama.
-2. **Cara ambil data** — dua pilihan:
-   - **API PosPro**: tambah endpoint ringkas (`GET /reports/staff-kpi?from&to`) + token servis.
-     Menjaga RateMyStaff tak bergantung pada skema internal PosPro. *(Disarankan.)*
-   - **Baca DB langsung**: koneksi Prisma kedua (read-only) ke database PosPro. Lebih cepat
-     dibuat, tapi RateMyStaff jadi ikut patah kalau skema PosPro berubah.
-3. **Tempat menaruhnya** — KPI eksternal masuk sebagai indikator tambahan di
-   `lib/services/portal/overview.ts` (kartu baru di tab Ringkasan/Penilaian), dan sebagai
-   sumber skor otomatis untuk `AssessmentIndicator` bila ingin ikut menghitung grade.
+| `backend/src/auth/api-key.guard.ts` | Guard `x-api-key`, banding waktu-konstan; env kosong = tolak |
+| `backend/src/integrations/staff-kpi.controller.ts` | `GET /integrations/staff-list`, `GET /integrations/staff-kpi` |
+| `backend/src/integrations/staff-kpi.service.ts` | Query Prisma + penggabungan per user |
+| `backend/src/integrations/staff-kpi.aggregate.ts` | Agregasi murni (tanpa Prisma) |
+| `backend/src/integrations/staff-kpi.aggregate.spec.ts` | Unit test agregasi (jest) |
 
 ---
 
@@ -139,4 +176,7 @@ Yang perlu disiapkan saat integrasi dikerjakan:
 | `app/api/employees/[id]/portal-pin/route.ts` | Admin set/hapus PIN |
 | `lib/services/portal/*` | Sesi HMAC, aturan PIN, guard, agregasi data portal |
 | `lib/services/leave/*` | Aturan rentang tanggal, irisan, penerapan ke absensi |
+| `lib/services/pospro/client.ts` | Klien integrasi PosPro (gagal = null, bukan error) |
+| `app/api/pospro/staff-list/route.ts` | Proksi daftar akun PosPro untuk dropdown pemetaan |
+| `components/portal/PosproPanel.tsx` | Kartu KPI operasional di tab Penilaian |
 | `tests/leave-range.test.ts`, `tests/portal-session.test.ts` | Unit test logika murni |

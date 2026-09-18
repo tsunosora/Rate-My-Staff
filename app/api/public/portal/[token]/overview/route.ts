@@ -11,5 +11,5 @@ export const GET = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
   const employee = await requirePortalSession(token);
   const period = resolveReceiptPeriod(new URL(req.url).searchParams);
-  return json(await buildPortalOverview(prisma, employee.id, period));
+  return json(await buildPortalOverview(prisma, employee.id, period, employee.posproUserId));
 });

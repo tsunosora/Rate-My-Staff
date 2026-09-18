@@ -10,9 +10,9 @@ Dibangun ulang penuh dengan **Next.js 16 (App Router) + Prisma + MySQL + Auth.js
 > lihat **[docs/fingerspot-integration.md](docs/fingerspot-integration.md)** — panduan
 > pemasangan mesin, arsitektur, protokol, dan troubleshooting.
 
-> 👤 **Portal karyawan & persetujuan izin:** lihat
+> 👤 **Portal karyawan, persetujuan izin & KPI PosPro:** lihat
 > **[docs/employee-portal.md](docs/employee-portal.md)** — halaman pribadi `/me/[token]`,
-> kunci PIN, alur approval owner, dan titik sambung data PosPro.
+> kunci PIN, alur approval owner, dan integrasi KPI dari aplikasi kasir PosPro.
 
 ## Menjalankan di lokal
 
@@ -144,6 +144,20 @@ pengajuan, mundur maksimal 30 hari, maju maksimal 1 tahun. Pengajuan baru memunc
 notifikasi untuk OWNER/ADMIN/HR.
 
 Detail lengkap: **[docs/employee-portal.md](docs/employee-portal.md)**.
+
+## KPI dari PosPro (aplikasi kasir)
+
+Bila diaktifkan, halaman karyawan ikut menampilkan **kinerja operasional** dari PosPro:
+rating pelanggan, ketuntasan tugas/piket, dan penjualan. Datanya diambil dari endpoint
+`/integrations/staff-kpi` di PosPro memakai header `x-api-key`.
+
+Aktifkan dengan mengisi `POSPRO_API_URL` & `POSPRO_API_KEY` di `.env` (kuncinya harus sama
+dengan `STAFF_KPI_API_KEY` di PosPro), lalu petakan tiap karyawan ke akun PosPro-nya di
+**Direktori → Edit → Akun PosPro**. Tanpa konfigurasi itu integrasi mati dan halaman
+karyawan tetap jalan seperti biasa.
+
+> Penjualan dicocokkan lewat **nama kasir** pada nota — tabel transaksi PosPro tidak
+> menyimpan id user. Rating pelanggan & tugas dipetakan lewat id, jadi andal.
 
 ## Deploy
 
