@@ -91,25 +91,71 @@ Jam kerja dihitung dari jam masuk & pulang (`lib/services/portal/worktime.ts`). 
 tengah malam dihitung benar; di atas 16 jam dianggap data salah (lupa absen pulang) dan
 tidak dihitung, bukan dikarang.
 
-### Hasil kerja harian (dari PosPro)
+### Omzet & pekerjaan (dari PosPro)
 
-Untuk karyawan yang dipetakan ke akun PosPro, tab Ringkasan juga menampilkan **berapa yang
-dia hasilkan pada tiap hari dia absen**:
+Untuk karyawan yang dipetakan ke akun PosPro, tab Ringkasan menampilkan **omzet hari ini**,
+omzet periode berjalan, dan pekerjaan yang diselesaikan:
 
-| Peran | Angka | Sumber di PosPro |
-|---|---|---|
-| Kasir / CS | omzet & jumlah nota | `Transaction` PAID yang **dia tutup** |
-| Desainer | jumlah order desain | `SalesOrder.designerName` |
-| Operator | bobot kartu produksi | `ProductionJobActivity.actorWeight` |
+| Peran | Omzet | Pekerjaan | Sumber di PosPro |
+|---|---|---|---|
+| Kasir / CS | nilai nota yang **dia tutup** | jumlah closing | `Transaction` PAID |
+| Desainer | nilai nota dari order yang dia desain | jumlah order | `SalesOrder.designerName` |
+| Operator | nilai item produksi × bobot | jumlah kartu | `ProductionJobActivity` |
+| Semua | — | task selesai (tepat waktu / telat) | `TaskItem` (per `assigneeId`) |
 
-Total di kartu dihitung dari **hari yang ada absensinya saja**, supaya cocok dengan tabel di
-bawahnya. Bila ada omzet atas nama orang itu di tanggal tanpa absensi (biasanya lupa scan),
-selisihnya disebutkan terpisah.
+**Omzet ditampilkan satu angka per hari** (gabungan seluruh perannya). Rincian per peran hanya
+muncul untuk orang yang benar-benar merangkap — kalau tidak, dua angka yang sama hanya membuat
+seolah ada dua omzet berbeda.
+
+Total dihitung dari **hari yang ada absensinya saja**, supaya cocok dengan tabelnya. Bila ada
+omzet atas nama orang itu di tanggal tanpa absensi (biasanya lupa scan), selisihnya disebut
+terpisah.
 
 > **Alias nama.** Data operasional PosPro menyimpan nama, bukan id user — dan namanya bisa
 > berbeda (user `Damara` memakai nama desainer `Damar`). Karena itu pencocokan memakai
 > **semua alias**: `User.name` + seluruh `Designer.name` yang terhubung ke user itu. Tanpa
 > ini, hasil kerja orang beralias tidak terhitung sama sekali.
+
+### Poin & hadiah
+
+Tab **Poin** di portal karyawan. Poin dikumpulkan otomatis dari kerja sehari-hari, lalu bisa
+ditukar hadiah yang disiapkan owner.
+
+**Tarif bawaan** (semuanya bisa diubah di **Pengaturan → Poin Karyawan**, tanpa menyentuh kode):
+
+| Sumber | Poin |
+|---|---|
+| Omzet | 1 poin tiap Rp10.000 (Rp1 juta = 100 poin) |
+| Nota / closing | 5 poin |
+| Order desain | 10 poin |
+| Kartu produksi | 10 poin (dikali bobot) |
+| Task tepat waktu | 20 poin |
+| Task terlambat | 5 poin |
+| Hadir tepat waktu | 10 poin per hari |
+
+Angkanya sengaja dibuat **seimbang antar peran**: sehari beromzet Rp1 juta + 20 nota + hadir
+tepat waktu = 210 poin, sementara operator dengan 8 kartu + 5 task + hadir tepat waktu = 190
+poin. Kasir beromzet besar tidak otomatis mengalahkan orang yang rajin.
+
+**Cara kerjanya**
+
+- Poin dihitung per hari dan **disimpan** di `PointEntry` (bukan dihitung ulang tiap buka
+  halaman), sehingga saldo murah dihitung dan riwayat tidak berubah walau tarif kelak diganti.
+- Perhitungan **idempoten**: menghitung ulang rentang yang sama menimpa hasil lama, bukan
+  menggandakan. Owner punya tombol *Hitung ulang* di halaman Poin & Hadiah.
+- Poin omzet/pekerjaan/task mengikuti **kerja yang tercatat di PosPro**, sedangkan poin
+  kehadiran hanya diberikan pada hari yang benar-benar absen tepat waktu.
+- Saldo = seluruh poin terkumpul − yang sudah ditukar − yang tertahan di pengajuan. Poin
+  tertahan mencegah satu orang mengajukan berkali-kali melebihi poinnya.
+
+**Penukaran** (owner: **Penilaian → Poin & Hadiah**)
+
+1. Owner mengisi katalog hadiah: uang, produk, atau voucher — lengkap dengan harga poin,
+   nilai rupiah, dan stok (kosong = tak dibatasi).
+2. Karyawan mengajukan dari tab Poin. Pengajuan masuk sebagai `pending` dan memunculkan
+   notifikasi untuk owner/HR/admin.
+3. Owner **menyetujui** (poin terpotong, stok berkurang), **menolak** (poin kembali), menandai
+   **sudah diserahkan**, atau **membatalkan** persetujuan (poin & stok dikembalikan).
 
 ---
 
@@ -258,4 +304,9 @@ menghasilkan `null`, dicatat ke log server, dan tidak pernah menggagalkan halama
 | `components/portal/DailyOutputPanel.tsx` | Omzet/output pada tiap hari absen |
 | `lib/services/portal/worktime.ts` | Durasi kerja, ringkasan & tren (modul murni) |
 | `lib/services/portal/pin-strength.ts` | Penilaian kekuatan PIN (dipakai server & browser) |
+| `lib/services/points/rates.ts` | Tarif poin + pembacaan dari Pengaturan |
+| `lib/services/points/compute.ts` | Hitungan poin harian (modul murni) |
+| `lib/services/points/service.ts` | Simpan poin, saldo, papan peringkat |
+| `components/portal/PointsPanel.tsx` | Tab Poin: saldo, cara dapat, katalog, riwayat |
+| `app/(dashboard)/points/page.tsx` | Halaman owner: peringkat, hadiah, pengajuan |
 | `tests/leave-range.test.ts`, `tests/portal-session.test.ts` | Unit test logika murni |

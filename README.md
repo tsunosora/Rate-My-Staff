@@ -159,6 +159,20 @@ karyawan tetap jalan seperti biasa.
 > Penjualan dicocokkan lewat **nama kasir** pada nota — tabel transaksi PosPro tidak
 > menyimpan id user. Rating pelanggan & tugas dipetakan lewat id, jadi andal.
 
+## Poin & hadiah karyawan
+
+Karyawan mengumpulkan poin otomatis dari **omzet, pekerjaan yang diselesaikan, task tepat
+waktu, dan kehadiran** — lalu bisa menukarnya dengan uang, produk, atau voucher yang
+disiapkan owner di **Penilaian → Poin & Hadiah**.
+
+Tarifnya diatur di **Pengaturan → Poin Karyawan** (bawaan: Rp1 juta = 100 poin, task tepat
+waktu 20 poin, hadir tepat waktu 10 poin/hari). Sengaja seimbang supaya kasir beromzet besar
+tidak otomatis mengalahkan operator dan orang yang rajin mengerjakan task.
+
+Alur penukaran: karyawan mengajukan dari halamannya → owner menyetujui → poin terpotong dan
+stok hadiah berkurang. Poin pada pengajuan yang belum diputus ditahan agar tak bisa
+diajukan berkali-kali melebihi poin yang dimiliki. Detail: **[docs/employee-portal.md](docs/employee-portal.md)**.
+
 ## Deploy
 
 Produksi berjalan di homelab via PM2 + Cloudflare Tunnel (`absensi.volikoprint.com`).

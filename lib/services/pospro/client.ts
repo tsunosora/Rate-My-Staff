@@ -151,7 +151,11 @@ export type PosproDailyRow = {
   operatorJobs: number;
   /** Omzet sebagai operator (nilai item produksi, dibagi bobot kerja bersama). */
   operatorOmzet: number;
-  /** Jumlah ketiganya. */
+  /** Task/piket selesai tepat waktu hari itu. */
+  tasksOnTime: number;
+  /** Task/piket selesai tapi lewat tenggat. */
+  tasksLate: number;
+  /** Jumlah ketiga omzet. */
   totalOmzet: number;
 };
 

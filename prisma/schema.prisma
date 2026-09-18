@@ -27,6 +27,20 @@ enum LeaveStatus {
   cancelled
 }
 
+enum RedemptionStatus {
+  pending
+  approved
+  rejected
+  delivered
+  cancelled
+}
+
+enum RewardType {
+  cash
+  product
+  voucher
+}
+
 enum OvertimeType {
   flat
   hourly
@@ -45,10 +59,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  assessments    Assessment[]   @relation("Evaluator")
-  auditLogs      AuditLog[]
-  notifications  Notification[]
-  leaveDecisions LeaveRequest[] @relation("LeaveDecider")
+  assessments         Assessment[]      @relation("Evaluator")
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  leaveDecisions      LeaveRequest[]    @relation("LeaveDecider")
+  redemptionDecisions PointRedemption[] @relation("RedemptionDecider")
 }
 
 model Department {
@@ -123,13 +138,15 @@ model Employee {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  department    Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position      Position?           @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  workSchedule  WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
-  assessments   Assessment[]
-  attendances   Attendance[]
-  enrollments   MachineEnrollment[]
-  leaveRequests LeaveRequest[]
+  department       Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position         Position?           @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  workSchedule     WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  assessments      Assessment[]
+  attendances      Attendance[]
+  enrollments      MachineEnrollment[]
+  leaveRequests    LeaveRequest[]
+  pointEntries     PointEntry[]
+  pointRedemptions PointRedemption[]
 
   @@index([isActive])
 }
@@ -314,6 +331,82 @@ model LeaveRequest {
   @@index([employeeId])
   @@index([status])
   @@index([startDate])
+}
+
+// Poin harian karyawan — hasil hitungan dari omzet, pekerjaan, task & kehadiran.
+// Disimpan (bukan dihitung ulang tiap buka halaman) supaya saldo poin murah dihitung
+// dan riwayatnya tidak berubah walau tarif poin kelak diubah.
+model PointEntry {
+  id               Int      @id @default(autoincrement())
+  employeeId       Int
+  date             DateTime
+  /**
+   * Omzet hari itu (kasir + desain + produksi) — disimpan untuk penjelasan.
+   */
+  omzet            Decimal  @default(0) @db.Decimal(15, 2)
+  omzetPoints      Int      @default(0)
+  jobPoints        Int      @default(0)
+  taskPoints       Int      @default(0)
+  attendancePoints Int      @default(0)
+  points           Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([date])
+}
+
+// Katalog hadiah yang bisa ditukar dengan poin.
+model Reward {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(150)
+  description String?    @db.Text
+  type        RewardType @default(product)
+  pointCost   Int
+  /**
+   * Nilai rupiah untuk hadiah uang; hanya informasi untuk jenis lain.
+   */
+  cashValue   Decimal?   @db.Decimal(15, 2)
+  /**
+   * null = tidak dibatasi.
+   */
+  stock       Int?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  redemptions PointRedemption[]
+
+  @@index([isActive])
+}
+
+// Pengajuan penukaran poin oleh karyawan; poin baru terpotong setelah disetujui.
+model PointRedemption {
+  id           Int              @id @default(autoincrement())
+  employeeId   Int
+  rewardId     Int?
+  /**
+   * Nama & harga poin disalin saat mengajukan agar riwayat tak berubah.
+   */
+  rewardName   String           @db.VarChar(150)
+  pointCost    Int
+  status       RedemptionStatus @default(pending)
+  note         String?          @db.Text
+  decisionNote String?          @db.Text
+  decidedById  Int?
+  decidedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reward    Reward?  @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  decidedBy User?    @relation("RedemptionDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([status])
 }
 
 model Holiday {

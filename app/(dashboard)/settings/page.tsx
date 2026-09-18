@@ -434,6 +434,73 @@ export default function SettingsPage() {
           </button>
         </Card>
 
+        <Card title="Poin Karyawan">
+          <p className="mb-3 text-xs leading-relaxed text-muted">
+            Poin dikumpulkan karyawan dari omzet, pekerjaan, task, dan kedisiplinan, lalu bisa
+            ditukar hadiah di <b className="text-fg">Penilaian &rarr; Poin &amp; Hadiah</b>.
+            Kosongkan untuk memakai nilai bawaan.
+          </p>
+          <label className="mb-3 flex items-center gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              className="accent-[color:var(--primary)]"
+              checked={settings.points_enabled !== "false"}
+              onChange={(e) =>
+                setSettings({ ...settings, points_enabled: e.target.checked ? "true" : "false" })
+              }
+            />
+            Nyalakan sistem poin
+          </label>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="space-y-1">
+              <span className="text-muted">Omzet per 1 poin (Rp)</span>
+              <input type="number" min={1} step={1000} className="input" placeholder="10000"
+                value={settings.points_omzet_per_point ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_omzet_per_point: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per nota / closing</span>
+              <input type="number" min={0} className="input" placeholder="5"
+                value={settings.points_per_transaction ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_transaction: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per order desain</span>
+              <input type="number" min={0} className="input" placeholder="10"
+                value={settings.points_per_design_job ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_design_job: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per kartu produksi</span>
+              <input type="number" min={0} className="input" placeholder="10"
+                value={settings.points_per_operator_job ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_operator_job: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per task tepat waktu</span>
+              <input type="number" min={0} className="input" placeholder="20"
+                value={settings.points_per_task_ontime ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_task_ontime: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per task terlambat</span>
+              <input type="number" min={0} className="input" placeholder="5"
+                value={settings.points_per_task_late ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_task_late: e.target.value })} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted">Poin per hari hadir tepat waktu</span>
+              <input type="number" min={0} className="input" placeholder="10"
+                value={settings.points_per_ontime_day ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_per_ontime_day: e.target.value })} />
+            </label>
+          </div>
+          <p className="mt-3 text-xs text-subtle">
+            Bawaan: Rp1 juta = 100 poin, sehingga kasir beromzet besar tidak otomatis
+            mengalahkan operator &amp; orang yang rajin mengerjakan task.
+          </p>
+        </Card>
+
         <Card title="Tarif Lembur & Struk">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="space-y-1">

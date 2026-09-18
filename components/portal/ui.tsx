@@ -119,6 +119,8 @@ export const LEAVE_STATUS_META: Record<string, { label: string; color: string }>
   approved: { label: "Disetujui", color: "var(--success)" },
   rejected: { label: "Ditolak", color: "var(--danger)" },
   cancelled: { label: "Dibatalkan", color: "var(--fg-subtle)" },
+  // Dipakai juga untuk status penukaran poin.
+  delivered: { label: "Sudah diserahkan", color: "var(--success)" },
 };
 
 export function LeaveStatusBadge({ status }: { status: string }) {

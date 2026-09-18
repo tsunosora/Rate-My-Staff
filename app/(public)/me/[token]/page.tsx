@@ -14,6 +14,7 @@ import { OverviewPanel } from "@/components/portal/OverviewPanel";
 import { AttendancePanel } from "@/components/portal/AttendancePanel";
 import { AssessmentPanel } from "@/components/portal/AssessmentPanel";
 import { LeavePanel } from "@/components/portal/LeavePanel";
+import { PointsPanel } from "@/components/portal/PointsPanel";
 import { ChangePinForm } from "@/components/portal/ChangePinForm";
 import { soft } from "@/components/portal/ui";
 import type { Overview, PortalState } from "@/components/portal/types";
@@ -22,6 +23,7 @@ const TABS = [
   { key: "overview", label: "Ringkasan" },
   { key: "attendance", label: "Absensi" },
   { key: "assessment", label: "Penilaian" },
+  { key: "points", label: "Poin" },
   { key: "leave", label: "Izin" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -195,6 +197,8 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
 
         {tab === "leave" ? (
           <LeavePanel token={token} />
+        ) : tab === "points" ? (
+          <PointsPanel token={token} year={year} month={month} />
         ) : loadError ? (
           <div
             className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-danger"

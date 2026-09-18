@@ -42,6 +42,8 @@ export type DailyOutput = {
   operatorJobs: number;
   /** Omzet sebagai operator. */
   operatorOmzet: number;
+  tasksOnTime: number;
+  tasksLate: number;
   /** Jumlah ketiga peran. */
   totalOmzet: number;
 };

@@ -45,6 +45,7 @@ const NAV: NavGroup[] = [
       { label: "Skor Massal", href: "/assessments/bulk" },
       { label: "Template", href: "/assessments/templates" },
       { label: "Laporan", href: "/reports" },
+      { label: "Poin & Hadiah", href: "/points", require: "manager" },
     ],
   },
   {
