@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/fetcher";
 import { IconAlert, IconAttendance } from "@/components/ui/icons";
+import { PinStrengthMeter } from "./PinStrengthMeter";
 import type { PortalEmployeeInfo } from "./types";
 
 /** Layar PIN: membuat PIN pertama kali, atau masuk dengan PIN yang sudah ada. */
@@ -97,6 +98,7 @@ export function PinGate({
           onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
           onKeyDown={(e) => e.key === "Enter" && canLogin && submit()}
         />
+        {!canLogin && <PinStrengthMeter pin={pin} />}
       </label>
 
       {!canLogin && (

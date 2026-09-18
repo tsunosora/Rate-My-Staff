@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { adminPortalPinSchema } from "@/lib/validators/portal";
-import { normalizePin, validatePin, randomPin } from "@/lib/services/portal/pin";
+import { normalizePin, checkPin, pinWarning, randomPin } from "@/lib/services/portal/pin";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -26,15 +26,15 @@ export const POST = route<Ctx>(async (req, ctx) => {
 
   const raw = parsed.data.pin?.trim();
   const pin = raw ? normalizePin(raw) : randomPin();
-  const problem = validatePin(pin);
-  if (problem) return badRequest({ pin: [problem] });
+  const check = checkPin(pin);
+  if (!check.valid) return badRequest({ pin: [check.error] });
 
   await prisma.employee.update({
     where: { id: employee.id },
     data: { portalPin: await bcrypt.hash(pin, 10), portalPinSetAt: new Date() },
   });
 
-  return json({ ok: true, pin });
+  return json({ ok: true, pin, strength: check.strength, warning: pinWarning(check) });
 });
 
 /** Kosongkan PIN — karyawan akan diminta membuat PIN baru saat membuka tautannya. */

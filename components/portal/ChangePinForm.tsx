@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/fetcher";
 import { IconAlert, IconCheck } from "@/components/ui/icons";
 import { Card, soft } from "./ui";
+import { PinStrengthMeter } from "./PinStrengthMeter";
 
 /** Ganti PIN portal dari dalam halaman karyawan (wajib menyebut PIN lama). */
 export function ChangePinForm({ token, onDone }: { token: string; onDone: () => void }) {
@@ -69,6 +70,7 @@ export function ChangePinForm({ token, onDone }: { token: string; onDone: () => 
                 value={pin}
                 onChange={(e) => setPin(digits(e.target.value))}
               />
+              <PinStrengthMeter pin={pin} />
             </label>
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium text-muted">Ulangi PIN baru</span>

@@ -3,6 +3,9 @@
 import { AttendanceDonut } from "@/components/attendance/AttendanceDonut";
 import { IconCheck, IconClock, IconStar, IconAlert } from "@/components/ui/icons";
 import { Card, Stat, Empty, hm, rupiah, soft } from "./ui";
+import { WorkChart } from "./WorkChart";
+import { DisciplineCard } from "./DisciplineCard";
+import { DailyOutputPanel } from "./DailyOutputPanel";
 import type { Overview } from "./types";
 
 /** Ringkasan satu periode: kehadiran, skor, feedback tamu, dan estimasi lembur. */
@@ -43,6 +46,18 @@ export function OverviewPanel({ data }: { data: Overview }) {
           tone="var(--primary)"
         />
       </div>
+
+      <WorkChart rows={data.attendance.rows} periodLabel={data.period.label} />
+
+      <DisciplineCard d={data.discipline} />
+
+      {data.outputTotals && (
+        <DailyOutputPanel
+          rows={data.attendance.rows}
+          totals={data.outputTotals}
+          periodLabel={data.period.label}
+        />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title={`Kehadiran ${data.period.label}`}>

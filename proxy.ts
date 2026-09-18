@@ -27,6 +27,10 @@ export default auth((req) => {
     pathname === "/me" ||
     pathname.startsWith("/me/") ||
     pathname.startsWith("/link-expired") ||
+    // robots.txt WAJIB bisa dibaca crawler tanpa login — kalau dialihkan ke /login,
+    // mesin pencari tak pernah melihat larangan indeksnya.
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
     pathname.startsWith("/api/public") ||
     pathname.startsWith("/api/fingerspot") ||
     pathname.startsWith("/iclock") ||

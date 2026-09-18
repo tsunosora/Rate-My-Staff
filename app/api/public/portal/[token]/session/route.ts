@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { json, badRequest, route } from "@/lib/http";
 import { canAttempt, recordFailure, clearAttempts, sweep } from "@/lib/rate-limit";
 import { requireEmployeeByToken, setPortalCookie, clearPortalCookie } from "@/lib/services/portal/auth";
-import { normalizePin, validatePin } from "@/lib/services/portal/pin";
+import { normalizePin, checkPin, pinWarning } from "@/lib/services/portal/pin";
 import { portalLoginSchema, portalSetPinSchema } from "@/lib/validators/portal";
 import { posproPinAvailable, verifyPosproPin } from "@/lib/services/pospro/client";
 
@@ -54,8 +54,10 @@ export const POST = route<Ctx>(async (req, ctx) => {
     }
 
     const pin = normalizePin(parsed.data.pin);
-    const problem = validatePin(pin);
-    if (problem) return badRequest({ pin: [problem] });
+    const check = checkPin(pin);
+    // Hanya format yang menggagalkan. PIN lemah tetap disimpan, tapi karyawan
+    // diberi tahu bahwa PIN-nya mudah ditebak.
+    if (!check.valid) return badRequest({ pin: [check.error] });
 
     await prisma.employee.update({
       where: { id: employee.id },
@@ -63,7 +65,12 @@ export const POST = route<Ctx>(async (req, ctx) => {
     });
     clearAttempts(key);
     await setPortalCookie(employee.id, token);
-    return json({ ok: true, created: !employee.portalPin });
+    return json({
+      ok: true,
+      created: !employee.portalPin,
+      strength: check.strength,
+      warning: pinWarning(check),
+    });
   }
 
   // --- Masuk dengan PIN -------------------------------------------------------

@@ -27,6 +27,37 @@ export type AttendanceRow = {
   overtimeMinutes: number;
   isHoliday: boolean;
   absenceReason: string | null;
+  workedMinutes: number;
+  output: DailyOutput | null;
+};
+
+export type DailyOutput = {
+  date: string;
+  transactions: number;
+  omzet: number;
+  designJobs: number;
+  operatorJobs: number;
+};
+
+export type OutputTotals = Omit<DailyOutput, "date">;
+
+export type DisciplineSummary = {
+  workedDays: number;
+  totalWorkedMinutes: number;
+  avgWorkedMinutes: number;
+  lateDays: number;
+  totalLateMinutes: number;
+  avgLateMinutes: number;
+  onTimeRate: number;
+};
+
+export type Discipline = {
+  current: DisciplineSummary;
+  previous: DisciplineSummary;
+  lateDelta: number;
+  onTimeDelta: number;
+  workedDelta: number;
+  trend: "membaik" | "memburuk" | "sama" | "baru";
 };
 
 export type AttendanceSummary = {
@@ -121,6 +152,8 @@ export type Overview = {
   };
   /** null = karyawan belum dipetakan ke akun PosPro, atau PosPro tak bisa dihubungi. */
   pospro: PosproKpi | null;
+  discipline: Discipline;
+  outputTotals: OutputTotals | null;
 };
 
 export type LeaveRequestItem = {

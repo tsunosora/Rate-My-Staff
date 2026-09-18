@@ -3,7 +3,19 @@ import { aggregateAttendance } from "@/lib/services/attendance/aggregate";
 import { buildEmployeeReceipt } from "@/lib/services/attendance/receipt-source";
 import type { ReceiptData } from "@/lib/services/attendance/receipt";
 import type { ReceiptPeriod } from "@/lib/services/attendance/period";
-import { fetchPosproKpiForUser, type PosproStaffKpi } from "@/lib/services/pospro/client";
+import {
+  fetchPosproKpiForUser,
+  fetchPosproDaily,
+  type PosproStaffKpi,
+  type PosproDailyRow,
+} from "@/lib/services/pospro/client";
+import {
+  workedMinutesOf,
+  summarizeDiscipline,
+  compareDiscipline,
+  previousRange,
+  type DisciplineComparison,
+} from "./worktime";
 
 /** Status yang berarti karyawan tidak masuk dengan keterangan. */
 const LEAVE_STATUSES = new Set(["Izin", "Sakit", "Cuti"]);
@@ -18,6 +30,10 @@ export type PortalAttendanceRow = {
   overtimeMinutes: number;
   isHoliday: boolean;
   absenceReason: string | null;
+  /** Durasi kerja hari itu (menit), dihitung dari jam masuk & pulang. */
+  workedMinutes: number;
+  /** Hasil kerja hari itu dari PosPro; null bila tak dipetakan / tak ada data. */
+  output: PosproDailyRow | null;
 };
 
 export type PortalAttendanceSummary = {
@@ -80,6 +96,10 @@ export type PortalOverview = {
    * halaman tetap tampil tanpa bagian ini.
    */
   pospro: PosproStaffKpi | null;
+  /** Perbandingan kedisiplinan dengan periode sebelumnya (semakin tertib atau tidak). */
+  discipline: DisciplineComparison;
+  /** Total hasil kerja periode ini dari PosPro; null bila tak ada. */
+  outputTotals: Omit<PosproDailyRow, "date"> | null;
 };
 
 function ymd(d: Date): string {
@@ -123,7 +143,9 @@ export async function buildPortalOverview(
   period: ReceiptPeriod,
   posproUserId: number | null = null
 ): Promise<PortalOverview> {
-  const [attendance, receipt, assessments, publicAgg, publicItems, pospro] = await Promise.all([
+  const prev = previousRange(period.startStr, period.endStr);
+  const [attendance, receipt, assessments, publicAgg, publicItems, pospro, daily, prevAttendance] =
+    await Promise.all([
     aggregateAttendance(prisma, {
       startStr: period.startStr,
       endStr: period.endStr,
@@ -151,8 +173,16 @@ export async function buildPortalOverview(
       select: { id: true, totalScore: true, raterName: true, evaluatorNotes: true, assessmentDate: true },
     }),
     fetchPosproKpiForUser(posproUserId, period.startStr, period.endStr),
+    fetchPosproDaily(posproUserId, period.startStr, period.endStr),
+    // Periode sebelumnya — hanya untuk membandingkan kedisiplinan.
+    aggregateAttendance(prisma, {
+      startStr: prev.startStr,
+      endStr: prev.endStr,
+      employeeId: String(employeeId),
+    }),
   ]);
 
+  const outputByDate = new Map((daily?.days ?? []).map((d) => [d.date, d]));
   const rows: PortalAttendanceRow[] = attendance.rows.map((r) => ({
     date: r.date,
     clockIn: r.clockIn,
@@ -163,7 +193,20 @@ export async function buildPortalOverview(
     overtimeMinutes: r.overtimeMinutes,
     isHoliday: r.isHoliday,
     absenceReason: r.absenceReason,
+    workedMinutes: workedMinutesOf(r.clockIn, r.clockOut),
+    output: outputByDate.get(r.date) ?? null,
   }));
+
+  const discipline = compareDiscipline(
+    summarizeDiscipline(rows),
+    summarizeDiscipline(
+      prevAttendance.rows.map((r) => ({
+        clockIn: r.clockIn,
+        lateMinutes: r.lateMinutes,
+        workedMinutes: workedMinutesOf(r.clockIn, r.clockOut),
+      }))
+    )
+  );
 
   const latestRaw = assessments[0] ?? null;
   const latest: PortalAssessment | null = latestRaw
@@ -225,5 +268,7 @@ export async function buildPortalOverview(
       })),
     },
     pospro,
+    discipline,
+    outputTotals: daily?.totals ?? null,
   };
 }

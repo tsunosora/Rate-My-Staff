@@ -4,7 +4,7 @@ import {
   verifyPortalToken,
   PORTAL_TTL_MS,
 } from "@/lib/services/portal/session";
-import { normalizePin, validatePin, randomPin } from "@/lib/services/portal/pin";
+import { normalizePin, checkPin, pinWarning, randomPin } from "@/lib/services/portal/pin";
 
 const KEY = "rahasia-uji-coba";
 const TOKEN = "11111111-2222-3333-4444-555555555555";
@@ -60,32 +60,49 @@ describe("PIN portal", () => {
     expect(normalizePin(" 12 34-56 ")).toBe("123456");
   });
 
-  test("PIN wajar diterima", () => {
-    expect(validatePin("8241")).toBeNull();
-    expect(validatePin("90317")).toBeNull();
+  test("format salah DITOLAK (bukan sekadar diperingatkan)", () => {
+    expect(checkPin("abcd").valid).toBe(false);
+    expect(checkPin("12a4").valid).toBe(false);
+    expect(checkPin("123").valid).toBe(false);
+    expect(checkPin("123456789").valid).toBe(false);
   });
 
-  test("bukan angka ditolak", () => {
-    expect(validatePin("abcd")).not.toBeNull();
-    expect(validatePin("12a4")).not.toBeNull();
+  test("PIN mudah ditebak TETAP DITERIMA, tapi ditandai lemah", () => {
+    for (const pin of ["1111", "1234", "4321", "1212", "1122"]) {
+      const c = checkPin(pin);
+      expect(c.valid).toBe(true);
+      expect(c.strength).toBe("lemah");
+      expect(c.reasons.length).toBeGreaterThan(0);
+      expect(pinWarning(c)).toContain("lemah");
+    }
   });
 
-  test("terlalu pendek / terlalu panjang ditolak", () => {
-    expect(validatePin("123")).not.toBeNull();
-    expect(validatePin("123456789")).not.toBeNull();
+  test("mirip tahun lahir ditandai lemah", () => {
+    expect(checkPin("1998").strength).toBe("lemah");
+    expect(checkPin("2011").reasons).toContain("mirip tahun lahir");
   });
 
-  test("angka sama semua & berurutan ditolak", () => {
-    expect(validatePin("1111")).not.toBeNull();
-    expect(validatePin("1234")).not.toBeNull();
-    expect(validatePin("4321")).not.toBeNull();
+  test("hanya dua angka berbeda ditandai lemah", () => {
+    expect(checkPin("8188").strength).toBe("lemah");
   });
 
-  test("randomPin selalu lolos validasi", () => {
+  test("4 angka wajar = sedang, 6 angka wajar = kuat", () => {
+    expect(checkPin("8241").strength).toBe("sedang");
+    expect(checkPin("903175").strength).toBe("kuat");
+  });
+
+  test("tak ada peringatan untuk PIN yang tidak lemah", () => {
+    expect(pinWarning(checkPin("8241"))).toBeNull();
+    expect(pinWarning(checkPin("903175"))).toBeNull();
+  });
+
+  test("randomPin selalu kuat & valid", () => {
     for (let i = 0; i < 50; i++) {
       const pin = randomPin();
       expect(pin).toMatch(/^\d{6}$/);
-      expect(validatePin(pin)).toBeNull();
+      const c = checkPin(pin);
+      expect(c.valid).toBe(true);
+      expect(c.strength).toBe("kuat");
     }
   });
 });

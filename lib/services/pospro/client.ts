@@ -139,3 +139,34 @@ export async function verifyPosproPin(
   });
   return res?.ok === true;
 }
+
+export type PosproDailyRow = {
+  date: string;
+  transactions: number;
+  omzet: number;
+  designJobs: number;
+  operatorJobs: number;
+};
+
+export type PosproDaily = {
+  userId: number;
+  name: string;
+  from: string;
+  to: string;
+  days: PosproDailyRow[];
+  totals: Omit<PosproDailyRow, "date">;
+};
+
+/**
+ * Angka harian satu karyawan (omzet kasir, order desain, kartu produksi) —
+ * dipakai menampilkan "hari itu saya menghasilkan berapa" di samping absensi.
+ */
+export function fetchPosproDaily(
+  posproUserId: number | null,
+  fromStr: string,
+  toStr: string
+): Promise<PosproDaily | null> {
+  if (!posproUserId) return Promise.resolve(null);
+  const qs = new URLSearchParams({ userId: String(posproUserId), from: fromStr, to: toStr });
+  return call<PosproDaily>(`/integrations/staff-daily?${qs.toString()}`);
+}

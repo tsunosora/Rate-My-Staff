@@ -39,7 +39,10 @@ belum punya keduanya.
 - **Kali pertama dibuka** (tanpa PIN PosPro), karyawan membuat PIN-nya sendiri (isi + ulangi).
 - PIN disimpan sebagai **hash bcrypt**; tak pernah dikirim balik ke browser, dan kolom
   `portalPin` di-`omit` dari semua endpoint karyawan.
-- PIN yang mudah ditebak ditolak (angka sama semua, berurutan naik/turun).
+- PIN yang mudah ditebak **tidak ditolak**, hanya diberi peringatan: meter kekuatan
+  (lemah/sedang/kuat) tampil saat mengetik, beserta alasannya (angka sama semua,
+  berurutan, pola berulang, mirip tahun, hanya dua angka berbeda). Karyawan tetap
+  boleh memakainya.
 - **Lupa PIN** → admin/owner menekan *Buatkan PIN acak* (PIN tampil **sekali**, catat &
   kirim ke karyawan) atau *Hapus PIN* (karyawan membuat PIN baru saat membuka tautan lagi).
 - Karyawan bisa mengganti PIN sendiri dari dalam portal (wajib menyebut PIN lama).
@@ -72,6 +75,41 @@ Cookie `rms_portal`, httpOnly, **berlaku 8 jam**, ditandatangani HMAC dengan `AU
 
 Periode dipilih per bulan (tombol ◀ ▶ atau pemilih bulan). Nominal rupiah yang tampil
 adalah **estimasi lembur dari data absensi**, bukan slip gaji — ada peringatannya di kartu.
+
+### Grafik jam kerja & pembanding
+
+Tab **Ringkasan** menampilkan:
+
+- **Grafik jam kerja harian** — batang = lama kerja (hijau tepat waktu, kuning telat,
+  biru longshift), garis merah = menit keterlambatan per hari.
+- **Kartu kedisiplinan** — membandingkan periode berjalan dengan rentang **sama panjang
+  tepat sebelumnya**: rata-rata telat, persentase tepat waktu, dan rata-rata jam kerja,
+  lengkap dengan arah tren (semakin tertib / semakin sering telat). Selisih di bawah
+  1 menit dianggap sama agar tidak terasa naik-turun tanpa makna.
+
+Jam kerja dihitung dari jam masuk & pulang (`lib/services/portal/worktime.ts`). Lewat
+tengah malam dihitung benar; di atas 16 jam dianggap data salah (lupa absen pulang) dan
+tidak dihitung, bukan dikarang.
+
+### Hasil kerja harian (dari PosPro)
+
+Untuk karyawan yang dipetakan ke akun PosPro, tab Ringkasan juga menampilkan **berapa yang
+dia hasilkan pada tiap hari dia absen**:
+
+| Peran | Angka | Sumber di PosPro |
+|---|---|---|
+| Kasir / CS | omzet & jumlah nota | `Transaction` PAID yang **dia tutup** |
+| Desainer | jumlah order desain | `SalesOrder.designerName` |
+| Operator | bobot kartu produksi | `ProductionJobActivity.actorWeight` |
+
+Total di kartu dihitung dari **hari yang ada absensinya saja**, supaya cocok dengan tabel di
+bawahnya. Bila ada omzet atas nama orang itu di tanggal tanpa absensi (biasanya lupa scan),
+selisihnya disebutkan terpisah.
+
+> **Alias nama.** Data operasional PosPro menyimpan nama, bukan id user — dan namanya bisa
+> berbeda (user `Damara` memakai nama desainer `Damar`). Karena itu pencocokan memakai
+> **semua alias**: `User.name` + seluruh `Designer.name` yang terhubung ke user itu. Tanpa
+> ini, hasil kerja orang beralias tidak terhitung sama sekali.
 
 ---
 
@@ -132,6 +170,21 @@ RateMyStaff                                   PosPro (NestJS, :3001)
 
 Keduanya berjalan di mesin yang sama, jadi panggilannya lewat `127.0.0.1` — tidak keluar internet.
 
+### Keamanan koneksi
+
+Backend PosPro terbuka ke internet lewat Cloudflare Tunnel (`api.volikoprint.com`), jadi
+endpoint `/integrations/*` dijaga **dua lapis** (`backend/src/auth/api-key.guard.ts`):
+
+1. **Kunci API** wajib (`x-api-key`), dibandingkan dengan `timingSafeEqual`. Env kosong =
+   semua request ditolak, bukan dibiarkan terbuka.
+2. **Hanya pemanggil lokal.** Soket harus loopback **dan** request tak boleh membawa header
+   proksi (`cf-ray`, `cf-connecting-ip`, `x-forwarded-for`, `x-real-ip`). Request dari
+   tunnel selalu membawa header Cloudflare walau soketnya tampak loopback, sehingga
+   ikut tertolak. Set `STAFF_KPI_ALLOW_REMOTE=true` bila kelak aplikasi HR pindah server.
+
+Artinya: walau seseorang menebak URL-nya dari internet, ia mentok di 401 — bahkan
+seandainya kunci API bocor.
+
 ### Konfigurasi
 
 | Sisi | Variabel | Isi |
@@ -178,6 +231,7 @@ menghasilkan `null`, dicatat ke log server, dan tidak pernah menggagalkan halama
 | `backend/src/auth/api-key.guard.ts` | Guard `x-api-key`, banding waktu-konstan; env kosong = tolak |
 | `backend/src/integrations/staff-kpi.controller.ts` | `GET /integrations/staff-list`, `GET /integrations/staff-kpi`, `GET /integrations/staff-pin`, `POST /integrations/staff-pin/verify` |
 | `backend/src/integrations/staff-pin.service.ts` | Verifikasi PIN desainer (jawab benar/salah saja) |
+| `backend/src/integrations/staff-daily.service.ts` | Angka harian per orang (omzet, desain, produksi) |
 | `backend/src/integrations/staff-kpi.service.ts` | Query Prisma + penggabungan per user |
 | `backend/src/integrations/staff-kpi.aggregate.ts` | Agregasi murni (tanpa Prisma) |
 | `backend/src/integrations/staff-kpi.aggregate.spec.ts` | Unit test agregasi (jest) |
@@ -199,4 +253,9 @@ menghasilkan `null`, dicatat ke log server, dan tidak pernah menggagalkan halama
 | `lib/services/pospro/client.ts` | Klien integrasi PosPro (gagal = null, bukan error) |
 | `app/api/pospro/staff-list/route.ts` | Proksi daftar akun PosPro untuk dropdown pemetaan |
 | `components/portal/PosproPanel.tsx` | Kartu KPI operasional di tab Penilaian |
+| `components/portal/WorkChart.tsx` | Grafik jam kerja & keterlambatan harian |
+| `components/portal/DisciplineCard.tsx` | Pembanding kedisiplinan antar periode |
+| `components/portal/DailyOutputPanel.tsx` | Omzet/output pada tiap hari absen |
+| `lib/services/portal/worktime.ts` | Durasi kerja, ringkasan & tren (modul murni) |
+| `lib/services/portal/pin-strength.ts` | Penilaian kekuatan PIN (dipakai server & browser) |
 | `tests/leave-range.test.ts`, `tests/portal-session.test.ts` | Unit test logika murni |
