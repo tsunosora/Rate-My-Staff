@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { json, route } from "@/lib/http";
 import { requirePortalSession } from "@/lib/services/portal/auth";
 import { recomputePoints, pointBalance, isPointsEnabled } from "@/lib/services/points/service";
-import { explainRates } from "@/lib/services/points/compute";
+import { explainRatesByRole, type PointRole } from "@/lib/services/points/compute";
 import { resolveReceiptPeriod } from "@/lib/services/attendance/period";
 
 type Ctx = { params: Promise<{ token: string }> };
@@ -26,12 +26,22 @@ export const GET = route<Ctx>(async (req, ctx) => {
   );
   const balance = await pointBalance(prisma, employee.id);
 
+  // Peran ditentukan dari apa yang ORANGNYA benar-benar kerjakan, bukan dari jabatan
+  // tertulis — supaya orang yang merangkap tetap melihat semua aturan yang relevan.
+  const roles: PointRole[] = ["semua"];
+  const sum = (pick: (d: (typeof result.days)[number]) => number) =>
+    result.days.reduce((a, d) => a + pick(d), 0);
+  if (sum((d) => d.transactions) > 0) roles.unshift("kasir");
+  if (sum((d) => d.designJobs) > 0 || sum((d) => d.designServiceValue) > 0) roles.unshift("desainer");
+  if (sum((d) => d.operatorJobs) > 0) roles.unshift("operator");
+
   return json({
     enabled: true,
     period: { label: period.label, startStr: period.startStr, endStr: period.endStr },
     breakdown: result.breakdown,
     days: result.days.filter((d) => d.points > 0),
     balance,
-    howTo: explainRates(result.rates),
+    roles,
+    howTo: explainRatesByRole(result.rates),
   });
 });

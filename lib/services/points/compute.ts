@@ -78,20 +78,54 @@ export function sumPoints(days: DayPoints[]): PointBreakdown {
   );
 }
 
+/** Peran yang dikenali sistem poin. */
+export type PointRole = "kasir" | "desainer" | "operator" | "semua";
+
+export type RateGroup = {
+  role: PointRole;
+  title: string;
+  items: { label: string; value: string }[];
+};
+
 /**
- * Penjelasan cara poin didapat — ditampilkan apa adanya ke karyawan supaya
- * angkanya tidak terasa muncul entah dari mana.
+ * Penjelasan cara poin didapat, DIKELOMPOKKAN per peran — cara mengumpulkan poin
+ * memang berbeda antara CS/kasir, desainer, dan operator. Menampilkan semuanya
+ * sekaligus membuat karyawan mengira dirinya bisa memperoleh poin yang sebenarnya
+ * tak berlaku baginya.
  */
-export function explainRates(rates: PointRates): { label: string; value: string }[] {
+export function explainRatesByRole(rates: PointRates): RateGroup[] {
   const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
   return [
-    { label: "Omzet", value: `1 poin tiap ${rp(rates.omzetPerPoint)}` },
-    { label: "Nota / closing", value: `${rates.perTransaction} poin per nota` },
-    { label: "Layout materi", value: `${rates.perDesignJob} poin per order` },
-    { label: "Bobot kesulitan desain", value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa desain` },
-    { label: "Kartu produksi", value: `${rates.perOperatorJob} poin per kartu` },
-    { label: "Task tepat waktu", value: `${rates.perTaskOnTime} poin` },
-    { label: "Task terlambat", value: `${rates.perTaskLate} poin` },
-    { label: "Hadir tepat waktu", value: `${rates.perOnTimeDay} poin per hari` },
+    {
+      role: "kasir",
+      title: "Kasir / CS",
+      items: [{ label: "Nota / closing", value: `${rates.perTransaction} poin per nota` }],
+    },
+    {
+      role: "desainer",
+      title: "Desainer",
+      items: [
+        { label: "Layout materi", value: `${rates.perDesignJob} poin per order` },
+        {
+          label: "Jasa desain",
+          value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa — makin sulit makin besar`,
+        },
+      ],
+    },
+    {
+      role: "operator",
+      title: "Operator produksi",
+      items: [{ label: "Kartu produksi", value: `${rates.perOperatorJob} poin per kartu` }],
+    },
+    {
+      role: "semua",
+      title: "Berlaku untuk semua",
+      items: [
+        { label: "Omzet yang Anda hasilkan", value: `1 poin tiap ${rp(rates.omzetPerPoint)}` },
+        { label: "Task tepat waktu", value: `${rates.perTaskOnTime} poin` },
+        { label: "Task terlambat", value: `${rates.perTaskLate} poin` },
+        { label: "Hadir tepat waktu", value: `${rates.perOnTimeDay} poin per hari` },
+      ],
+    },
   ];
 }

@@ -155,6 +155,14 @@ Angkanya sengaja dibuat **seimbang antar peran**: sehari beromzet Rp1 juta + 20 
 tepat waktu = 210 poin, sementara operator dengan 8 kartu + 5 task + hadir tepat waktu = 190
 poin. Kasir beromzet besar tidak otomatis mengalahkan orang yang rajin.
 
+**Cara mengumpulkan poin berbeda per peran.** Kartu penjelasan di portal dikelompokkan
+menjadi Kasir/CS, Desainer, Operator produksi, dan "Berlaku untuk semua" (omzet, task,
+kehadiran). Kelompok yang benar-benar dijalani orang itu ditandai **berlaku untuk Anda** dan
+ditaruh paling atas; sisanya tetap ditampilkan samar agar ia tahu peluang poin bila kelak
+merangkap. Perannya ditentukan dari **aktivitas nyata pada periode itu** (ada nota → kasir,
+ada layout/jasa desain → desainer, ada kartu produksi → operator), bukan dari jabatan tertulis
+— sehingga yang merangkap otomatis melihat semua aturan yang relevan.
+
 **Cara kerjanya**
 
 - Poin dihitung per hari dan **disimpan** di `PointEntry` (bukan dihitung ulang tiap buka

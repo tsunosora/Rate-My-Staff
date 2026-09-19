@@ -5,7 +5,12 @@ import {
   resolvePointRates,
   pointsEnabled,
 } from "@/lib/services/points/rates";
-import { computeDayPoints, sumPoints, type DayActivity } from "@/lib/services/points/compute";
+import {
+  computeDayPoints,
+  sumPoints,
+  explainRatesByRole,
+  type DayActivity,
+} from "@/lib/services/points/compute";
 
 const RATES = DEFAULT_POINT_RATES;
 
@@ -157,5 +162,39 @@ describe("sumPoints", () => {
 
   test("tanpa hari -> nol", () => {
     expect(sumPoints([]).total).toBe(0);
+  });
+});
+
+describe("explainRatesByRole", () => {
+  const groups = explainRatesByRole(RATES);
+
+  test("dikelompokkan per peran, bukan satu daftar panjang", () => {
+    expect(groups.map((g) => g.role)).toEqual(["kasir", "desainer", "operator", "semua"]);
+  });
+
+  test("aturan hanya muncul di peran yang memakainya", () => {
+    const kasir = groups.find((g) => g.role === "kasir")!;
+    const operator = groups.find((g) => g.role === "operator")!;
+    const desainer = groups.find((g) => g.role === "desainer")!;
+
+    expect(kasir.items.map((i) => i.label)).toEqual(["Nota / closing"]);
+    expect(operator.items.map((i) => i.label)).toEqual(["Kartu produksi"]);
+    expect(desainer.items.map((i) => i.label)).toEqual(["Layout materi", "Jasa desain"]);
+  });
+
+  test("omzet, task & kehadiran berlaku untuk semua peran", () => {
+    const semua = groups.find((g) => g.role === "semua")!;
+    expect(semua.items.map((i) => i.label)).toEqual([
+      "Omzet yang Anda hasilkan",
+      "Task tepat waktu",
+      "Task terlambat",
+      "Hadir tepat waktu",
+    ]);
+  });
+
+  test("angkanya mengikuti tarif yang berlaku, bukan hardcode", () => {
+    const custom = explainRatesByRole({ ...RATES, perTransaction: 99, perOperatorJob: 77 });
+    expect(custom.find((g) => g.role === "kasir")!.items[0].value).toContain("99");
+    expect(custom.find((g) => g.role === "operator")!.items[0].value).toContain("77");
   });
 });
