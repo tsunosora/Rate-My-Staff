@@ -288,3 +288,31 @@ erDiagram
 | UI kelola mesin | `app/(dashboard)/settings/page.tsx` |
 | Filter cabang di laporan | `app/(dashboard)/attendance/report/page.tsx`, `lib/services/attendance/aggregate.ts` |
 | Migrasi & backfill | `prisma/migrations/**`, `prisma/backfill-machines.ts` |
+
+
+---
+
+## Kelola PIN mesin (mode cloud)
+
+**Pengaturan → Mesin Absensi → Kelola PIN** — tersedia untuk semua mesin, termasuk mode cloud.
+
+Mesin cloud tidak bisa "ditarik" seperti mode LAN: ia yang menelepon server. Dulu akibatnya
+tak ada cara mendaftarkan karyawan lama ke mesin baru, dan **setiap scan dari PIN yang belum
+terdaftar dibuang diam-diam** (lihat `ingestScansForMachine`). Nyata terjadi: sebuah mesin
+cabang membuang 156 scan milik 4 karyawan tanpa peringatan apa pun.
+
+Yang tersedia sekarang:
+
+| Aksi | Gunanya |
+|---|---|
+| **PIN belum dipetakan** | Daftar PIN yang sudah men-scan tapi belum dikenali, beserta jumlah scan yang tertahan dan **usulan pemiliknya** (dari PIN sama di mesin lain). Pilih karyawan → Simpan → scan tertahan langsung ditarik masuk. |
+| **Salin pendaftaran dari mesin lain** | Menyalin seluruh pemetaan PIN→karyawan dari mesin lain. Berguna saat menambah mesin cabang untuk staf yang sama. PIN yang sudah ada tidak ditimpa. |
+| **Tarik ulang scan** | Memutar ulang seluruh log mentah mesin itu. Aman diulang — scan dengan jam & karyawan yang sama dilewati. |
+
+Sumber datanya `FingerspotRawLog` (semua kontak mesin tersimpan mentah), sehingga scan yang
+pernah terbuang **masih bisa dipulihkan** kapan pun pemetaannya dibetulkan.
+
+> **Hati-hati soal karyawan ganda.** Saat seseorang mendaftarkan sidik jari di mesin,
+> `realtime_enroll_data` membuat karyawan baru bila PIN-nya belum dikenal. Bila orangnya
+> sebenarnya sudah ada di Direktori dengan PIN berbeda, akan lahir data ganda. Periksa
+> Direktori setiap habis menambah mesin.

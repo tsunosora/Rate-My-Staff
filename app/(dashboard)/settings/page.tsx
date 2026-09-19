@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
+import { MachineEnrollmentsModal } from "@/components/settings/MachineEnrollmentsModal";
 import { IconTrash } from "@/components/ui/icons";
 
 type Dept = { id: number; name: string; _count?: { employees: number } };
@@ -19,6 +20,8 @@ export default function SettingsPage() {
   const [positions, setPositions] = useState<Pos[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [enrollMachine, setEnrollMachine] = useState<number | null>(null);
+  const [employeeList, setEmployeeList] = useState<{ id: number; name: string }[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [msg, setMsg] = useState("");
 
@@ -102,6 +105,15 @@ export default function SettingsPage() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    loadEmployeeList().catch(() => setEmployeeList([]));
+  }, []);
+
+  async function loadEmployeeList() {
+    const r = await api<{ data: { id: number; fullName: string }[] }>("/api/employees?page=1&per_page=200");
+    setEmployeeList(r.data.map((e) => ({ id: e.id, name: e.fullName })));
+  }
 
   async function addDept() {
     if (!newDept.trim()) return;
@@ -360,7 +372,7 @@ export default function SettingsPage() {
           ) : (
             <ul className="divide-y divide-border text-sm">
               {machines.map((m) => (
-                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} onTest={testMachine} onPatch={patchMachine} />
+                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} onTest={testMachine} onPatch={patchMachine} onEnroll={setEnrollMachine} />
               ))}
             </ul>
           )}
@@ -669,6 +681,15 @@ export default function SettingsPage() {
           </button>
         </Card>
       </div>
+
+      {enrollMachine !== null && (
+        <MachineEnrollmentsModal
+          machineId={enrollMachine}
+          employees={employeeList}
+          onClose={() => setEnrollMachine(null)}
+          onChanged={loadAll}
+        />
+      )}
     </div>
   );
 }
@@ -685,7 +706,7 @@ function DeleteLink({ onClick }: { onClick: () => void }) {
 }
 
 function MachineRow({
-  machine, onRename, onDelete, onPull, onTest, onPatch,
+  machine, onRename, onDelete, onPull, onTest, onPatch, onEnroll,
 }: {
   machine: Machine;
   onRename: (id: number, name: string) => void;
@@ -693,6 +714,7 @@ function MachineRow({
   onPull: (id: number, users: boolean) => void;
   onTest: (id: number) => void;
   onPatch: (id: number, data: Record<string, unknown>) => void;
+  onEnroll: (id: number) => void;
 }) {
   const [name, setName] = useState(machine.name);
   const [interval, setIntervalMin] = useState(String(machine.pullIntervalMinutes));
@@ -711,6 +733,7 @@ function MachineRow({
         <button onClick={() => onRename(machine.id, name.trim())} disabled={!dirty} className="btn-ghost h-9 px-3 text-xs disabled:opacity-40">Simpan</button>
         <span className="rounded-md px-2 py-0.5 text-[11px] font-medium" style={softChip(status.c)}>{status.label}</span>
         <span className="rounded-md px-2 py-0.5 text-[11px]" style={softChip(modeBadge.c)}>{modeBadge.label}</span>
+        <button onClick={() => onEnroll(machine.id)} className="btn-ghost h-9 px-2.5 text-xs">Kelola PIN</button>
         <button onClick={() => onDelete(machine.id)} className="btn-ghost h-9 px-2.5 text-xs text-danger">Hapus</button>
       </div>
       {machine.mode === "lan" && (
@@ -735,6 +758,12 @@ function MachineRow({
           />
           <span className="text-xs text-muted">menit</span>
         </div>
+      )}
+      {machine.mode !== "lan" && (
+        <span className="block text-xs text-subtle">
+          Mesin mode cloud mendorong sendiri datanya ke server — tak perlu &quot;tarik&quot;. Yang perlu
+          diatur hanyalah pemetaan PIN → karyawan lewat <b className="text-muted">Kelola PIN</b>.
+        </span>
       )}
       <span className="block text-xs text-subtle">
         SN {machine.sn} · {machine.employees} karyawan · {machine.attendances} absensi · terakhir aktif: {lastSeen}
