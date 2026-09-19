@@ -32,6 +32,8 @@ export default auth((req) => {
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname.startsWith("/api/public") ||
+    // Endpoint server-ke-server; auth-nya kunci API, bukan sesi login.
+    pathname.startsWith("/api/integrations") ||
     pathname.startsWith("/api/fingerspot") ||
     pathname.startsWith("/iclock") ||
     pathname.startsWith("/api/auth");
