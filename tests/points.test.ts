@@ -125,12 +125,22 @@ describe("computeDayPoints", () => {
     const easy = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 15_000 }, RATES);
     const medium = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 150_000 }, RATES);
     const hard = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 200_000 }, RATES);
-    // 10 poin order + nilai jasa / Rp5.000
-    expect(easy.jobPoints).toBe(10 + 3);
-    expect(medium.jobPoints).toBe(10 + 30);
-    expect(hard.jobPoints).toBe(10 + 40);
+    // 10 poin order + nilai jasa / Rp1.000
+    expect(easy.jobPoints).toBe(10 + 15);
+    expect(medium.jobPoints).toBe(10 + 150);
+    expect(hard.jobPoints).toBe(10 + 200);
     expect(hard.jobPoints).toBeGreaterThan(medium.jobPoints);
     expect(medium.jobPoints).toBeGreaterThan(easy.jobPoints);
+  });
+
+  test("satu desain Hard sepadan dengan kerja seharian, bukan sekadar tambahan kecil", () => {
+    const hard = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 200_000 }, RATES);
+    // Sehari penuh: hadir tepat waktu + 3 task + 10 layout materi.
+    const hariBiasa = computeDayPoints(
+      { ...kosong, designJobs: 10, tasksOnTime: 3, onTime: true },
+      RATES
+    );
+    expect(hard.total).toBeGreaterThan(hariBiasa.total * 0.8);
   });
 
   test("order tanpa jasa desain tetap dihargai poin order saja", () => {

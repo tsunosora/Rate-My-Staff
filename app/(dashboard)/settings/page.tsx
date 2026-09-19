@@ -472,7 +472,7 @@ export default function SettingsPage() {
             </label>
             <label className="space-y-1">
               <span className="text-muted">Nilai jasa desain per 1 poin (Rp)</span>
-              <input type="number" min={1} step={1000} className="input" placeholder="5000"
+              <input type="number" min={1} step={1000} className="input" placeholder="1000"
                 value={settings.points_design_value_per_point ?? ""}
                 onChange={(e) => setSettings({ ...settings, points_design_value_per_point: e.target.value })} />
             </label>
@@ -504,8 +504,9 @@ export default function SettingsPage() {
           <p className="mt-3 text-xs text-subtle">
             Bawaan: Rp1 juta = 100 poin, sehingga kasir beromzet besar tidak otomatis
             mengalahkan operator &amp; orang yang rajin mengerjakan task. Jasa desain di PosPro
-            berjenjang — dengan bawaan Rp5.000/poin, desain <b className="text-fg">Hard</b> (Rp200rb)
-            bernilai 40 poin sedangkan <b className="text-fg">Easy A</b> (Rp15rb) 3 poin.
+            berjenjang — dengan bawaan Rp1.000/poin, desain <b className="text-fg">Hard</b> (Rp200rb)
+            bernilai 200 poin sedangkan <b className="text-fg">Easy A</b> (Rp15rb) 15 poin. Angka ini
+            sengaja besar karena mendesain itu kerja terampil, sedangkan layout materi jumlahnya ratusan.
           </p>
         </Card>
 

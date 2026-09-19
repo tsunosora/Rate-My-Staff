@@ -15,8 +15,13 @@ export type PointRates = {
   perDesignJob: number;
   /**
    * Bobot kesulitan desain: nilai jasa desain per 1 poin tambahan.
-   * Default Rp5.000 → Hard (Rp200rb) = 40 poin, Medium (Rp150rb) = 30,
-   * Easy A (Rp15rb) = 3. Desain sulit dihargai lebih tinggi daripada yang mudah.
+   * Default Rp1.000 → Hard (Rp200rb) = 200 poin, Medium (Rp150rb) = 150,
+   * Standar (Rp35rb) = 35, Easy A (Rp15rb) = 15.
+   *
+   * Sengaja besar: mendesain itu kerja terampil yang makan waktu, sedangkan
+   * "layout materi" hanyalah menyiapkan order untuk cetak dan jumlahnya ratusan.
+   * Dengan tarif lama (Rp5.000) kerja desain hanya 2–5% dari poin seorang desainer —
+   * kalah telak oleh banyaknya layout.
    */
   designValuePerPoint: number;
   /** Poin per kartu produksi (dikali bobot bila dikerjakan berdua). */
@@ -37,7 +42,7 @@ export const DEFAULT_POINT_RATES: PointRates = {
   omzetPerPoint: 10000,
   perTransaction: 5,
   perDesignJob: 10,
-  designValuePerPoint: 5000,
+  designValuePerPoint: 1000,
   perOperatorJob: 10,
   perTaskOnTime: 20,
   perTaskLate: 5,
