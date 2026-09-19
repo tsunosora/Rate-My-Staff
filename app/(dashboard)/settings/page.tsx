@@ -465,7 +465,7 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, points_per_transaction: e.target.value })} />
             </label>
             <label className="space-y-1">
-              <span className="text-muted">Poin per order desain</span>
+              <span className="text-muted">Poin per layout materi</span>
               <input type="number" min={0} className="input" placeholder="10"
                 value={settings.points_per_design_job ?? ""}
                 onChange={(e) => setSettings({ ...settings, points_per_design_job: e.target.value })} />

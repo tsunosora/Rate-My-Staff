@@ -12,6 +12,11 @@ function todayStr(): string {
  * Omzet & pekerjaan yang diselesaikan karyawan. Omzet ditampilkan SATU angka per hari
  * (gabungan perannya) agar tidak membingungkan; rinciannya baru muncul untuk yang
  * benar-benar merangkap lebih dari satu peran.
+ *
+ * Istilah (nama field dari PosPro tidak seluruhnya sepadan dengan istilah di toko):
+ * - `designJobs`     = **layout materi** — sales order yang dia siapkan untuk cetak.
+ * - `designServices` = **jasa desain** — produk "Jasa Desain" yang benar-benar terjual,
+ *   berjenjang Easy A/B, Standar, Medium, Hard.
  */
 export function DailyOutputPanel({
   rows,
@@ -86,7 +91,7 @@ export function DailyOutputPanel({
                 {hariIni
                   ? [
                       hariIni.transactions ? `${hariIni.transactions} closing` : null,
-                      hariIni.designJobs ? `${hariIni.designJobs} desain` : null,
+                      hariIni.designJobs ? `${hariIni.designJobs} layout` : null,
                       hariIni.operatorJobs ? `${Math.round(hariIni.operatorJobs * 100) / 100} produksi` : null,
                     ].filter(Boolean).join(" · ") || "belum ada transaksi hari ini"
                   : "belum ada catatan hari ini"}
@@ -104,7 +109,7 @@ export function DailyOutputPanel({
 
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {asKasir && <Counter label="Closing / nota" value={hadir.transactions} tone="var(--info)" />}
-            {asDesainer && <Counter label="Order desain" value={hadir.designJobs} tone="var(--primary)" />}
+            {asDesainer && <Counter label="Layout materi" value={hadir.designJobs} tone="var(--primary)" />}
             {hadir.designServiceCount > 0 && (
               <Counter
                 label="Jasa desain"
@@ -146,7 +151,7 @@ export function DailyOutputPanel({
                   const jasa = o.designServices.map((d) => `${d.level} ${d.qty}×`).join(", ");
                   const kerja = [
                     o.transactions ? `${o.transactions} closing` : null,
-                    o.designJobs ? `${o.designJobs} order desain` : null,
+                    o.designJobs ? `${o.designJobs} layout materi` : null,
                     jasa ? `jasa desain: ${jasa}` : null,
                     o.operatorJobs ? `${Math.round(o.operatorJobs * 100) / 100} produksi` : null,
                     o.tasksOnTime ? `${o.tasksOnTime} task` : null,
@@ -191,7 +196,9 @@ export function DailyOutputPanel({
               <div className="mb-1.5 text-xs font-semibold text-fg">Rincian omzet per peran</div>
               <ul className="space-y-1 text-xs text-muted">
                 {asKasir && <li>Kasir — {rupiah(hadir.omzet)} dari {hadir.transactions} nota</li>}
-                {asDesainer && <li>Desain — {rupiah(hadir.designOmzet)} dari {hadir.designJobs} order</li>}
+                {asDesainer && (
+                  <li>Layout materi — {rupiah(hadir.designOmzet)} dari {hadir.designJobs} order</li>
+                )}
                 {asOperator && <li>Produksi — {rupiah(hadir.operatorOmzet)} dari kartu yang Anda kerjakan</li>}
               </ul>
             </div>
@@ -199,7 +206,7 @@ export function DailyOutputPanel({
 
           <p className="mt-3 text-xs leading-relaxed text-subtle">
             Omzet adalah uang yang Anda hasilkan untuk toko — nilai nota yang Anda tutup, order
-            yang Anda desain, dan item yang Anda produksi. Bukan penjualan toko secara keseluruhan.
+            order yang Anda layout, dan item yang Anda produksi. Bukan penjualan toko secara keseluruhan.
             {sisaOmzet > 0 && (
               <>
                 {" "}Ada <b className="text-muted">{rupiah(sisaOmzet)}</b> lagi atas nama Anda di tanggal

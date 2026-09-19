@@ -7,7 +7,7 @@ import type { PointRates } from "./rates";
 
 export type DayActivity = {
   date: string;
-  /** Total omzet orang ini hari itu (kasir + desain + produksi). */
+  /** Total omzet orang ini hari itu (kasir + layout materi + produksi). */
   omzet: number;
   transactions: number;
   designJobs: number;
@@ -87,7 +87,7 @@ export function explainRates(rates: PointRates): { label: string; value: string 
   return [
     { label: "Omzet", value: `1 poin tiap ${rp(rates.omzetPerPoint)}` },
     { label: "Nota / closing", value: `${rates.perTransaction} poin per nota` },
-    { label: "Order desain", value: `${rates.perDesignJob} poin per order` },
+    { label: "Layout materi", value: `${rates.perDesignJob} poin per order` },
     { label: "Bobot kesulitan desain", value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa desain` },
     { label: "Kartu produksi", value: `${rates.perOperatorJob} poin per kartu` },
     { label: "Task tepat waktu", value: `${rates.perTaskOnTime} poin` },

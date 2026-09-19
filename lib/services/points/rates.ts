@@ -8,7 +8,10 @@ export type PointRates = {
   omzetPerPoint: number;
   /** Poin per nota/closing yang dia tutup. */
   perTransaction: number;
-  /** Poin per order desain (tanpa memandang tingkat kesulitan). */
+  /**
+   * Poin per **layout materi** — satu sales order yang disiapkan untuk cetak.
+   * (Nama field mengikuti `designJobs` dari PosPro; istilah di toko "layout materi".)
+   */
   perDesignJob: number;
   /**
    * Bobot kesulitan desain: nilai jasa desain per 1 poin tambahan.

@@ -99,16 +99,23 @@ omzet periode berjalan, dan pekerjaan yang diselesaikan:
 | Peran | Omzet | Pekerjaan | Sumber di PosPro |
 |---|---|---|---|
 | Kasir / CS | nilai nota yang **dia tutup** | jumlah closing | `Transaction` PAID |
-| Desainer | nilai nota dari order yang dia desain | jumlah order + **jasa desain per jenjang** | `SalesOrder.designerName` |
+| Layout materi | nilai nota dari order yang dia siapkan | jumlah order + **jasa desain per jenjang** | `SalesOrder.designerName` |
 | Operator | nilai item produksi × bobot | jumlah kartu | `ProductionJobActivity` |
 | Semua | — | task selesai (tepat waktu / telat) | `TaskItem` (per `assigneeId`) |
+
+**Istilah.** Nama field yang datang dari PosPro tidak seluruhnya sepadan dengan istilah di
+toko: `designJobs` sebenarnya **layout materi** (sales order yang disiapkan untuk cetak),
+sedangkan pekerjaan desain yang sesungguhnya ada di `designServices`. Nama field sengaja
+dibiarkan apa adanya agar satu istilah dipakai konsisten di kedua aplikasi; yang diganti
+hanya label yang dilihat pengguna.
 
 **Jasa desain berjenjang.** Di PosPro, desain adalah **produk** (`Jasa Desain`) dengan varian
 berdasarkan kesulitan: Easy A (Rp15rb), Easy B (Rp20rb), Standar (Rp35rb/Rp65rb), Medium
 (Rp150rb), Hard (Rp200rb). Menghitung "jumlah order desain" saja menyamakan Easy A dengan
 Hard padahal bedanya belasan kali lipat, jadi panel memisahkan keduanya:
 
-- **Order desain** — sales order yang dia tangani (kebanyakan order cetak, tanpa jasa desain).
+- **Layout materi** — sales order yang dia siapkan untuk cetak. Ini pekerjaan menata materi,
+  bukan mendesain; kebanyakan order cetak memang tidak memuat jasa desain.
 - **Jasa desain** — jasa desain yang benar-benar terjual pada order itu, dipecah per jenjang
   beserta nilainya. Ditelusuri dari `SalesOrder.transactionId` → item nota yang produknya
   bernama "desain", dan ditempatkan pada tanggal sales order-nya (saat desain dikerjakan).
@@ -137,7 +144,7 @@ ditukar hadiah yang disiapkan owner.
 |---|---|
 | Omzet | 1 poin tiap Rp10.000 (Rp1 juta = 100 poin) |
 | Nota / closing | 5 poin |
-| Order desain | 10 poin per order |
+| Layout materi | 10 poin per order |
 | Bobot kesulitan desain | 1 poin tiap Rp5.000 nilai jasa desain → Hard 40 poin, Medium 30, Easy A 3 |
 | Kartu produksi | 10 poin (dikali bobot) |
 | Task tepat waktu | 20 poin |
