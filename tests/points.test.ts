@@ -202,6 +202,19 @@ describe("explainRatesByRole", () => {
     ]);
   });
 
+  test("tiap kelompok bisa punya catatan singkat", () => {
+    const desainer = groups.find((g) => g.role === "desainer")!;
+    const kasir = groups.find((g) => g.role === "kasir")!;
+    expect(desainer.note).toContain("Hard");
+    expect(kasir.note).toBeNull();
+  });
+
+  test("teks jasa desain ringkas — tak menumpuk penjelasan di satu baris", () => {
+    const desainer = groups.find((g) => g.role === "desainer")!;
+    const jasa = desainer.items.find((i) => i.label === "Jasa desain")!;
+    expect(jasa.value).toBe("1 poin tiap Rp1.000 nilai jasa");
+  });
+
   test("angkanya mengikuti tarif yang berlaku, bukan hardcode", () => {
     const custom = explainRatesByRole({ ...RATES, perTransaction: 99, perOperatorJob: 77 });
     expect(custom.find((g) => g.role === "kasir")!.items[0].value).toContain("99");

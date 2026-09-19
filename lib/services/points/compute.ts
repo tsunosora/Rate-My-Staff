@@ -85,6 +85,8 @@ export type RateGroup = {
   role: PointRole;
   title: string;
   items: { label: string; value: string }[];
+  /** Catatan singkat di bawah kelompok; null bila tak perlu. */
+  note: string | null;
 };
 
 /**
@@ -100,22 +102,22 @@ export function explainRatesByRole(rates: PointRates): RateGroup[] {
       role: "kasir",
       title: "Kasir / CS",
       items: [{ label: "Nota / closing", value: `${rates.perTransaction} poin per nota` }],
+      note: null,
     },
     {
       role: "desainer",
       title: "Desainer",
       items: [
         { label: "Layout materi", value: `${rates.perDesignJob} poin per order` },
-        {
-          label: "Jasa desain",
-          value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa — makin sulit makin besar`,
-        },
+        { label: "Jasa desain", value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa` },
       ],
+      note: "Makin tinggi jenjang desainnya (Easy → Standar → Medium → Hard), makin besar poinnya.",
     },
     {
       role: "operator",
       title: "Operator produksi",
       items: [{ label: "Kartu produksi", value: `${rates.perOperatorJob} poin per kartu` }],
+      note: "Kartu yang dikerjakan berdua dibagi rata.",
     },
     {
       role: "semua",
@@ -126,6 +128,7 @@ export function explainRatesByRole(rates: PointRates): RateGroup[] {
         { label: "Task terlambat", value: `${rates.perTaskLate} poin` },
         { label: "Hadir tepat waktu", value: `${rates.perOnTimeDay} poin per hari` },
       ],
+      note: null,
     },
   ];
 }

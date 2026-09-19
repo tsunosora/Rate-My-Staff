@@ -157,11 +157,10 @@ poin. Kasir beromzet besar tidak otomatis mengalahkan orang yang rajin.
 
 **Cara mengumpulkan poin berbeda per peran.** Kartu penjelasan di portal dikelompokkan
 menjadi Kasir/CS, Desainer, Operator produksi, dan "Berlaku untuk semua" (omzet, task,
-kehadiran). Kelompok yang benar-benar dijalani orang itu ditandai **berlaku untuk Anda** dan
-ditaruh paling atas; sisanya tetap ditampilkan samar agar ia tahu peluang poin bila kelak
-merangkap. Perannya ditentukan dari **aktivitas nyata pada periode itu** (ada nota → kasir,
-ada layout/jasa desain → desainer, ada kartu produksi → operator), bukan dari jabatan tertulis
-— sehingga yang merangkap otomatis melihat semua aturan yang relevan.
+kehadiran). Karyawan **hanya melihat kelompok yang berlaku baginya** — desainer tak perlu
+melihat aturan poin kasir. Perannya ditentukan dari **aktivitas nyata pada periode itu**
+(ada nota → kasir, ada layout/jasa desain → desainer, ada kartu produksi → operator), bukan
+dari jabatan tertulis, sehingga yang merangkap otomatis melihat semua aturan yang relevan.
 
 **Cara kerjanya**
 

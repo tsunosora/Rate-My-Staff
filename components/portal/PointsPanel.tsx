@@ -21,7 +21,12 @@ type PointsData = {
   balance?: Balance;
   /** Peran yang benar-benar dijalani orang ini (dari aktivitasnya, bukan jabatan). */
   roles?: string[];
-  howTo?: { role: string; title: string; items: { label: string; value: string }[] }[];
+  howTo?: {
+    role: string;
+    title: string;
+    items: { label: string; value: string }[];
+    note: string | null;
+  }[];
 };
 
 type Reward = {
@@ -115,6 +120,9 @@ export function PointsPanel({ token, year, month }: { token: string; year: numbe
 
   const b = balance ?? data.balance;
   const bd = data.breakdown;
+  // Hanya aturan yang benar-benar berlaku bagi orang ini. Menampilkan aturan peran
+  // lain (mis. poin kasir di halaman desainer) justru membingungkan.
+  const berlaku = (data.howTo ?? []).filter((g) => (data.roles ?? []).includes(g.role));
 
   return (
     <div className="space-y-4">
@@ -162,49 +170,29 @@ export function PointsPanel({ token, year, month }: { token: string; year: numbe
         </p>
       </Card>
 
-      {data.howTo && data.howTo.length > 0 && (
+      {berlaku.length > 0 && (
         <Card title="Cara mengumpulkan poin">
           <div className="space-y-4">
-            {data.howTo
-              // Peran yang tidak dijalani ditaruh di bawah, tidak disembunyikan —
-              // karyawan tetap bisa melihat peluang poin bila kelak merangkap.
-              .slice()
-              .sort((a, b) => {
-                const av = (data.roles ?? []).includes(a.role) ? 0 : 1;
-                const bv = (data.roles ?? []).includes(b.role) ? 0 : 1;
-                return av - bv;
-              })
-              .map((g) => {
-                const berlaku = (data.roles ?? []).includes(g.role);
-                return (
-                  <div key={g.role} className={berlaku ? "" : "opacity-55"}>
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-fg">
-                        {g.title}
-                      </h3>
-                      {berlaku ? (
-                        <span
-                          className="badge"
-                          style={{ ...soft("var(--success)", 18), color: "var(--success)" }}
-                        >
-                          berlaku untuk Anda
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-subtle">belum Anda jalani</span>
-                      )}
-                    </div>
-                    <ul className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
-                      {g.items.map((h) => (
-                        <li key={h.label} className="flex items-baseline justify-between gap-3">
-                          <span className="text-muted">{h.label}</span>
-                          <span className="shrink-0 text-right font-medium text-fg">{h.value}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+            {berlaku.map((g) => (
+              <div key={g.role}>
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-fg">
+                  {g.title}
+                </h3>
+                <ul className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+                  {g.items.map((h) => (
+                    <li key={h.label} className="flex items-baseline justify-between gap-3">
+                      <span className="shrink-0 text-muted">{h.label}</span>
+                      <span className="text-right font-medium text-fg">{h.value}</span>
+                    </li>
+                  ))}
+                </ul>
+                {g.note && <p className="mt-1 text-xs text-subtle">{g.note}</p>}
+              </div>
+            ))}
           </div>
+          <p className="mt-4 border-t border-border pt-3 text-xs text-subtle">
+            Hanya aturan yang sesuai pekerjaan Anda yang ditampilkan.
+          </p>
         </Card>
       )}
 
