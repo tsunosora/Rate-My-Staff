@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { pullDeviceLogs, pullDeviceUsers, toRawScans } from "./device";
 import type { RawScan } from "./mapper";
+import { recomputeStoredStatus } from "@/lib/services/attendance/recompute";
 
 const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
 
@@ -46,6 +47,10 @@ export async function relabelDeviceScans(): Promise<number> {
   for (const c of changes) {
     await prisma.attendance.update({ where: { id: c.id }, data: { scanType: c.scanType } });
   }
+  // Label in/out sudah final -> status/telat/lembur baru bisa dihitung benar.
+  // Tanpa ini kolom `status` tetap "on_time" bawaan dan Log Absensi menampilkan
+  // semua orang tepat waktu walau datang jam 09.44.
+  await recomputeStoredStatus(prisma, { machineNames: DEVICE_MACHINES });
   return changes.length;
 }
 

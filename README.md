@@ -114,7 +114,12 @@ shift pagi 08:00–16:00, shift siang 13:00–21:00.
 - **Lembur:** menit kerja melebihi jam pulang shift (pagi lewat 16:00; siang/longshift lewat 21:00).
 - **Telat:** menit lewat jam mulai shift di atas toleransi (default 15 menit).
 
-Logika ini dipakai konsisten di import scanlog, input manual, dan laporan absensi.
+Logika ini dipakai konsisten di import scanlog, input manual, laporan absensi, **dan status
+yang tersimpan pada tiap scan mesin**. Scan dari mesin dulu disimpan dengan status `on_time`
+bawaan tanpa pernah dihitung, sehingga halaman **Absensi → Log Absensi** menampilkan semua
+orang "Tepat waktu" walau datang jam 09.44 (laporan absensi sudah benar karena menghitung
+sendiri saat ditampilkan). Sekarang status dihitung ulang tepat setelah label masuk/pulang
+final, memakai fungsi yang sama dengan laporan.
 
 ## Halaman karyawan (`/me/[token]`)
 
