@@ -148,6 +148,11 @@ export type PosproDailyRow = {
   designJobs: number;
   /** Omzet sebagai desainer (nilai nota dari order yang dia desain). */
   designOmzet: number;
+  /** Jasa desain yang terjual, dipecah per jenjang (Easy A/B, Standar, Medium, Hard). */
+  designServices: { level: string; qty: number; value: number }[];
+  designServiceCount: number;
+  /** Nilai jasa desainnya saja — ukuran bobot kesulitan pekerjaan. */
+  designServiceValue: number;
   operatorJobs: number;
   /** Omzet sebagai operator (nilai item produksi, dibagi bobot kerja bersama). */
   operatorOmzet: number;

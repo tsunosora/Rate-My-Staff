@@ -11,6 +11,8 @@ export type DayActivity = {
   omzet: number;
   transactions: number;
   designJobs: number;
+  /** Nilai jasa desain hari itu — memberi bobot pada desain yang sulit. */
+  designServiceValue: number;
   operatorJobs: number;
   tasksOnTime: number;
   tasksLate: number;
@@ -34,6 +36,9 @@ export function computeDayPoints(day: DayActivity, rates: PointRates): DayPoints
   const jobPoints =
     Math.floor(day.transactions * rates.perTransaction) +
     Math.floor(day.designJobs * rates.perDesignJob) +
+    // Jasa desain di PosPro berjenjang (Easy/Standar/Medium/Hard); nilainya dipakai
+    // sebagai bobot supaya desain sulit tidak dihargai sama dengan yang mudah.
+    Math.floor(Math.max(0, day.designServiceValue) / rates.designValuePerPoint) +
     Math.floor(day.operatorJobs * rates.perOperatorJob);
 
   const taskPoints =
@@ -83,6 +88,7 @@ export function explainRates(rates: PointRates): { label: string; value: string 
     { label: "Omzet", value: `1 poin tiap ${rp(rates.omzetPerPoint)}` },
     { label: "Nota / closing", value: `${rates.perTransaction} poin per nota` },
     { label: "Order desain", value: `${rates.perDesignJob} poin per order` },
+    { label: "Bobot kesulitan desain", value: `1 poin tiap ${rp(rates.designValuePerPoint)} nilai jasa desain` },
     { label: "Kartu produksi", value: `${rates.perOperatorJob} poin per kartu` },
     { label: "Task tepat waktu", value: `${rates.perTaskOnTime} poin` },
     { label: "Task terlambat", value: `${rates.perTaskLate} poin` },

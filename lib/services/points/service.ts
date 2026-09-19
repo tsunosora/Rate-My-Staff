@@ -10,6 +10,7 @@ export type PointDay = {
   omzet: number;
   transactions: number;
   designJobs: number;
+  designServiceValue: number;
   operatorJobs: number;
   tasksOnTime: number;
   tasksLate: number;
@@ -72,6 +73,7 @@ export async function recomputePoints(
       omzet: out?.totalOmzet ?? 0,
       transactions: out?.transactions ?? 0,
       designJobs: out?.designJobs ?? 0,
+      designServiceValue: out?.designServiceValue ?? 0,
       operatorJobs: out?.operatorJobs ?? 0,
       tasksOnTime: out?.tasksOnTime ?? 0,
       tasksLate: out?.tasksLate ?? 0,

@@ -471,6 +471,12 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, points_per_design_job: e.target.value })} />
             </label>
             <label className="space-y-1">
+              <span className="text-muted">Nilai jasa desain per 1 poin (Rp)</span>
+              <input type="number" min={1} step={1000} className="input" placeholder="5000"
+                value={settings.points_design_value_per_point ?? ""}
+                onChange={(e) => setSettings({ ...settings, points_design_value_per_point: e.target.value })} />
+            </label>
+            <label className="space-y-1">
               <span className="text-muted">Poin per kartu produksi</span>
               <input type="number" min={0} className="input" placeholder="10"
                 value={settings.points_per_operator_job ?? ""}
@@ -497,7 +503,9 @@ export default function SettingsPage() {
           </div>
           <p className="mt-3 text-xs text-subtle">
             Bawaan: Rp1 juta = 100 poin, sehingga kasir beromzet besar tidak otomatis
-            mengalahkan operator &amp; orang yang rajin mengerjakan task.
+            mengalahkan operator &amp; orang yang rajin mengerjakan task. Jasa desain di PosPro
+            berjenjang — dengan bawaan Rp5.000/poin, desain <b className="text-fg">Hard</b> (Rp200rb)
+            bernilai 40 poin sedangkan <b className="text-fg">Easy A</b> (Rp15rb) 3 poin.
           </p>
         </Card>
 

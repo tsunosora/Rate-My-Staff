@@ -32,6 +32,8 @@ export function DailyOutputPanel({
       omzet: a.omzet + r.output!.omzet,
       designJobs: a.designJobs + r.output!.designJobs,
       designOmzet: a.designOmzet + r.output!.designOmzet,
+      designServiceCount: a.designServiceCount + r.output!.designServiceCount,
+      designServiceValue: a.designServiceValue + r.output!.designServiceValue,
       operatorJobs: a.operatorJobs + r.output!.operatorJobs,
       operatorOmzet: a.operatorOmzet + r.output!.operatorOmzet,
       tasksOnTime: a.tasksOnTime + r.output!.tasksOnTime,
@@ -40,6 +42,7 @@ export function DailyOutputPanel({
     }),
     {
       transactions: 0, omzet: 0, designJobs: 0, designOmzet: 0,
+      designServiceCount: 0, designServiceValue: 0,
       operatorJobs: 0, operatorOmzet: 0, tasksOnTime: 0, tasksLate: 0, totalOmzet: 0,
     }
   );
@@ -53,6 +56,19 @@ export function DailyOutputPanel({
   // angka yang sama dan membuat seolah ada dua omzet berbeda.
   const multiPeran = [asKasir, asDesainer, asOperator].filter(Boolean).length > 1;
   const adaTask = hadir.tasksOnTime + hadir.tasksLate > 0;
+
+  // Jasa desain di PosPro berjenjang (Easy A/B, Standar, Medium, Hard). Jumlah order
+  // saja menyamakan Easy A dengan Hard, jadi jenjangnya ditampilkan apa adanya.
+  const jenjang = new Map<string, number>();
+  for (const r of days) {
+    for (const d of r.output!.designServices) {
+      jenjang.set(d.level, (jenjang.get(d.level) ?? 0) + d.qty);
+    }
+  }
+  const ringkasJenjang = [...jenjang.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([lvl, n]) => `${lvl} ${n}×`)
+    .join(" · ");
 
   return (
     <Card title={`Omzet & pekerjaan — ${periodLabel}`}>
@@ -89,6 +105,14 @@ export function DailyOutputPanel({
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {asKasir && <Counter label="Closing / nota" value={hadir.transactions} tone="var(--info)" />}
             {asDesainer && <Counter label="Order desain" value={hadir.designJobs} tone="var(--primary)" />}
+            {hadir.designServiceCount > 0 && (
+              <Counter
+                label="Jasa desain"
+                value={hadir.designServiceCount}
+                hint={rupiah(hadir.designServiceValue)}
+                tone="var(--primary)"
+              />
+            )}
             {asOperator && (
               <Counter
                 label="Kartu produksi"
@@ -119,9 +143,11 @@ export function DailyOutputPanel({
               <tbody>
                 {days.map((r) => {
                   const o = r.output!;
+                  const jasa = o.designServices.map((d) => `${d.level} ${d.qty}×`).join(", ");
                   const kerja = [
                     o.transactions ? `${o.transactions} closing` : null,
-                    o.designJobs ? `${o.designJobs} desain` : null,
+                    o.designJobs ? `${o.designJobs} order desain` : null,
+                    jasa ? `jasa desain: ${jasa}` : null,
                     o.operatorJobs ? `${Math.round(o.operatorJobs * 100) / 100} produksi` : null,
                     o.tasksOnTime ? `${o.tasksOnTime} task` : null,
                     o.tasksLate ? `${o.tasksLate} task telat` : null,
@@ -148,6 +174,17 @@ export function DailyOutputPanel({
               </tbody>
             </table>
           </div>
+
+          {ringkasJenjang && (
+            <div className="mt-3 rounded-xl border border-border bg-surface-2 p-3">
+              <div className="mb-1 text-xs font-semibold text-fg">Jasa desain yang terjual</div>
+              <p className="text-xs text-muted">{ringkasJenjang}</p>
+              <p className="mt-1 text-[11px] text-subtle">
+                Nilai jasa desainnya {rupiah(hadir.designServiceValue)}. Jenjang yang lebih sulit
+                (Medium, Hard) bernilai poin lebih tinggi daripada Easy.
+              </p>
+            </div>
+          )}
 
           {multiPeran && (
             <div className="mt-3 rounded-xl border border-border bg-surface-2 p-3">

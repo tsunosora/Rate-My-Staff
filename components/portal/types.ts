@@ -39,6 +39,10 @@ export type DailyOutput = {
   designJobs: number;
   /** Omzet sebagai desainer. */
   designOmzet: number;
+  /** Jasa desain terjual per jenjang. */
+  designServices: { level: string; qty: number; value: number }[];
+  designServiceCount: number;
+  designServiceValue: number;
   operatorJobs: number;
   /** Omzet sebagai operator. */
   operatorOmzet: number;

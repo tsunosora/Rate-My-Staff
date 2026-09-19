@@ -99,9 +99,19 @@ omzet periode berjalan, dan pekerjaan yang diselesaikan:
 | Peran | Omzet | Pekerjaan | Sumber di PosPro |
 |---|---|---|---|
 | Kasir / CS | nilai nota yang **dia tutup** | jumlah closing | `Transaction` PAID |
-| Desainer | nilai nota dari order yang dia desain | jumlah order | `SalesOrder.designerName` |
+| Desainer | nilai nota dari order yang dia desain | jumlah order + **jasa desain per jenjang** | `SalesOrder.designerName` |
 | Operator | nilai item produksi × bobot | jumlah kartu | `ProductionJobActivity` |
 | Semua | — | task selesai (tepat waktu / telat) | `TaskItem` (per `assigneeId`) |
+
+**Jasa desain berjenjang.** Di PosPro, desain adalah **produk** (`Jasa Desain`) dengan varian
+berdasarkan kesulitan: Easy A (Rp15rb), Easy B (Rp20rb), Standar (Rp35rb/Rp65rb), Medium
+(Rp150rb), Hard (Rp200rb). Menghitung "jumlah order desain" saja menyamakan Easy A dengan
+Hard padahal bedanya belasan kali lipat, jadi panel memisahkan keduanya:
+
+- **Order desain** — sales order yang dia tangani (kebanyakan order cetak, tanpa jasa desain).
+- **Jasa desain** — jasa desain yang benar-benar terjual pada order itu, dipecah per jenjang
+  beserta nilainya. Ditelusuri dari `SalesOrder.transactionId` → item nota yang produknya
+  bernama "desain", dan ditempatkan pada tanggal sales order-nya (saat desain dikerjakan).
 
 **Omzet ditampilkan satu angka per hari** (gabungan seluruh perannya). Rincian per peran hanya
 muncul untuk orang yang benar-benar merangkap — kalau tidak, dua angka yang sama hanya membuat
@@ -127,7 +137,8 @@ ditukar hadiah yang disiapkan owner.
 |---|---|
 | Omzet | 1 poin tiap Rp10.000 (Rp1 juta = 100 poin) |
 | Nota / closing | 5 poin |
-| Order desain | 10 poin |
+| Order desain | 10 poin per order |
+| Bobot kesulitan desain | 1 poin tiap Rp5.000 nilai jasa desain → Hard 40 poin, Medium 30, Easy A 3 |
 | Kartu produksi | 10 poin (dikali bobot) |
 | Task tepat waktu | 20 poin |
 | Task terlambat | 5 poin |

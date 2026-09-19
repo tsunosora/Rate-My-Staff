@@ -14,6 +14,7 @@ const kosong: DayActivity = {
   omzet: 0,
   transactions: 0,
   designJobs: 0,
+  designServiceValue: 0,
   operatorJobs: 0,
   tasksOnTime: 0,
   tasksLate: 0,
@@ -99,6 +100,7 @@ describe("computeDayPoints", () => {
         omzet: 500_000,
         transactions: 4,
         designJobs: 1,
+        designServiceValue: 0,
         operatorJobs: 0,
         tasksOnTime: 1,
         tasksLate: 0,
@@ -111,6 +113,23 @@ describe("computeDayPoints", () => {
     expect(d.taskPoints).toBe(20);
     expect(d.attendancePoints).toBe(10);
     expect(d.total).toBe(110);
+  });
+
+  test("desain sulit bernilai lebih tinggi daripada desain mudah", () => {
+    // Jasa Desain di PosPro: Easy A Rp15rb, Medium Rp150rb, Hard Rp200rb.
+    const easy = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 15_000 }, RATES);
+    const medium = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 150_000 }, RATES);
+    const hard = computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 200_000 }, RATES);
+    // 10 poin order + nilai jasa / Rp5.000
+    expect(easy.jobPoints).toBe(10 + 3);
+    expect(medium.jobPoints).toBe(10 + 30);
+    expect(hard.jobPoints).toBe(10 + 40);
+    expect(hard.jobPoints).toBeGreaterThan(medium.jobPoints);
+    expect(medium.jobPoints).toBeGreaterThan(easy.jobPoints);
+  });
+
+  test("order tanpa jasa desain tetap dihargai poin order saja", () => {
+    expect(computeDayPoints({ ...kosong, designJobs: 1, designServiceValue: 0 }, RATES).jobPoints).toBe(10);
   });
 
   test("kasir beromzet besar tidak otomatis mengalahkan operator yang rajin", () => {
