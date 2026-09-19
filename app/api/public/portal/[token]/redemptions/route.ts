@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { json, badRequest, route } from "@/lib/http";
 import { notifyManagers } from "@/lib/notify";
-import { requirePortalSession } from "@/lib/services/portal/auth";
+import { requirePortalSession, requirePortalOwner } from "@/lib/services/portal/auth";
 import { pointBalance, isPointsEnabled } from "@/lib/services/points/service";
 import { redemptionCreateSchema } from "@/lib/validators/points";
 
@@ -39,7 +39,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 /** PORTAL — ajukan penukaran poin. Poin baru terpotong setelah owner menyetujui. */
 export const POST = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalOwner(token);
   if (!(await isPointsEnabled())) {
     return NextResponse.json({ message: "Sistem poin sedang dimatikan." }, { status: 409 });
   }

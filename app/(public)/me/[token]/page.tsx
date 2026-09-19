@@ -135,17 +135,36 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
                 "Karyawan"}
             </p>
           </div>
-          <button
-            onClick={() => setShowPinForm((v) => !v)}
-            className="btn-ghost h-9 px-3 text-xs"
-            aria-label="Ganti PIN"
-          >
-            <IconSettings className="text-[15px]" /> PIN
-          </button>
-          <button onClick={logout} className="btn-ghost h-9 px-3 text-xs" aria-label="Keluar">
-            <IconLogout className="text-[15px]" /> Keluar
-          </button>
+          {!state.asManager && (
+            <>
+              <button
+                onClick={() => setShowPinForm((v) => !v)}
+                className="btn-ghost h-9 px-3 text-xs"
+                aria-label="Ganti PIN"
+              >
+                <IconSettings className="text-[15px]" /> PIN
+              </button>
+              <button onClick={logout} className="btn-ghost h-9 px-3 text-xs" aria-label="Keluar">
+                <IconLogout className="text-[15px]" /> Keluar
+              </button>
+            </>
+          )}
         </header>
+
+        {state.asManager && (
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+            style={{ background: "color-mix(in oklab, var(--info) 14%, transparent)" }}
+          >
+            <IconAlert className="text-[16px] shrink-0 text-info" />
+            <span className="text-fg">
+              Mode owner — Anda melihat halaman milik <b>{state.employee.fullName}</b> tanpa PIN.
+            </span>
+            <a href="/employees" className="ml-auto text-xs font-semibold text-info hover:underline">
+              Kembali ke Direktori
+            </a>
+          </div>
+        )}
 
         {showPinForm && <ChangePinForm token={token} onDone={() => setShowPinForm(false)} />}
 

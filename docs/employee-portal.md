@@ -54,6 +54,21 @@ belum punya keduanya.
 > PIN PosPro seseorang lemah (mis. 4 angka berurutan), kelemahan itu ikut terbawa ke sini.
 > Perkuat dari **PosPro → Pengaturan → Desainer**; sekali ubah, berlaku di kedua aplikasi.
 
+### Owner melihat tanpa PIN
+
+Pengguna dashboard ber-role **OWNER / ADMIN / HR** yang sedang login bisa membuka
+`/me/[token]` **langsung tanpa PIN**. Ini tidak menambah hak akses apa pun: data yang sama
+(absensi, penilaian, struk) memang sudah tersedia baginya lewat Direktori & Laporan — PIN di
+sana hanya penghalang. Jalan masuknya: **Direktori → QR → tab Portal Karyawan → "Buka halaman
+karyawan ini"**.
+
+Yang membedakan dari karyawannya sendiri:
+
+- Ada spanduk **"Mode owner — Anda melihat halaman milik <nama>"** supaya tak tertukar.
+- Tombol **Ganti PIN** dan **Keluar** disembunyikan (itu milik karyawannya).
+- **Tidak bisa bertindak atas nama karyawan**: mengajukan izin, membatalkan pengajuan, dan
+  menukar poin dijawab 403. Owner boleh melihat, bukan menyamar (`requirePortalOwner`).
+
 ### Sesi
 
 Cookie `rms_portal`, httpOnly, **berlaku 8 jam**, ditandatangani HMAC dengan `AUTH_SECRET`

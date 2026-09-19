@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { json, route } from "@/lib/http";
-import { requireEmployeeByToken, portalSecret } from "@/lib/services/portal/auth";
+import { requireEmployeeByToken, portalSecret, viewerIsManager } from "@/lib/services/portal/auth";
 import { PORTAL_COOKIE, verifyPortalToken } from "@/lib/services/portal/session";
 import { posproPinAvailable } from "@/lib/services/pospro/client";
 
@@ -19,6 +19,9 @@ export const GET = route<Ctx>(async (_req, ctx) => {
   // PIN PosPro (PIN desainer/piket) boleh dipakai masuk, supaya karyawan tak perlu
   // mengingat dua PIN. false bila belum dipetakan / tak punya PIN / PosPro mati.
   const posproPin = await posproPinAvailable(employee.posproUserId);
+  // Owner/HR/Admin yang sedang login boleh langsung melihat — datanya toh sudah
+  // tersedia baginya lewat Direktori & Laporan.
+  const asManager = await viewerIsManager();
 
   return json({
     employee: {
@@ -30,6 +33,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
     },
     pinSet: employee.portalPin !== null,
     posproPin,
-    authenticated: session?.employeeId === employee.id,
+    asManager,
+    authenticated: session?.employeeId === employee.id || asManager,
   });
 });

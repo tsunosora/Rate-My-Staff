@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { json, notFound, route } from "@/lib/http";
-import { requirePortalSession } from "@/lib/services/portal/auth";
+import { requirePortalOwner } from "@/lib/services/portal/auth";
 
 type Ctx = { params: Promise<{ token: string; id: string }> };
 
-/** PORTAL (butuh PIN) — batalkan pengajuan sendiri selama masih `pending`. */
+/** PORTAL — batalkan pengajuan sendiri selama masih `pending`. Owner hanya bisa melihat. */
 export const DELETE = route<Ctx>(async (_req, ctx) => {
   const { token, id } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalOwner(token);
 
   const request = await prisma.leaveRequest.findFirst({
     where: { id: Number(id), employeeId: employee.id },

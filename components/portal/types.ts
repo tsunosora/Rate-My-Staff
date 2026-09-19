@@ -14,6 +14,8 @@ export type PortalState = {
   pinSet: boolean;
   /** Karyawan punya PIN PosPro (PIN desainer/piket) yang juga bisa dipakai masuk. */
   posproPin: boolean;
+  /** Dibuka oleh owner/HR/admin yang sedang login — tanpa PIN, hanya bisa melihat. */
+  asManager: boolean;
   authenticated: boolean;
 };
 

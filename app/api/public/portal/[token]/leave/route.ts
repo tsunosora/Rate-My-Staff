@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { json, badRequest, route } from "@/lib/http";
 import { notifyManagers } from "@/lib/notify";
-import { requirePortalSession } from "@/lib/services/portal/auth";
+import { requirePortalSession, requirePortalOwner } from "@/lib/services/portal/auth";
 import { leaveRequestSchema } from "@/lib/validators/portal";
 import { validateLeaveRange, countDays } from "@/lib/services/leave/range";
 import {
@@ -54,7 +54,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 /** PORTAL (butuh PIN) — ajukan izin/sakit/cuti. Masuk sebagai `pending`, menunggu owner. */
 export const POST = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalOwner(token);
 
   const parsed = leaveRequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return badRequest(parsed.error.flatten());
