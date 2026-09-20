@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ token: string }> };
 /** PORTAL (butuh PIN) — absensi, struk lembur, penilaian & feedback satu periode. */
 export const GET = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalSession(token, req);
   const period = resolveReceiptPeriod(new URL(req.url).searchParams);
   return json(await buildPortalOverview(prisma, employee.id, period, employee.posproUserId));
 });

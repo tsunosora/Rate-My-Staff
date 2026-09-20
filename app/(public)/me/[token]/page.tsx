@@ -35,6 +35,12 @@ function currentMonth(): { year: number; month: number } {
 
 export default function EmployeePortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
+  // Mode owner harus diminta tegas lewat ?owner=1 (tombol di Direktori menambahkannya).
+  // Tanpa itu, halaman ini berperilaku persis seperti yang dilihat karyawan.
+  const ownerQuery =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("owner") === "1"
+      ? "&owner=1"
+      : "";
 
   const [state, setState] = useState<PortalState | null>(null);
   const [invalid, setInvalid] = useState(false);
@@ -46,11 +52,11 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
 
   const loadState = useCallback(async () => {
     try {
-      setState(await api<PortalState>(`/api/public/portal/${token}`));
+      setState(await api<PortalState>(`/api/public/portal/${token}?v=1${ownerQuery}`));
     } catch {
       setInvalid(true);
     }
-  }, [token]);
+  }, [token, ownerQuery]);
 
   useEffect(() => {
     loadState();
@@ -61,10 +67,10 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
     if (!state?.authenticated) return;
     setData(null);
     setLoadError("");
-    api<Overview>(`/api/public/portal/${token}/overview?year=${year}&month=${month}`)
+    api<Overview>(`/api/public/portal/${token}/overview?year=${year}&month=${month}${ownerQuery}`)
       .then(setData)
       .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : "Gagal memuat data."));
-  }, [token, state?.authenticated, year, month]);
+  }, [token, state?.authenticated, year, month, ownerQuery]);
 
   function shiftMonth(delta: number) {
     setPeriod(({ year: y, month: m }) => {
@@ -215,9 +221,9 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
         </div>
 
         {tab === "leave" ? (
-          <LeavePanel token={token} />
+          <LeavePanel token={token} ownerQuery={ownerQuery} />
         ) : tab === "points" ? (
-          <PointsPanel token={token} year={year} month={month} />
+          <PointsPanel token={token} year={year} month={month} ownerQuery={ownerQuery} />
         ) : loadError ? (
           <div
             className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-danger"

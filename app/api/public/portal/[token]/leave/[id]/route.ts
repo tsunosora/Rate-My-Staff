@@ -8,7 +8,7 @@ type Ctx = { params: Promise<{ token: string; id: string }> };
 /** PORTAL — batalkan pengajuan sendiri selama masih `pending`. Owner hanya bisa melihat. */
 export const DELETE = route<Ctx>(async (_req, ctx) => {
   const { token, id } = await ctx.params;
-  const employee = await requirePortalOwner(token);
+  const employee = await requirePortalOwner(token, _req);
 
   const request = await prisma.leaveRequest.findFirst({
     where: { id: Number(id), employeeId: employee.id },

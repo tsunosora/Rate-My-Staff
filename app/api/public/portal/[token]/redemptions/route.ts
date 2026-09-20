@@ -11,7 +11,7 @@ type Ctx = { params: Promise<{ token: string }> };
 /** PORTAL — katalog hadiah + riwayat penukaran milik karyawan ini. */
 export const GET = route<Ctx>(async (_req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalSession(token, _req);
   if (!(await isPointsEnabled())) return json({ enabled: false, rewards: [], items: [] });
 
   const [rewards, items, balance] = await Promise.all([
@@ -39,7 +39,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 /** PORTAL — ajukan penukaran poin. Poin baru terpotong setelah owner menyetujui. */
 export const POST = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalOwner(token);
+  const employee = await requirePortalOwner(token, req);
   if (!(await isPointsEnabled())) {
     return NextResponse.json({ message: "Sistem poin sedang dimatikan." }, { status: 409 });
   }

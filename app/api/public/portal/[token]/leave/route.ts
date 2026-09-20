@@ -42,7 +42,7 @@ function serialize(r: {
 /** PORTAL (butuh PIN) — riwayat pengajuan izin milik karyawan ini. */
 export const GET = route<Ctx>(async (_req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalSession(token, _req);
   const items = await prisma.leaveRequest.findMany({
     where: { employeeId: employee.id },
     orderBy: [{ startDate: "desc" }, { id: "desc" }],
@@ -54,7 +54,7 @@ export const GET = route<Ctx>(async (_req, ctx) => {
 /** PORTAL (butuh PIN) — ajukan izin/sakit/cuti. Masuk sebagai `pending`, menunggu owner. */
 export const POST = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalOwner(token);
+  const employee = await requirePortalOwner(token, req);
 
   const parsed = leaveRequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return badRequest(parsed.error.flatten());

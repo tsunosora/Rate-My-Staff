@@ -55,7 +55,17 @@ const TYPE_LABEL: Record<Reward["type"], string> = {
 };
 
 /** Poin karyawan: saldo, cara mendapatkannya, dan penukaran hadiah. */
-export function PointsPanel({ token, year, month }: { token: string; year: number; month: number }) {
+export function PointsPanel({
+  token,
+  year,
+  month,
+  ownerQuery = "",
+}: {
+  token: string;
+  year: number;
+  month: number;
+  ownerQuery?: string;
+}) {
   const [data, setData] = useState<PointsData | null>(null);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [items, setItems] = useState<Redemption[]>([]);
@@ -66,16 +76,16 @@ export function PointsPanel({ token, year, month }: { token: string; year: numbe
 
   const load = useCallback(async () => {
     const [p, r] = await Promise.all([
-      api<PointsData>(`/api/public/portal/${token}/points?year=${year}&month=${month}`),
+      api<PointsData>(`/api/public/portal/${token}/points?year=${year}&month=${month}${ownerQuery}`),
       api<{ enabled: boolean; balance?: Balance; rewards: Reward[]; items: Redemption[] }>(
-        `/api/public/portal/${token}/redemptions`
+        `/api/public/portal/${token}/redemptions?v=1${ownerQuery}`
       ),
     ]);
     setData(p);
     setRewards(r.rewards ?? []);
     setItems(r.items ?? []);
     setBalance(r.balance ?? p.balance ?? null);
-  }, [token, year, month]);
+  }, [token, year, month, ownerQuery]);
 
   useEffect(() => {
     load().catch((e: unknown) =>

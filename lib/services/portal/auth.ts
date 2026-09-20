@@ -46,6 +46,23 @@ export async function viewerIsManager(): Promise<boolean> {
   }
 }
 
+/**
+ * Mode owner HARUS diminta tegas lewat `?owner=1` — tidak berlaku diam-diam hanya
+ * karena kebetulan ada cookie login di browser itu.
+ *
+ * Alasannya: tanpa ini, tautan yang sama berperilaku berbeda bagi owner (langsung
+ * terbuka) dan bagi karyawan (diminta PIN), sehingga owner tak bisa memeriksa apa
+ * yang sebenarnya dilihat karyawannya — dan mudah menyangka PIN-nya jebol.
+ * Tombol di Direktori sudah menambahkan penanda ini sendiri.
+ */
+export function managerModeRequested(req: Request): boolean {
+  try {
+    return new URL(req.url).searchParams.get("owner") === "1";
+  } catch {
+    return false;
+  }
+}
+
 export type PortalAccess = {
   employee: PortalEmployee;
   /** true bila dibuka oleh manajemen, bukan karyawannya sendiri. */
@@ -57,14 +74,16 @@ export type PortalAccess = {
  * Lempar 401 dengan kode PIN_REQUIRED supaya halaman portal bisa menampilkan layar
  * PIN, bukan pesan error mentah.
  */
-export async function requirePortalAccess(token: string): Promise<PortalAccess> {
+export async function requirePortalAccess(token: string, req?: Request): Promise<PortalAccess> {
   const employee = await requireEmployeeByToken(token);
   const store = await cookies();
   const session = verifyPortalToken(store.get(PORTAL_COOKIE)?.value, token, portalSecret());
   if (session && session.employeeId === employee.id) {
     return { employee, asManager: false };
   }
-  if (await viewerIsManager()) return { employee, asManager: true };
+  if (req && managerModeRequested(req) && (await viewerIsManager())) {
+    return { employee, asManager: true };
+  }
 
   throw NextResponse.json(
     { message: "Masukkan PIN untuk membuka halaman ini.", code: "PIN_REQUIRED" },
@@ -73,16 +92,16 @@ export async function requirePortalAccess(token: string): Promise<PortalAccess> 
 }
 
 /** Seperti requirePortalAccess, tapi hanya mengembalikan karyawannya. */
-export async function requirePortalSession(token: string): Promise<PortalEmployee> {
-  return (await requirePortalAccess(token)).employee;
+export async function requirePortalSession(token: string, req?: Request): Promise<PortalEmployee> {
+  return (await requirePortalAccess(token, req)).employee;
 }
 
 /**
  * Untuk aksi yang MENGUBAH data atas nama karyawan (ajukan izin, tukar poin).
  * Manajemen boleh melihat, tapi tidak boleh bertindak seolah-olah dia karyawannya.
  */
-export async function requirePortalOwner(token: string): Promise<PortalEmployee> {
-  const { employee, asManager } = await requirePortalAccess(token);
+export async function requirePortalOwner(token: string, req?: Request): Promise<PortalEmployee> {
+  const { employee, asManager } = await requirePortalAccess(token, req);
   if (asManager) {
     throw NextResponse.json(
       { message: "Anda sedang melihat sebagai owner — aksi ini hanya bisa dilakukan karyawannya sendiri." },

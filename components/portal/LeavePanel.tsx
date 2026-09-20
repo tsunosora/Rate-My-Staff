@@ -14,7 +14,7 @@ function todayStr(): string {
 }
 
 /** Ajukan izin/sakit/cuti & lihat statusnya (menunggu, disetujui, ditolak). */
-export function LeavePanel({ token }: { token: string }) {
+export function LeavePanel({ token, ownerQuery = "" }: { token: string; ownerQuery?: string }) {
   const [items, setItems] = useState<LeaveRequestItem[] | null>(null);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<(typeof TYPES)[number]>("Izin");
@@ -26,9 +26,11 @@ export function LeavePanel({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api<{ items: LeaveRequestItem[] }>(`/api/public/portal/${token}/leave`);
+    const r = await api<{ items: LeaveRequestItem[] }>(
+      `/api/public/portal/${token}/leave?v=1${ownerQuery}`
+    );
     setItems(r.items);
-  }, [token]);
+  }, [token, ownerQuery]);
 
   useEffect(() => {
     load().catch(() => setItems([]));

@@ -109,7 +109,7 @@ export function EmployeeLinksModal({
 
       <p className="mb-4 text-xs leading-relaxed text-muted">
         {tab === "portal"
-          ? "Halaman pribadi karyawan: absensi, penilaian, estimasi lembur, dan pengajuan izin. Dikunci PIN untuk karyawan — tapi Anda sebagai owner/HR bisa membukanya langsung tanpa PIN."
+          ? "Halaman pribadi karyawan: absensi, penilaian, estimasi lembur, dan pengajuan izin. Tautan di atas SELALU meminta PIN — termasuk untuk Anda — jadi bisa dipakai memastikan apa yang dilihat karyawan. Tombol di bawahnya membukanya sebagai owner tanpa PIN."
           : "Form penilaian bintang untuk pelanggan/tamu. Aman ditempel di meja atau nota."}
       </p>
 
@@ -129,12 +129,12 @@ export function EmployeeLinksModal({
 
         {tab === "portal" && (
           <a
-            href={path}
+            href={`${path}?owner=1`}
             target="_blank"
             rel="noreferrer"
             className="btn-primary h-9 w-full text-xs"
           >
-            Buka halaman karyawan ini
+            Buka sebagai owner (tanpa PIN)
           </a>
         )}
       </div>

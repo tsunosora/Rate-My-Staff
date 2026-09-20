@@ -56,11 +56,19 @@ belum punya keduanya.
 
 ### Owner melihat tanpa PIN
 
-Pengguna dashboard ber-role **OWNER / ADMIN / HR** yang sedang login bisa membuka
-`/me/[token]` **langsung tanpa PIN**. Ini tidak menambah hak akses apa pun: data yang sama
-(absensi, penilaian, struk) memang sudah tersedia baginya lewat Direktori & Laporan — PIN di
-sana hanya penghalang. Jalan masuknya: **Direktori → QR → tab Portal Karyawan → "Buka halaman
-karyawan ini"**.
+Pengguna dashboard ber-role **OWNER / ADMIN / HR** bisa membuka halaman karyawan tanpa PIN,
+**tapi harus memintanya secara tegas** lewat `?owner=1` — tombol *"Buka sebagai owner"* di
+**Direktori → QR → tab Portal Karyawan** sudah menambahkannya.
+
+> **Kenapa harus tegas?** Versi pertama memberlakukan bypass diam-diam begitu ada cookie
+> login di browser. Akibatnya tautan yang sama terbuka langsung bagi owner tapi meminta PIN
+> bagi karyawan — owner jadi tak bisa memeriksa apa yang sebenarnya dilihat karyawannya, dan
+> mudah menyangka PIN-nya jebol. Sekarang **tautan polos selalu meminta PIN untuk siapa pun**,
+> termasuk owner yang sedang login.
+
+Ini tidak menambah hak akses apa pun: data yang sama (absensi, penilaian, struk) memang sudah
+tersedia bagi manajemen lewat Direktori & Laporan. `?owner=1` hanya penanda niat — tanpa sesi
+login ber-role manajemen, penanda itu diabaikan dan PIN tetap diminta.
 
 Yang membedakan dari karyawannya sendiri:
 

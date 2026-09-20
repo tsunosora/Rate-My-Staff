@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ token: string }> };
  */
 export const GET = route<Ctx>(async (req, ctx) => {
   const { token } = await ctx.params;
-  const employee = await requirePortalSession(token);
+  const employee = await requirePortalSession(token, req);
 
   if (!(await isPointsEnabled())) return json({ enabled: false });
 
