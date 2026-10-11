@@ -24,7 +24,7 @@ const ABSENCE = new Set(["Izin", "Sakit", "Cuti"]);
  * Dipanggil server-ke-server dengan header `x-api-key` (lihat lib/services/integrations/guard.ts).
  */
 export const GET = route(async (req: Request) => {
-  requireIntegrationKey(req);
+  await requireIntegrationKey(req);
 
   const today = todayStr();
   const now = new Date();

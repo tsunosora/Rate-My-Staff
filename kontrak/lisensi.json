@@ -7,12 +7,24 @@
     "versiIsiKunci": 1,
     "tiketMasuk": "qm1",
     "versiTiket": 1,
-    "umurTiketDetik": 60
+    "umurTiketDetik": 60,
+    "tiketIntegrasi": "qi1",
+    "versiTiketIntegrasi": 1,
+    "umurTiketIntegrasiDetik": 300
   },
   "jalur": {
     "segarkanLisensi": "/api/lisensi",
     "apiAplikasi": "/api/aplikasi",
-    "tukarTiketDiAplikasi": "/masuk-qendali"
+    "tukarTiketDiAplikasi": "/masuk-qendali",
+    "tiketIntegrasi": "/api/aplikasi/integrasi"
+  },
+  "integrasi": {
+    "qendali_employee": [
+      "qendali"
+    ],
+    "qendali": [
+      "qendali_employee"
+    ]
   },
   "produk": [
     {

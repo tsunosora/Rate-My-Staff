@@ -15,7 +15,7 @@ import { requireIntegrationKey } from "@/lib/services/integrations/guard";
  * sama seperti /api/integrations/hr-summary.
  */
 export const GET = route(async (req: Request) => {
-  requireIntegrationKey(req);
+  await requireIntegrationKey(req);
 
   const id = Number(new URL(req.url).searchParams.get("posproUserId"));
   if (!Number.isInteger(id) || id <= 0) {

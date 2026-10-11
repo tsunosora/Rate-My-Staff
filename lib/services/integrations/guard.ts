@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { periksaTiketIntegrasi, tiketDariHeader } from "@/lib/lisensi/tiket-integrasi";
 
 /** Header yang HANYA dipasang Cloudflare — keberadaannya saja sudah berarti dari luar. */
 const CLOUDFLARE_HEADERS = ["cf-connecting-ip", "cf-ray", "cf-ipcountry"];
@@ -18,8 +19,17 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Guard mesin-ke-mesin untuk endpoint `/api/integrations/*`, dipanggil aplikasi lain
- * di SERVER YANG SAMA (saat ini: backend PosPro menampilkan kartu ringkas HR).
+ * Guard mesin-ke-mesin untuk endpoint `/api/integrations/*` (backend Qendali POS menampilkan
+ * kartu ringkas HR).
+ *
+ * DUA PINTU (11 Okt 2026):
+ * A. `Authorization: Qendali <tiket>` — tiket integrasi bertanda tangan dari qendali.com. Boleh
+ *    dari mesin MANA PUN, karena tiketnya membuktikan pemanggilnya produk Qendali milik usaha yang
+ *    SAMA dengan kunci lisensi aplikasi ini. Kalau header ini ada, HANYA tiket yang dinilai —
+ *    tiket yang ditolak tidak jatuh ke kunci API (supaya kegagalannya terlihat, bukan tertutup).
+ * B. Kunci API lama (di bawah) — masa peralihan, untuk instalasi yang belum berlisensi.
+ *
+ * Pintu B, aslinya:
  *
  * Cerminan dari ApiKeyGuard di sisi PosPro — dua lapis:
  * 1. Kunci API wajib (`x-api-key` vs env HR_API_KEY). Env kosong = tolak, bukan terbuka.
@@ -30,7 +40,14 @@ function safeEqual(a: string, b: string): boolean {
  *
  * Lempar Response bila ditolak — ditangkap oleh helper `route()`.
  */
-export function requireIntegrationKey(req: Request): void {
+export async function requireIntegrationKey(req: Request): Promise<void> {
+  const tiket = tiketDariHeader(req);
+  if (tiket !== null) {
+    const h = await periksaTiketIntegrasi(tiket);
+    if (h.sah) return;
+    throw NextResponse.json({ message: "Tiket integrasi ditolak.", alasan: h.alasan }, { status: 401 });
+  }
+
   const expected = process.env.HR_API_KEY;
   if (!expected) {
     throw NextResponse.json(

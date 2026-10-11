@@ -6,6 +6,7 @@
  * Integrasi MATI bila POSPRO_API_URL / POSPRO_API_KEY belum diisi — semua fungsi
  * mengembalikan null, dan pemanggil harus tetap jalan tanpa data ini.
  */
+import { tiketUntuk } from "@/lib/lisensi/tiket-integrasi";
 
 export type PosproStaff = {
   userId: number;
@@ -56,19 +57,28 @@ export type PosproKpiResponse = {
 /** Batas tunggu panggilan ke PosPro — jangan sampai portal karyawan ikut menggantung. */
 const TIMEOUT_MS = 6000;
 
+/**
+ * Tersambung ke POS kalau alamatnya ada DAN ada cara membuktikan diri: kunci API lama, atau
+ * token lisensi Qendali (untuk meminta tiket integrasi ke qendali.com).
+ */
 export function posproConfigured(): boolean {
-  return Boolean(process.env.POSPRO_API_URL && process.env.POSPRO_API_KEY);
+  const tokenQendali = Boolean((process.env.QENDALI_LISENSI_TOKEN || "").trim());
+  return Boolean(process.env.POSPRO_API_URL && (process.env.POSPRO_API_KEY || tokenQendali));
 }
 
 async function call<T>(path: string, body?: unknown): Promise<T | null> {
   if (!posproConfigured()) return null;
   const base = process.env.POSPRO_API_URL!.replace(/\/+$/, "");
+  // Tiket integrasi dulu, kunci API lama sebagai cadangan. Selama peralihan DUA-DUANYA dikirim:
+  // POS lama cuma membaca x-api-key, POS baru menilai tiketnya.
+  const tiket = await tiketUntuk("qendali");
 
   try {
     const res = await fetch(`${base}${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: {
-        "x-api-key": process.env.POSPRO_API_KEY!,
+        ...(process.env.POSPRO_API_KEY ? { "x-api-key": process.env.POSPRO_API_KEY } : {}),
+        ...(tiket ? { authorization: `Qendali ${tiket}` } : {}),
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
