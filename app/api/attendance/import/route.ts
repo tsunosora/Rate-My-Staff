@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireManager, json, badRequest, route } from "@/lib/http";
 import { getSetting } from "@/lib/settings";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
+import { bolehMenambah } from "@/lib/lisensi/penjaga";
 import { loadShiftConfig } from "@/lib/services/attendance/shift";
 import { analyzeScanlog, describeScanlogFailure } from "@/lib/services/attendance/import-html";
 import {
@@ -80,12 +81,14 @@ export const POST = route(async (req: Request) => {
 
   // Opsional: buat karyawan baru dari PIN yang belum dikenal (Nama + PIN dari file).
   let createdEmployees = 0;
+  let tertahanBatas = 0;
   if (createMissing && !commit) {
     const existingPins = new Set(employees.map((e) => e.machinePin).filter(Boolean));
     const namesByPin = new Map<string, string>();
     for (const r of parsed) if (!namesByPin.has(r.pin)) namesByPin.set(r.pin, r.name);
     for (const [pin, name] of namesByPin) {
       if (existingPins.has(pin)) continue;
+      if (!(await bolehMenambah("limit.employees"))) { tertahanBatas++; continue; }
       const fullName = name || `Karyawan PIN ${pin}`;
       const code = await nextEmployeeCode(prisma, fullName);
       await prisma.employee.create({
@@ -127,7 +130,7 @@ export const POST = route(async (req: Request) => {
   const conflicts = rows.filter((r) => r.conflict).length;
 
   if (!commit) {
-    return json({ rows, summary: { ...preview.summary, conflicts }, committed: false, createdEmployees });
+    return json({ rows, summary: { ...preview.summary, conflicts }, committed: false, createdEmployees, tertahanBatas });
   }
 
   // Commit ber-izin: hari conflict hanya ditimpa bila overwriteConflicts.

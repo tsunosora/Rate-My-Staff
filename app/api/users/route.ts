@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, json, route } from "@/lib/http";
+import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -42,6 +43,7 @@ export const POST = route(async (req) => {
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return json({ message: "Email sudah dipakai" }, { status: 422 });
 
+  await wajibBolehMenambah("limit.users");
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: { name, email, password: hashed, role },

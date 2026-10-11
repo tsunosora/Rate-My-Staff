@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
+import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 import { employeeCreateSchema } from "@/lib/validators/employee";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 
@@ -51,6 +52,7 @@ export const POST = route(async (req: Request) => {
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   const d = parsed.data;
+  await wajibBolehMenambah("limit.employees");
   const code = await nextEmployeeCode(prisma, d.nickname || d.fullName);
 
   const employee = await prisma.employee.create({

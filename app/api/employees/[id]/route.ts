@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession, requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { employeeUpdateSchema } from "@/lib/validators/employee";
+import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -39,6 +40,8 @@ export const PUT = route<Ctx>(async (req, ctx) => {
   if (!existing) return notFound("Employee not found");
 
   const d = parsed.data;
+  // Mengaktifkan kembali karyawan yang nonaktif menambah satu ke hitungan batas lisensi.
+  if (d.isActive === true && !existing.isActive) await wajibBolehMenambah("limit.employees");
   const employee = await prisma.employee.update({
     where: { id: Number(id) },
     data: {

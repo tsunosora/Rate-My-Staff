@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Harness uji perintah mesin (runtime, jangan di-commit)
 /data/fp-commands.json
+
+# kunci lisensi Qendali per instalasi (lib/lisensi/simpanan-lisensi.ts)
+/storage/

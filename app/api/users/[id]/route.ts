@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, json, notFound, route } from "@/lib/http";
+import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -58,6 +59,8 @@ export const PATCH = route<Ctx>(async (req, ctx) => {
         { status: 409 }
       );
   }
+
+  if (isActive === true && !target.isActive) await wajibBolehMenambah("limit.users");
 
   const user = await prisma.user.update({
     where: { id: userId },

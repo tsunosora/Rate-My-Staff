@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
+import { bolehMenambah } from "@/lib/lisensi/penjaga";
 import { pullDeviceLogs, pullDeviceUsers, toRawScans } from "./device";
 import type { RawScan } from "./mapper";
 import { recomputeStoredStatus } from "@/lib/services/attendance/recompute";
@@ -137,6 +138,10 @@ export async function upsertEnrollment(
     }
     return "skipped";
   }
+  // Batas karyawan lisensi penuh: JANGAN buat, tapi juga jangan gagal — mesin harus tetap
+  // dijawab. Scan PIN ini tetap tersimpan di log mentah dan terpetakan sesudah karyawannya
+  // dibuat (atau paketnya dinaikkan), jadi tidak ada absensi yang hilang.
+  if (!(await bolehMenambah("limit.employees"))) return "skipped";
   const fullName = clean || placeholder;
   const code = await nextEmployeeCode(prisma, fullName);
   const emp = await prisma.employee.create({ data: { employeeCode: code, publicToken: randomUUID(), fullName } });

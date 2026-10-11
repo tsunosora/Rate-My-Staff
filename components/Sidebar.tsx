@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType, type SVGProps } from "react";
+import { bolehHalaman, useLisensi, type LisensiTampil } from "@/components/lisensi/Lisensi";
 import {
   IconDashboard,
   IconAttendance,
@@ -56,6 +57,7 @@ const NAV: NavGroup[] = [
       { label: "Umum", href: "/settings" },
       { label: "Jadwal Kerja", href: "/settings/work-schedules" },
       { label: "Akun & Peran", href: "/settings/users", require: "admin" },
+      { label: "Langganan", href: "/settings/langganan", require: "admin" },
     ],
   },
 ];
@@ -68,12 +70,17 @@ function allowed(access: Access | undefined, role?: string | null): boolean {
   return true;
 }
 
-/** Saring NAV sesuai role: buang grup/anak yang tak diizinkan. */
-function navForRole(role?: string | null): NavGroup[] {
-  return NAV.filter((g) => allowed(g.require, role))
+/**
+ * Saring NAV sesuai role DAN lisensi: buang grup/anak yang tak diizinkan atau yang fiturnya
+ * tidak termasuk paket (kosmetik — servernya yang menolak sungguhan).
+ */
+function navForRole(role: string | null | undefined, lisensi: LisensiTampil): NavGroup[] {
+  const boleh = (access: Access | undefined, href?: string) =>
+    allowed(access, role) && (!href || bolehHalaman(lisensi, href));
+  return NAV.filter((g) => boleh(g.require, g.href))
     .map((g) =>
       g.children
-        ? { ...g, children: g.children.filter((c) => allowed(c.require, role)) }
+        ? { ...g, children: g.children.filter((c) => boleh(c.require, c.href)) }
         : g
     )
     .filter((g) => !g.children || g.children.length > 0);
@@ -91,8 +98,11 @@ export function Sidebar({ role }: { role?: string | null }) {
 export function SidebarNav({ role }: { role?: string | null }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-  const nav = navForRole(role);
+    // "/dashboard" & "/settings" (Umum) dicocokkan persis: tanpa itu "Umum" ikut menyala di
+    // tiap sub-halaman pengaturan (Jadwal Kerja, Akun, Langganan).
+    pathname === href || (href !== "/dashboard" && href !== "/settings" && pathname.startsWith(href));
+  const lisensi = useLisensi();
+  const nav = navForRole(role, lisensi);
 
   return (
     <>

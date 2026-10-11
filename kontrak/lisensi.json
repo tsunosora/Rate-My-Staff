@@ -1,0 +1,951 @@
+{
+  "versiKontrak": 1,
+  "versiPaket": 2,
+  "catatan": "Dibangkitkan dari data/paket.json oleh `npm run kontrak` di repo tsunosora/qendali. JANGAN disunting tangan — suntingannya akan tertimpa, dan tes kontrak akan gagal.",
+  "amplop": {
+    "kunciLisensi": "q1",
+    "versiIsiKunci": 1,
+    "tiketMasuk": "qm1",
+    "versiTiket": 1,
+    "umurTiketDetik": 60
+  },
+  "jalur": {
+    "segarkanLisensi": "/api/lisensi",
+    "apiAplikasi": "/api/aplikasi",
+    "tukarTiketDiAplikasi": "/masuk-qendali"
+  },
+  "produk": [
+    {
+      "kode": "qendali",
+      "nama": "Qendali POS",
+      "repo": "tsunosora/Pos-Web-Application"
+    },
+    {
+      "kode": "qendali_event",
+      "nama": "Qendali Event",
+      "repo": "tsunosora/Pospro-Event"
+    },
+    {
+      "kode": "qendali_employee",
+      "nama": "Qendali Employee",
+      "repo": "tsunosora/Rate-My-Staff"
+    },
+    {
+      "kode": "qendali_webdesign",
+      "nama": "Qendali Web Design Management",
+      "repo": "tsunosora/faicando-app"
+    }
+  ],
+  "fitur": [
+    {
+      "kode": "ads.meta",
+      "nama": "Meta Ads & biaya per lead",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "ai.assistant",
+      "nama": "Asisten AI & terjemahan dokumen",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "ai.studio",
+      "nama": "Studio Desain AI",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "api.integrations",
+      "nama": "Integrasi KPI karyawan ke aplikasi HR",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "ar.dp",
+      "nama": "DP / piutang",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "backup.cloud",
+      "nama": "Backup ke cloud",
+      "grup": "operasional_integrasi"
+    },
+    {
+      "kode": "books.monthly",
+      "nama": "Tutup buku bulanan",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "branch.ledger",
+      "nama": "Titipan & buku titipan",
+      "grup": "tim_cabang"
+    },
+    {
+      "kode": "branch.ops",
+      "nama": "Transfer stok & order cabang",
+      "grup": "tim_cabang"
+    },
+    {
+      "kode": "brand.multi",
+      "nama": "Multi-merek: kop surat & dokumen",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "brand.white_label",
+      "nama": "Nama & logo sendiri",
+      "grup": "operasional_integrasi"
+    },
+    {
+      "kode": "catalog.core",
+      "nama": "Katalog & varian",
+      "grup": "dasar"
+    },
+    {
+      "kode": "click.counting",
+      "nama": "Hitung klik mesin",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "crm.leads",
+      "nama": "CRM lead & follow-up",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "cs.rating",
+      "nama": "Rating CS dari pelanggan",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "customers.core",
+      "nama": "Data pelanggan",
+      "grup": "dasar"
+    },
+    {
+      "kode": "doc.numbering",
+      "nama": "Penomoran dokumen otomatis",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "domain.sendiri",
+      "nama": "Domain sendiri (mis. kasir.tokomu.com)",
+      "grup": "operasional_integrasi"
+    },
+    {
+      "kode": "event.bast",
+      "nama": "Berita acara serah terima (BAST)",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "event.crew",
+      "nama": "Penugasan & absen crew lapangan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "event.packing",
+      "nama": "Ceklis packing & muat booth",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "event.projects",
+      "nama": "Jadwal & data event",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "event.timeline",
+      "nama": "Timeline event (Gantt) & tautan bagikan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "finance.cashflow",
+      "nama": "Cashflow & biaya tetap",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "gudang.portal",
+      "nama": "Portal gudang tukang (PIN)",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "gudang.withdrawal",
+      "nama": "Keluar-masuk barang gudang",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "hpp.calc",
+      "nama": "HPP & rumus produk",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "hr.assessment",
+      "nama": "Penilaian kinerja berbobot",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.attendance",
+      "nama": "Absensi mesin sidik jari (cloud & LAN)",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.employees",
+      "nama": "Data karyawan, departemen & posisi",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.guest_rating",
+      "nama": "Rating dari tamu lewat QR",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.leave",
+      "nama": "Izin & cuti dengan persetujuan",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.overtime",
+      "nama": "Lembur, uang makan & struk lembur",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.points",
+      "nama": "Poin & hadiah karyawan",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.portal",
+      "nama": "Portal pribadi karyawan (PIN)",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.pos_link",
+      "nama": "Tersambung ke Qendali POS (staf, KPI, kartu absensi)",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.reports",
+      "nama": "Laporan absensi + ekspor Excel/PDF",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.schedule",
+      "nama": "Jadwal kerja, shift & hari libur",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.workers",
+      "nama": "Data pekerja, tanda tangan & stempel",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "inventory.opname",
+      "nama": "Stok opname",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "inventory.stock",
+      "nama": "Inventori & mutasi",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "invoice.quotation",
+      "nama": "Invoice & penawaran",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "maps.cuan",
+      "nama": "Peta Cuan Lokasi",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "meals.menu",
+      "nama": "Menu makan perusahaan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "meals.vote",
+      "nama": "Voting menu karyawan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "notify.discord",
+      "nama": "Notifikasi Discord",
+      "grup": "operasional_integrasi"
+    },
+    {
+      "kode": "owner.finance",
+      "nama": "Analisa keuangan owner",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "payroll.attendance",
+      "nama": "Absensi & input mingguan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "payroll.borongan",
+      "nama": "Gaji borongan per event",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "payroll.slip",
+      "nama": "Payroll & slip gaji",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "pos.core",
+      "nama": "Kasir & nota",
+      "grup": "dasar"
+    },
+    {
+      "kode": "print.queue",
+      "nama": "Antrian cetak paper",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "printer.relay",
+      "nama": "Relay printer lokal",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "production.board",
+      "nama": "Papan produksi",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "production.pipeline",
+      "nama": "Pipeline produksi",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "quotation.event",
+      "nama": "Penawaran booth: sewa & pengadaan, SPK, revisi",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "rab.pengajuan",
+      "nama": "Pengajuan pra-RAB & persetujuan",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "rab.plan",
+      "nama": "RAB anggaran proyek",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "rab.realisasi",
+      "nama": "Belanja harian & realisasi RAB",
+      "grup": "event_proyek"
+    },
+    {
+      "kode": "rbac.menu",
+      "nama": "Akses menu per role",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "reports.profit",
+      "nama": "Laba kotor",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "shift.close",
+      "nama": "Tutup shift & riwayat",
+      "grup": "keuangan_stok"
+    },
+    {
+      "kode": "site.landing",
+      "nama": "Landing page & artikel",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "so.designer",
+      "nama": "Portal desainer & sales order",
+      "grup": "produksi_cetak"
+    },
+    {
+      "kode": "social.inbox",
+      "nama": "Inbox Instagram & Facebook",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "sync.offline",
+      "nama": "Sinkronisasi offline cabang",
+      "grup": "operasional_integrasi"
+    },
+    {
+      "kode": "tasks.piket",
+      "nama": "Papan tugas & jadwal piket",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "team.leaderboard",
+      "nama": "Leaderboard karyawan",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "team.tvboard",
+      "nama": "Leaderboard di layar TV",
+      "grup": "karyawan"
+    },
+    {
+      "kode": "wa.automation",
+      "nama": "Broadcast & balasan otomatis",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "wa.cloud",
+      "nama": "Inbox WhatsApp resmi (Cloud API)",
+      "grup": "pelanggan_pemasaran"
+    },
+    {
+      "kode": "web.client_portal",
+      "nama": "Dashboard klien dengan akun terpisah",
+      "grup": "web_agensi"
+    },
+    {
+      "kode": "web.cms_update",
+      "nama": "Penyalur pembaruan CMS ke situs klien",
+      "grup": "web_agensi"
+    },
+    {
+      "kode": "web.license",
+      "nama": "Lisensi, rilis & unduhan produk digital",
+      "grup": "web_agensi"
+    },
+    {
+      "kode": "web.materi",
+      "nama": "Materi → portfolio & artikel (AI baca foto)",
+      "grup": "web_agensi"
+    },
+    {
+      "kode": "web.monitor",
+      "nama": "Pemantauan klien: kuota, log, kontrak",
+      "grup": "web_agensi"
+    },
+    {
+      "kode": "web.seo_ai",
+      "nama": "Mesin AI SEO: tulis & terbitkan artikel terjadwal",
+      "grup": "web_agensi"
+    }
+  ],
+  "batas": [
+    {
+      "kode": "limit.branches",
+      "nama": "Lokasi / cabang",
+      "satuan": "lokasi",
+      "usang": false
+    },
+    {
+      "kode": "limit.customers",
+      "nama": "Data pelanggan",
+      "satuan": "pelanggan",
+      "usang": false
+    },
+    {
+      "kode": "limit.employees",
+      "nama": "Karyawan",
+      "satuan": "karyawan",
+      "usang": false
+    },
+    {
+      "kode": "limit.machines",
+      "nama": "Mesin absensi",
+      "satuan": "mesin",
+      "usang": false
+    },
+    {
+      "kode": "limit.owners",
+      "nama": "Owner",
+      "satuan": "owner",
+      "usang": false
+    },
+    {
+      "kode": "limit.retention",
+      "nama": "Riwayat data",
+      "satuan": "bulan",
+      "usang": false
+    },
+    {
+      "kode": "limit.sites",
+      "nama": "Situs klien",
+      "satuan": "situs",
+      "usang": false
+    },
+    {
+      "kode": "limit.users",
+      "nama": "Pengguna",
+      "satuan": "pengguna",
+      "usang": false
+    },
+    {
+      "kode": "limit.wa_percakapan",
+      "nama": "Percakapan WhatsApp",
+      "satuan": "percakapan/bln",
+      "usang": true
+    }
+  ],
+  "fiturDijual": {
+    "qendali": [
+      "ads.meta",
+      "ai.studio",
+      "api.integrations",
+      "ar.dp",
+      "backup.cloud",
+      "books.monthly",
+      "branch.ledger",
+      "branch.ops",
+      "brand.white_label",
+      "catalog.core",
+      "click.counting",
+      "crm.leads",
+      "cs.rating",
+      "customers.core",
+      "domain.sendiri",
+      "finance.cashflow",
+      "hpp.calc",
+      "inventory.opname",
+      "inventory.stock",
+      "invoice.quotation",
+      "maps.cuan",
+      "notify.discord",
+      "owner.finance",
+      "pos.core",
+      "print.queue",
+      "printer.relay",
+      "production.board",
+      "production.pipeline",
+      "rbac.menu",
+      "reports.profit",
+      "shift.close",
+      "site.landing",
+      "so.designer",
+      "social.inbox",
+      "tasks.piket",
+      "team.leaderboard",
+      "team.tvboard",
+      "wa.automation",
+      "wa.cloud"
+    ],
+    "qendali_event": [
+      "ai.assistant",
+      "ar.dp",
+      "backup.cloud",
+      "brand.multi",
+      "catalog.core",
+      "crm.leads",
+      "customers.core",
+      "doc.numbering",
+      "domain.sendiri",
+      "event.bast",
+      "event.crew",
+      "event.packing",
+      "event.projects",
+      "event.timeline",
+      "finance.cashflow",
+      "gudang.portal",
+      "gudang.withdrawal",
+      "hpp.calc",
+      "hr.workers",
+      "inventory.opname",
+      "inventory.stock",
+      "invoice.quotation",
+      "maps.cuan",
+      "meals.menu",
+      "meals.vote",
+      "notify.discord",
+      "payroll.attendance",
+      "payroll.borongan",
+      "payroll.slip",
+      "pos.core",
+      "production.board",
+      "quotation.event",
+      "rab.pengajuan",
+      "rab.plan",
+      "rab.realisasi",
+      "reports.profit",
+      "shift.close"
+    ],
+    "qendali_employee": [
+      "hr.assessment",
+      "hr.attendance",
+      "hr.employees",
+      "hr.guest_rating",
+      "hr.leave",
+      "hr.overtime",
+      "hr.points",
+      "hr.portal",
+      "hr.pos_link",
+      "hr.reports",
+      "hr.schedule"
+    ],
+    "qendali_webdesign": [
+      "web.client_portal",
+      "web.cms_update",
+      "web.license",
+      "web.materi",
+      "web.monitor",
+      "web.seo_ai"
+    ]
+  },
+  "paket": [
+    {
+      "kode": "bisnis",
+      "produk": "qendali",
+      "fitur": [
+        "api.integrations",
+        "ar.dp",
+        "backup.cloud",
+        "books.monthly",
+        "branch.ledger",
+        "branch.ops",
+        "brand.white_label",
+        "catalog.core",
+        "click.counting",
+        "crm.leads",
+        "cs.rating",
+        "customers.core",
+        "domain.sendiri",
+        "finance.cashflow",
+        "hpp.calc",
+        "inventory.opname",
+        "inventory.stock",
+        "invoice.quotation",
+        "maps.cuan",
+        "notify.discord",
+        "owner.finance",
+        "pos.core",
+        "print.queue",
+        "printer.relay",
+        "production.board",
+        "production.pipeline",
+        "rbac.menu",
+        "reports.profit",
+        "site.landing",
+        "so.designer",
+        "social.inbox",
+        "tasks.piket",
+        "team.leaderboard",
+        "team.tvboard"
+      ],
+      "fiturTambahan": [
+        "ads.meta",
+        "ai.studio",
+        "shift.close",
+        "wa.automation",
+        "wa.cloud"
+      ],
+      "batas": {
+        "limit.branches": 3,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": null
+      }
+    },
+    {
+      "kode": "gratis",
+      "produk": "qendali",
+      "fitur": [
+        "catalog.core",
+        "customers.core",
+        "pos.core"
+      ],
+      "fiturTambahan": [
+        "finance.cashflow",
+        "shift.close"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": 500,
+        "limit.owners": 1,
+        "limit.retention": 3,
+        "limit.users": 2
+      }
+    },
+    {
+      "kode": "karyawan_absensi",
+      "produk": "qendali_employee",
+      "fitur": [
+        "hr.attendance",
+        "hr.employees",
+        "hr.leave",
+        "hr.overtime",
+        "hr.pos_link",
+        "hr.reports",
+        "hr.schedule"
+      ],
+      "fiturTambahan": [],
+      "batas": {
+        "limit.employees": 30,
+        "limit.machines": 1,
+        "limit.owners": 1,
+        "limit.users": 2
+      }
+    },
+    {
+      "kode": "karyawan_kinerja",
+      "produk": "qendali_employee",
+      "fitur": [
+        "hr.assessment",
+        "hr.attendance",
+        "hr.employees",
+        "hr.guest_rating",
+        "hr.leave",
+        "hr.overtime",
+        "hr.points",
+        "hr.portal",
+        "hr.pos_link",
+        "hr.reports",
+        "hr.schedule"
+      ],
+      "fiturTambahan": [],
+      "batas": {
+        "limit.employees": 100,
+        "limit.machines": 3,
+        "limit.owners": 1,
+        "limit.users": 5
+      }
+    },
+    {
+      "kode": "produksi",
+      "produk": "qendali",
+      "fitur": [
+        "ar.dp",
+        "backup.cloud",
+        "catalog.core",
+        "click.counting",
+        "crm.leads",
+        "cs.rating",
+        "customers.core",
+        "domain.sendiri",
+        "finance.cashflow",
+        "hpp.calc",
+        "inventory.opname",
+        "inventory.stock",
+        "invoice.quotation",
+        "maps.cuan",
+        "notify.discord",
+        "pos.core",
+        "print.queue",
+        "printer.relay",
+        "production.board",
+        "production.pipeline",
+        "rbac.menu",
+        "reports.profit",
+        "site.landing",
+        "so.designer",
+        "tasks.piket",
+        "team.leaderboard"
+      ],
+      "fiturTambahan": [
+        "ads.meta",
+        "ai.studio",
+        "brand.white_label",
+        "shift.close",
+        "wa.automation",
+        "wa.cloud"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": 15
+      }
+    },
+    {
+      "kode": "usaha",
+      "produk": "qendali",
+      "fitur": [
+        "ar.dp",
+        "backup.cloud",
+        "catalog.core",
+        "crm.leads",
+        "customers.core",
+        "finance.cashflow",
+        "hpp.calc",
+        "inventory.opname",
+        "inventory.stock",
+        "invoice.quotation",
+        "maps.cuan",
+        "notify.discord",
+        "pos.core",
+        "printer.relay",
+        "reports.profit"
+      ],
+      "fiturTambahan": [
+        "ads.meta",
+        "shift.close",
+        "wa.automation",
+        "wa.cloud"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": 5
+      }
+    },
+    {
+      "kode": "vendor_event",
+      "produk": "qendali_event",
+      "fitur": [
+        "ar.dp",
+        "backup.cloud",
+        "brand.multi",
+        "catalog.core",
+        "crm.leads",
+        "customers.core",
+        "doc.numbering",
+        "domain.sendiri",
+        "event.bast",
+        "event.crew",
+        "event.packing",
+        "event.projects",
+        "event.timeline",
+        "finance.cashflow",
+        "gudang.portal",
+        "gudang.withdrawal",
+        "hpp.calc",
+        "hr.workers",
+        "inventory.opname",
+        "inventory.stock",
+        "invoice.quotation",
+        "maps.cuan",
+        "meals.menu",
+        "meals.vote",
+        "notify.discord",
+        "payroll.attendance",
+        "payroll.borongan",
+        "payroll.slip",
+        "pos.core",
+        "production.board",
+        "quotation.event",
+        "rab.pengajuan",
+        "rab.plan",
+        "rab.realisasi",
+        "reports.profit"
+      ],
+      "fiturTambahan": [
+        "ai.assistant",
+        "shift.close"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": 15
+      }
+    },
+    {
+      "kode": "vendor_lapangan",
+      "produk": "qendali_event",
+      "fitur": [
+        "ar.dp",
+        "backup.cloud",
+        "brand.multi",
+        "catalog.core",
+        "crm.leads",
+        "customers.core",
+        "doc.numbering",
+        "domain.sendiri",
+        "event.bast",
+        "event.crew",
+        "event.packing",
+        "event.projects",
+        "event.timeline",
+        "gudang.portal",
+        "gudang.withdrawal",
+        "hr.workers",
+        "inventory.opname",
+        "inventory.stock",
+        "invoice.quotation",
+        "notify.discord",
+        "payroll.attendance",
+        "payroll.borongan",
+        "payroll.slip",
+        "pos.core",
+        "production.board",
+        "quotation.event"
+      ],
+      "fiturTambahan": [
+        "ai.assistant",
+        "finance.cashflow",
+        "shift.close"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": 10
+      }
+    },
+    {
+      "kode": "vendor_proyek",
+      "produk": "qendali_event",
+      "fitur": [
+        "ar.dp",
+        "backup.cloud",
+        "brand.multi",
+        "catalog.core",
+        "crm.leads",
+        "customers.core",
+        "doc.numbering",
+        "event.projects",
+        "hr.workers",
+        "inventory.stock",
+        "invoice.quotation",
+        "notify.discord",
+        "pos.core",
+        "quotation.event"
+      ],
+      "fiturTambahan": [
+        "ai.assistant",
+        "finance.cashflow",
+        "shift.close"
+      ],
+      "batas": {
+        "limit.branches": 1,
+        "limit.customers": null,
+        "limit.owners": 1,
+        "limit.retention": null,
+        "limit.users": 5
+      }
+    },
+    {
+      "kode": "webdesign_agensi",
+      "produk": "qendali_webdesign",
+      "fitur": [
+        "web.client_portal",
+        "web.cms_update",
+        "web.license",
+        "web.materi",
+        "web.monitor"
+      ],
+      "fiturTambahan": [
+        "web.seo_ai"
+      ],
+      "batas": {
+        "limit.owners": 1,
+        "limit.sites": 50,
+        "limit.users": 10
+      }
+    },
+    {
+      "kode": "webdesign_studio",
+      "produk": "qendali_webdesign",
+      "fitur": [
+        "web.client_portal",
+        "web.cms_update",
+        "web.license",
+        "web.monitor"
+      ],
+      "fiturTambahan": [
+        "web.seo_ai"
+      ],
+      "batas": {
+        "limit.owners": 1,
+        "limit.sites": 10,
+        "limit.users": 3
+      }
+    }
+  ]
+}

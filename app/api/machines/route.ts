@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { requireSession, requireManager, json, badRequest, route } from "@/lib/http";
+import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 import { z } from "zod";
 
 /** Daftar mesin absensi (per cabang) + jumlah karyawan terdaftar. */
@@ -57,6 +58,7 @@ export const POST = route(async (req: Request) => {
   const existing = await prisma.machine.findUnique({ where: { sn } });
   if (existing) return badRequest({ sn: ["Mesin dengan SN ini sudah terdaftar"] });
 
+  await wajibBolehMenambah("limit.machines");
   const m = await prisma.machine.create({
     data: {
       sn,
