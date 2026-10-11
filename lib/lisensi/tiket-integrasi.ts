@@ -74,11 +74,17 @@ export function tiketDariHeader(req: Request): string | null {
 
 // ── Sisi pemanggil ─────────────────────────────────────────────────────────────────────────
 
-type Simpanan = { tiket: string; habis: number };
+type Simpanan = { tiket: string | null; habis: number };
 const g = globalThis as unknown as { __qendaliTiketKeluar?: Map<string, Simpanan> };
 const simpanan = (g.__qendaliTiketKeluar ??= new Map());
 /** Minta yang baru kalau sisa umurnya kurang dari ini. */
 const SISA_MIN_MS = 60_000;
+/**
+ * Kegagalan juga diingat sebentar. Tanpa ini, usaha yang memang tidak berlangganan produk tujuan
+ * membuat tiap panggilan bertanya ulang ke qendali.com — kartu yang dimuat tiap 15 detik jadi
+ * 4 permintaan per menit ke penerbit, untuk jawaban yang sama.
+ */
+const INGAT_GAGAL_MS = 5 * 60_000;
 
 /**
  * Tiket untuk memanggil produk `ke` milik usaha yang sama. null = tidak bisa (token belum
@@ -89,7 +95,8 @@ export async function tiketUntuk(ke: string): Promise<string | null> {
   const token = (process.env.QENDALI_LISENSI_TOKEN || "").trim();
   if (!token) return null;
   const ada = simpanan.get(ke);
-  if (ada && ada.habis - Date.now() > SISA_MIN_MS) return ada.tiket;
+  if (ada && ada.tiket === null && ada.habis > Date.now()) return null;
+  if (ada && ada.tiket && ada.habis - Date.now() > SISA_MIN_MS) return ada.tiket;
 
   const base = (process.env.QENDALI_LISENSI_URL || "https://qendali.com").replace(/\/+$/, "");
   try {
@@ -103,12 +110,14 @@ export async function tiketUntuk(ke: string): Promise<string | null> {
     const badan = (await res.json().catch(() => ({}))) as { tiket?: string; kedaluwarsaPada?: string; salah?: string };
     if (!res.ok || !badan.tiket) {
       console.warn(`[integrasi] tiket ke ${ke} ditolak qendali.com: ${res.status} ${badan.salah ?? ""}`);
+      simpanan.set(ke, { tiket: null, habis: Date.now() + INGAT_GAGAL_MS });
       return null;
     }
     simpanan.set(ke, { tiket: badan.tiket, habis: new Date(badan.kedaluwarsaPada ?? 0).getTime() });
     return badan.tiket;
   } catch (e) {
     console.warn(`[integrasi] gagal meminta tiket ke ${ke}:`, e instanceof Error ? e.message : e);
+    simpanan.set(ke, { tiket: null, habis: Date.now() + INGAT_GAGAL_MS });
     return null;
   }
 }

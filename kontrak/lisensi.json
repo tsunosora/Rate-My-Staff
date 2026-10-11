@@ -66,7 +66,7 @@
     },
     {
       "kode": "api.integrations",
-      "nama": "Integrasi KPI karyawan ke aplikasi HR",
+      "nama": "Tersambung ke Qendali Employee",
       "grup": "karyawan"
     },
     {
@@ -717,6 +717,7 @@
       "kode": "produksi",
       "produk": "qendali",
       "fitur": [
+        "api.integrations",
         "ar.dp",
         "backup.cloud",
         "catalog.core",
@@ -764,6 +765,7 @@
       "kode": "usaha",
       "produk": "qendali",
       "fitur": [
+        "api.integrations",
         "ar.dp",
         "backup.cloud",
         "catalog.core",
