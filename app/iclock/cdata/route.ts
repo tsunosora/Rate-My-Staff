@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { parseAttlog, handshakeResponse } from "@/lib/services/fingerspot/adms";
 import { resolveMachine, ingestScansForMachine, relabelDeviceScans } from "@/lib/services/fingerspot/sync";
+import { kontakDari } from "@/lib/services/fingerspot/kontak-mesin";
 
 const textPlain = { "Content-Type": "text/plain" };
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     const records = parseAttlog(body);
     if (records.length > 0) {
       // Mapping per-mesin (SN) + dedup, lalu tentukan in/out per hari.
-      const machine = await resolveMachine(sn);
+      const machine = await resolveMachine(sn, kontakDari(req.headers));
       await ingestScansForMachine(
         machine.id,
         machine.sn,

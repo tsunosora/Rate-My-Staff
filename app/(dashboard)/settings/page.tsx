@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
 import { MachineEnrollmentsModal } from "@/components/settings/MachineEnrollmentsModal";
+import { MachineInfoModal } from "@/components/settings/MachineInfoModal";
 import { IconTrash } from "@/components/ui/icons";
 
 type Dept = { id: number; name: string; _count?: { employees: number } };
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [enrollMachine, setEnrollMachine] = useState<number | null>(null);
+  const [infoMachine, setInfoMachine] = useState<number | null>(null);
   const [employeeList, setEmployeeList] = useState<{ id: number; name: string }[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [msg, setMsg] = useState("");
@@ -372,7 +374,7 @@ export default function SettingsPage() {
           ) : (
             <ul className="divide-y divide-border text-sm">
               {machines.map((m) => (
-                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} onTest={testMachine} onPatch={patchMachine} onEnroll={setEnrollMachine} />
+                <MachineRow key={m.id} machine={m} onRename={renameMachine} onDelete={deleteMachine} onPull={pullMachine} onTest={testMachine} onPatch={patchMachine} onEnroll={setEnrollMachine} onInfo={setInfoMachine} />
               ))}
             </ul>
           )}
@@ -690,6 +692,9 @@ export default function SettingsPage() {
           onChanged={loadAll}
         />
       )}
+      {infoMachine !== null && (
+        <MachineInfoModal machineId={infoMachine} onClose={() => setInfoMachine(null)} />
+      )}
     </div>
   );
 }
@@ -706,7 +711,7 @@ function DeleteLink({ onClick }: { onClick: () => void }) {
 }
 
 function MachineRow({
-  machine, onRename, onDelete, onPull, onTest, onPatch, onEnroll,
+  machine, onRename, onDelete, onPull, onTest, onPatch, onEnroll, onInfo,
 }: {
   machine: Machine;
   onRename: (id: number, name: string) => void;
@@ -715,6 +720,7 @@ function MachineRow({
   onTest: (id: number) => void;
   onPatch: (id: number, data: Record<string, unknown>) => void;
   onEnroll: (id: number) => void;
+  onInfo: (id: number) => void;
 }) {
   const [name, setName] = useState(machine.name);
   const [interval, setIntervalMin] = useState(String(machine.pullIntervalMinutes));
@@ -733,6 +739,7 @@ function MachineRow({
         <button onClick={() => onRename(machine.id, name.trim())} disabled={!dirty} className="btn-ghost h-9 px-3 text-xs disabled:opacity-40">Simpan</button>
         <span className="rounded-md px-2 py-0.5 text-[11px] font-medium" style={softChip(status.c)}>{status.label}</span>
         <span className="rounded-md px-2 py-0.5 text-[11px]" style={softChip(modeBadge.c)}>{modeBadge.label}</span>
+        <button onClick={() => onInfo(machine.id)} className="btn-ghost h-9 px-2.5 text-xs">Info Mesin</button>
         <button onClick={() => onEnroll(machine.id)} className="btn-ghost h-9 px-2.5 text-xs">Kelola PIN</button>
         <button onClick={() => onDelete(machine.id)} className="btn-ghost h-9 px-2.5 text-xs text-danger">Hapus</button>
       </div>

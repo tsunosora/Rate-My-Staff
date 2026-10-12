@@ -162,6 +162,10 @@ model Machine {
   autoPull            Boolean   @default(false) // mode LAN: tarik otomatis terjadwal
   pullIntervalMinutes Int       @default(15)
   lastSeenAt          DateTime?
+  // Alamat (Host) & IP publik yang dipakai mesin pada kontak terakhirnya — untuk "Info Mesin":
+  // tahu mesin sudah memakai alamat baru atau masih alamat lama, dan dari toko mana.
+  lastHost            String?   @db.VarChar(255)
+  lastIp              String?   @db.VarChar(64)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 

@@ -4,6 +4,7 @@ import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { bolehMenambah } from "@/lib/lisensi/penjaga";
 import { pullDeviceLogs, pullDeviceUsers, toRawScans } from "./device";
 import type { RawScan } from "./mapper";
+import type { KontakMesin } from "./kontak-mesin";
 import { recomputeStoredStatus } from "@/lib/services/attendance/recompute";
 
 const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
@@ -55,16 +56,28 @@ export async function relabelDeviceScans(): Promise<number> {
   return changes.length;
 }
 
-/** Cari/buat Mesin berdasarkan SN (dev_id). Nama default "Mesin <4 digit SN akhir>". */
-export async function resolveMachine(sn: string | null | undefined): Promise<{ id: number; name: string; sn: string }> {
+/**
+ * Cari/buat Mesin berdasarkan SN (dev_id). Nama default "Mesin <4 digit SN akhir>".
+ * `kontak` (dari permintaan mesin itu sendiri) ikut dicatat untuk Info Mesin; pemanggil yang
+ * bukan permintaan mesin tidak mengirimnya, jadi nilai lama tidak ditimpa kosong.
+ */
+export async function resolveMachine(
+  sn: string | null | undefined,
+  kontak?: KontakMesin,
+): Promise<{ id: number; name: string; sn: string }> {
   const cleanSn = (sn ?? "").trim() || "unknown";
+  const jejak = {
+    lastSeenAt: new Date(),
+    ...(kontak?.host ? { lastHost: kontak.host } : {}),
+    ...(kontak?.ip ? { lastIp: kontak.ip } : {}),
+  };
   const existing = await prisma.machine.findUnique({ where: { sn: cleanSn } });
   if (existing) {
-    await prisma.machine.update({ where: { id: existing.id }, data: { lastSeenAt: new Date() } });
+    await prisma.machine.update({ where: { id: existing.id }, data: jejak });
     return { id: existing.id, name: existing.name, sn: cleanSn };
   }
   const name = cleanSn === "unknown" ? "Mesin Tanpa SN" : `Mesin ${cleanSn.slice(-4)}`;
-  const created = await prisma.machine.create({ data: { sn: cleanSn, name, lastSeenAt: new Date() } });
+  const created = await prisma.machine.create({ data: { sn: cleanSn, name, ...jejak } });
   return { id: created.id, name: created.name, sn: cleanSn };
 }
 

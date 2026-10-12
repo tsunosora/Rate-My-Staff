@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { extractJson, parseIoTime } from "@/lib/services/fingerspot/realtime";
 import { resolveMachine, ingestScansForMachine, relabelDeviceScans, upsertEnrollment } from "@/lib/services/fingerspot/sync";
 import { dequeueCommandForDevice, frameCommandBody } from "@/lib/services/fingerspot/command-queue";
+import { kontakDari } from "@/lib/services/fingerspot/kontak-mesin";
 
 /**
  * PENERIMA PROTOKOL REALTIME FINGERSPOT (mode Web mesin Revo).
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
 
     // Sentuh lastSeenAt di SETIAP kontak (termasuk polling receive_cmd) + auto-daftar
     // mesin → status "terhubung" akurat.
-    const machine = devId ? await resolveMachine(devId) : null;
+    const machine = devId ? await resolveMachine(devId, kontakDari(req.headers)) : null;
 
     if (machine && requestCode === "realtime_glog") {
       const pin = String(data.user_id ?? "").trim();
