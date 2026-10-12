@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { IconStar, IconCheck, IconAlert } from "@/components/ui/icons";
+import { NAMA_PRODUK, UbinLogo } from "@/components/QendaliMark";
 
 type Emp = { fullName: string; nickname: string | null; position: string | null; department: string | null };
 
@@ -77,10 +78,10 @@ export default function RatePage({ params }: { params: Promise<{ token: string }
     <Centered>
       <div className="glass-2 relative z-10 w-full max-w-md rounded-3xl p-6 shadow-2xl sm:p-8">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
-            <span className="font-display text-xl font-extrabold">R</span>
+          <span className="mb-3">
+            <UbinLogo besar />
           </span>
-          <div className="text-xs font-semibold uppercase tracking-wide text-primary">RateMyStaff</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary">{NAMA_PRODUK}</div>
           <h1 className="mt-2 font-display text-xl font-bold text-fg">{emp.fullName}</h1>
           <p className="text-sm text-muted">{emp.position ?? emp.department ?? "Karyawan"}</p>
         </div>

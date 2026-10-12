@@ -19,9 +19,8 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RateMyStaff — Team Management",
-  description:
-    "Attendance, project tracking, briefing, workflow, and staff assessment.",
+  title: "Qendali Employee",
+  description: "Absensi, penilaian, dan kinerja karyawan.",
   // Aplikasi internal — jangan diindeks mesin pencari.
   robots: {
     index: false,

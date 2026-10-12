@@ -249,7 +249,7 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
         )}
 
         <p className="pb-2 text-center text-xs text-subtle">
-          RateMyStaff · halaman pribadi. Jangan bagikan tautan &amp; PIN ini.
+          Qendali Employee · halaman pribadi. Jangan bagikan tautan &amp; PIN ini.
         </p>
       </div>
     </main>

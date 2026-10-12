@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { IconLogin, IconAlert } from "@/components/ui/icons";
+import { NamaMerek, UbinLogo } from "@/components/QendaliMark";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,11 +34,11 @@ export default function LoginPage() {
         className="glass-2 relative z-10 w-full max-w-sm space-y-5 rounded-3xl p-8 shadow-2xl"
       >
         <div className="flex flex-col items-center text-center">
-          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
-            <span className="font-display text-xl font-extrabold">R</span>
+          <span className="mb-3">
+            <UbinLogo besar />
           </span>
-          <h1 className="font-display text-2xl font-bold text-fg">
-            Rate<span className="text-primary">My</span>Staff
+          <h1>
+            <NamaMerek className="text-2xl" />
           </h1>
           <p className="mt-1 text-sm text-muted">Masuk ke dashboard admin</p>
         </div>
@@ -56,7 +57,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="input h-11"
-            placeholder="admin@ratemystaff.local"
+            placeholder="nama@usaha.com"
             autoComplete="email"
           />
         </div>

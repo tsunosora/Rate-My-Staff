@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType, type SVGProps } from "react";
 import { bolehHalaman, useLisensi, type LisensiTampil } from "@/components/lisensi/Lisensi";
+import { NamaMerek, UbinLogo } from "@/components/QendaliMark";
 import {
   IconDashboard,
   IconAttendance,
@@ -107,12 +108,8 @@ export function SidebarNav({ role }: { role?: string | null }) {
   return (
     <>
       <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
-          <span className="font-display text-lg font-extrabold">R</span>
-        </span>
-        <span className="font-display text-lg font-bold tracking-tight text-fg">
-          Rate<span className="text-primary">My</span>Staff
-        </span>
+        <UbinLogo />
+        <NamaMerek className="text-lg" />
       </Link>
 
       <nav className="flex flex-1 flex-col gap-1 text-sm">
