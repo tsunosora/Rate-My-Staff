@@ -43,9 +43,9 @@
       "repo": "tsunosora/Rate-My-Staff"
     },
     {
-      "kode": "qendali_webdesign",
-      "nama": "Qendali Web Design Management",
-      "repo": "tsunosora/faicando-app"
+      "kode": "qendali_website",
+      "nama": "Qendali Website",
+      "repo": "tsunosora/dashboard_compro"
     }
   ],
   "fitur": [
@@ -68,6 +68,11 @@
       "kode": "api.integrations",
       "nama": "Tersambung ke Qendali Employee",
       "grup": "karyawan"
+    },
+    {
+      "kode": "app.owner",
+      "nama": "Aplikasi HP Owner (Android)",
+      "grup": "operasional_integrasi"
     },
     {
       "kode": "ar.dp",
@@ -183,6 +188,11 @@
       "kode": "hpp.calc",
       "nama": "HPP & rumus produk",
       "grup": "keuangan_stok"
+    },
+    {
+      "kode": "hr.absen_hp",
+      "nama": "Absen lewat HP (lokasi, foto, QR toko)",
+      "grup": "hr_absensi"
     },
     {
       "kode": "hr.assessment",
@@ -405,37 +415,38 @@
       "grup": "pelanggan_pemasaran"
     },
     {
-      "kode": "web.client_portal",
-      "nama": "Dashboard klien dengan akun terpisah",
-      "grup": "web_agensi"
+      "kode": "website.artikel",
+      "nama": "Artikel SEO bulanan",
+      "grup": "website"
     },
     {
-      "kode": "web.cms_update",
-      "nama": "Penyalur pembaruan CMS ke situs klien",
-      "grup": "web_agensi"
+      "kode": "website.cms",
+      "nama": "Dashboard CMS + pembaruan otomatis",
+      "grup": "website"
     },
     {
-      "kode": "web.license",
-      "nama": "Lisensi, rilis & unduhan produk digital",
-      "grup": "web_agensi"
+      "kode": "website.hosting",
+      "nama": "Hosting, domain & SSL",
+      "grup": "website"
     },
     {
-      "kode": "web.materi",
-      "nama": "Materi → portfolio & artikel (AI baca foto)",
-      "grup": "web_agensi"
+      "kode": "website.laporan",
+      "nama": "Laporan bulanan",
+      "grup": "website"
     },
     {
-      "kode": "web.monitor",
-      "nama": "Pemantauan klien: kuota, log, kontrak",
-      "grup": "web_agensi"
-    },
-    {
-      "kode": "web.seo_ai",
-      "nama": "Mesin AI SEO: tulis & terbitkan artikel terjadwal",
-      "grup": "web_agensi"
+      "kode": "website.portfolio",
+      "nama": "Unggahan portfolio bulanan",
+      "grup": "website"
     }
   ],
   "batas": [
+    {
+      "kode": "limit.artikel",
+      "nama": "Artikel SEO",
+      "satuan": "artikel/bln",
+      "usang": false
+    },
     {
       "kode": "limit.branches",
       "nama": "Lokasi / cabang",
@@ -467,15 +478,15 @@
       "usang": false
     },
     {
-      "kode": "limit.retention",
-      "nama": "Riwayat data",
-      "satuan": "bulan",
+      "kode": "limit.portfolio",
+      "nama": "Unggahan portfolio",
+      "satuan": "portfolio/bln",
       "usang": false
     },
     {
-      "kode": "limit.sites",
-      "nama": "Situs klien",
-      "satuan": "situs",
+      "kode": "limit.retention",
+      "nama": "Riwayat data",
+      "satuan": "bulan",
       "usang": false
     },
     {
@@ -496,6 +507,7 @@
       "ads.meta",
       "ai.studio",
       "api.integrations",
+      "app.owner",
       "ar.dp",
       "backup.cloud",
       "books.monthly",
@@ -535,6 +547,7 @@
     ],
     "qendali_event": [
       "ai.assistant",
+      "app.owner",
       "ar.dp",
       "backup.cloud",
       "brand.multi",
@@ -573,6 +586,7 @@
       "shift.close"
     ],
     "qendali_employee": [
+      "hr.absen_hp",
       "hr.assessment",
       "hr.attendance",
       "hr.employees",
@@ -585,13 +599,12 @@
       "hr.reports",
       "hr.schedule"
     ],
-    "qendali_webdesign": [
-      "web.client_portal",
-      "web.cms_update",
-      "web.license",
-      "web.materi",
-      "web.monitor",
-      "web.seo_ai"
+    "qendali_website": [
+      "website.artikel",
+      "website.cms",
+      "website.hosting",
+      "website.laporan",
+      "website.portfolio"
     ]
   },
   "paket": [
@@ -637,6 +650,7 @@
       "fiturTambahan": [
         "ads.meta",
         "ai.studio",
+        "app.owner",
         "shift.close",
         "wa.automation",
         "wa.cloud"
@@ -658,6 +672,7 @@
         "pos.core"
       ],
       "fiturTambahan": [
+        "app.owner",
         "finance.cashflow",
         "shift.close"
       ],
@@ -681,7 +696,9 @@
         "hr.reports",
         "hr.schedule"
       ],
-      "fiturTambahan": [],
+      "fiturTambahan": [
+        "hr.absen_hp"
+      ],
       "batas": {
         "limit.employees": 30,
         "limit.machines": 1,
@@ -705,7 +722,9 @@
         "hr.reports",
         "hr.schedule"
       ],
-      "fiturTambahan": [],
+      "fiturTambahan": [
+        "hr.absen_hp"
+      ],
       "batas": {
         "limit.employees": 100,
         "limit.machines": 3,
@@ -748,6 +767,7 @@
       "fiturTambahan": [
         "ads.meta",
         "ai.studio",
+        "app.owner",
         "brand.white_label",
         "shift.close",
         "wa.automation",
@@ -784,6 +804,7 @@
       ],
       "fiturTambahan": [
         "ads.meta",
+        "app.owner",
         "shift.close",
         "wa.automation",
         "wa.cloud"
@@ -838,6 +859,7 @@
       ],
       "fiturTambahan": [
         "ai.assistant",
+        "app.owner",
         "shift.close"
       ],
       "batas": {
@@ -881,6 +903,7 @@
       ],
       "fiturTambahan": [
         "ai.assistant",
+        "app.owner",
         "finance.cashflow",
         "shift.close"
       ],
@@ -913,6 +936,7 @@
       ],
       "fiturTambahan": [
         "ai.assistant",
+        "app.owner",
         "finance.cashflow",
         "shift.close"
       ],
@@ -925,40 +949,34 @@
       }
     },
     {
-      "kode": "webdesign_agensi",
-      "produk": "qendali_webdesign",
+      "kode": "website_konten",
+      "produk": "qendali_website",
       "fitur": [
-        "web.client_portal",
-        "web.cms_update",
-        "web.license",
-        "web.materi",
-        "web.monitor"
+        "website.artikel",
+        "website.cms",
+        "website.hosting",
+        "website.laporan",
+        "website.portfolio"
       ],
-      "fiturTambahan": [
-        "web.seo_ai"
-      ],
+      "fiturTambahan": [],
       "batas": {
+        "limit.artikel": 5,
         "limit.owners": 1,
-        "limit.sites": 50,
-        "limit.users": 10
+        "limit.portfolio": 5
       }
     },
     {
-      "kode": "webdesign_studio",
-      "produk": "qendali_webdesign",
+      "kode": "website_saja",
+      "produk": "qendali_website",
       "fitur": [
-        "web.client_portal",
-        "web.cms_update",
-        "web.license",
-        "web.monitor"
+        "website.cms",
+        "website.hosting"
       ],
-      "fiturTambahan": [
-        "web.seo_ai"
-      ],
+      "fiturTambahan": [],
       "batas": {
+        "limit.artikel": 0,
         "limit.owners": 1,
-        "limit.sites": 10,
-        "limit.users": 3
+        "limit.portfolio": 0
       }
     }
   ]

@@ -7,7 +7,9 @@ import type { RawScan } from "./mapper";
 import type { KontakMesin } from "./kontak-mesin";
 import { recomputeStoredStatus } from "@/lib/services/attendance/recompute";
 
-const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot"];
+// "hp" = absen lewat HP (add-on hr.absen_hp). Ikut dilabeli masuk/pulang bersama scan mesin,
+// supaya karyawan yang kadang scan mesin dan kadang absen dari HP dihitung sebagai satu hari.
+const DEVICE_MACHINES = ["fingerspot-ip", "fingerspot", "hp"];
 
 /** Kunci hari kalender lokal untuk mengelompokkan scan per hari. */
 function dayKey(d: Date): string {

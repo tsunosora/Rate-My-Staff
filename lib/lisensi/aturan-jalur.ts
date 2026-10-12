@@ -28,6 +28,11 @@ export const ATURAN_API: readonly Aturan[] = [
   { awalan: "/api/attendance/report", fitur: "hr.reports" },
   { awalan: "/api/attendance", fitur: "hr.attendance" },
   { awalan: "/api/machines", fitur: "hr.attendance" },
+  // Absen lewat HP (add-on): halaman & API-nya SENDIRI, bukan bagian portal Kinerja —
+  // klien paket Absensi yang membeli add-on ini tidak punya hr.portal.
+  { awalan: "/api/absen-hp", fitur: "hr.absen_hp" },
+  { awalan: "/api/public/absen", fitur: "hr.absen_hp" },
+  { awalan: "/api/public/absen-layar", fitur: "hr.absen_hp" },
   { awalan: "/api/fingerspot/logs", fitur: "hr.attendance" },
 
   { awalan: "/api/work-schedules", fitur: "hr.schedule" },
@@ -68,6 +73,10 @@ export const ATURAN_HALAMAN: readonly Aturan[] = [
   { awalan: "/rate", fitur: "hr.guest_rating" },
   { awalan: "/me", fitur: "hr.portal" },
   { awalan: "/absence", fitur: "hr.leave" },
+  // "/absen" ≠ "/absence": dicocokkan per SEGMEN, bukan per huruf.
+  { awalan: "/absen", fitur: "hr.absen_hp" },
+  { awalan: "/absen-layar", fitur: "hr.absen_hp" },
+  { awalan: "/settings/absen-hp", fitur: "hr.absen_hp" },
 ];
 
 function cocok(jalur: string, awalan: string): boolean {
@@ -97,6 +106,7 @@ export const METODE_BACA = new Set(["GET", "HEAD", "OPTIONS"]);
  * - lisensi: SATU-SATUNYA jalan keluar — menyegarkan kunci sesudah membayar.
  * - notifikasi: menandai sudah dibaca tidak mengubah data usaha apa pun.
  * - sesi portal karyawan: itu masuk dengan PIN, bukan menulis data.
+ * - absen lewat HP: data kehadiran, alasannya sama dengan scan mesin di bawah.
  * Penerimaan scan dari MESIN (`/iclock`, `/api/fingerspot/*`) tidak lewat `route()` sama
  * sekali, jadi absensi tetap masuk saat hanya-baca — data kehadiran yang ditolak mesin hilang
  * atau menumpuk di mesin, dan itu bukan hukuman yang pantas untuk telat bayar.
@@ -107,6 +117,7 @@ const JALUR_BEBAS_HANYA_BACA: readonly RegExp[] = [
   /^\/api\/lisensi(\/|$)/,
   /^\/api\/notifications(\/|$)/,
   /^\/api\/public\/portal\/[^/]+\/session$/,
+  /^\/api\/public\/absen\/[^/]+\/(session|absen)$/,
 ];
 
 export function bebasHanyaBaca(jalur: string): boolean {

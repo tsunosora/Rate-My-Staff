@@ -57,6 +57,7 @@ const NAV: NavGroup[] = [
     children: [
       { label: "Umum", href: "/settings" },
       { label: "Jadwal Kerja", href: "/settings/work-schedules" },
+      { label: "Absen lewat HP", href: "/settings/absen-hp" },
       { label: "Akun & Peran", href: "/settings/users", require: "admin" },
       { label: "Langganan", href: "/settings/langganan", require: "admin" },
     ],

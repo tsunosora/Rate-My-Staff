@@ -13,6 +13,7 @@ export function PinGate({
   pinSet,
   posproPin,
   onSuccess,
+  jalurSesi,
 }: {
   token: string;
   employee: PortalEmployeeInfo;
@@ -20,6 +21,8 @@ export function PinGate({
   /** PIN PosPro tersedia — karyawan boleh masuk memakai PIN itu. */
   posproPin: boolean;
   onSuccess: () => void;
+  /** Alamat sesi PIN; bawaan portal. Halaman absen HP memakai jalurnya sendiri (gerbang lisensinya beda). */
+  jalurSesi?: string;
 }) {
   // Layar "masuk" bila sudah ada PIN mana pun; "buat PIN" hanya bila belum punya keduanya.
   const canLogin = pinSet || posproPin;
@@ -35,7 +38,7 @@ export function PinGate({
 
     setBusy(true);
     try {
-      await api(`/api/public/portal/${token}/session`, {
+      await api(jalurSesi ?? `/api/public/portal/${token}/session`, {
         method: "POST",
         body: JSON.stringify(canLogin ? { pin } : { pin, confirm }),
       });

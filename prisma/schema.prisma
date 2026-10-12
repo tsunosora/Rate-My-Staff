@@ -134,6 +134,12 @@ model Employee {
   // Pemetaan ke akun PosPro (User.id di sana) untuk menarik KPI kinerja.
   // Null = belum dipetakan; KPI PosPro tidak ditampilkan untuk karyawan ini.
   posproUserId   Int?      @unique
+  // Absen lewat HP (add-on hr.absen_hp): dinyalakan owner PER KARYAWAN. Perangkat = sidik
+  // (sha256) id acak yang disimpan HP pertama yang dipakai — HP lain ditolak sampai owner
+  // melepasnya. Yang disimpan cuma sidiknya, jadi isi basis data tidak bisa dipakai menyamar.
+  absenHp            Boolean   @default(false)
+  absenHpPerangkat   String?   @db.VarChar(64)
+  absenHpPerangkatAt DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
@@ -147,8 +153,51 @@ model Employee {
   leaveRequests    LeaveRequest[]
   pointEntries     PointEntry[]
   pointRedemptions PointRedemption[]
+  absenHpBukti     AbsenHpBukti[]
 
   @@index([isActive])
+}
+
+// Lokasi tempat karyawan boleh absen lewat HP (toko, gudang, lokasi event). Absen diterima
+// kalau HP berada dalam `radiusM` dari titik ini. `wajibQr` = HP juga harus memindai QR yang
+// berganti di layar lokasi itu (/absen-layar/<layarToken>); kodenya HMAC(qrRahasia, slot waktu).
+model AbsenLokasi {
+  id         Int      @id @default(autoincrement())
+  nama       String   @db.VarChar(100)
+  lat        Float
+  lng        Float
+  radiusM    Int      @default(100)
+  wajibQr    Boolean  @default(false)
+  qrRahasia  String   @db.VarChar(64)
+  layarToken String   @unique @db.VarChar(36)
+  aktif      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  bukti AbsenHpBukti[]
+}
+
+// Bukti satu absen lewat HP: foto, posisi, jarak ke lokasi, perangkat, dan apakah QR dipindai.
+// Disimpan TERPISAH dari Attendance supaya baris absensi tetap berbentuk sama dengan scan mesin.
+model AbsenHpBukti {
+  id           Int      @id @default(autoincrement())
+  attendanceId Int?     @unique
+  employeeId   Int
+  lokasiId     Int?
+  lat          Float
+  lng          Float
+  akurasiM     Int
+  jarakM       Int
+  fotoPath     String   @db.VarChar(255)
+  perangkat    String   @db.VarChar(64)
+  qr           Boolean  @default(false)
+  ip           String?  @db.VarChar(64)
+  createdAt    DateTime @default(now())
+
+  employee Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lokasi   AbsenLokasi? @relation(fields: [lokasiId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, createdAt])
 }
 
 // Mesin absensi fisik (per cabang). Dikenali dari SN (dev_id) yang dikirim mesin.
