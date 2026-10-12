@@ -260,6 +260,11 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
 
 /** Pemindai QR pakai kamera belakang — dipanggil kalau lokasinya mewajibkan QR. */
 function PemindaiQr({ onDapat, onBatal }: { onDapat: (teks: string) => void; onBatal: () => void }) {
+  // Pemanggilnya mengirim fungsi baru tiap render; lewat ref supaya kamera tidak dimatikan-nyalakan ulang.
+  const dapatRef = useRef(onDapat);
+  useEffect(() => {
+    dapatRef.current = onDapat;
+  });
   const video = useRef<HTMLVideoElement>(null);
   const [galat, setGalat] = useState("");
 
@@ -270,9 +275,17 @@ function PemindaiQr({ onDapat, onBatal }: { onDapat: (teks: string) => void; onB
     (async () => {
       try {
         aliran = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        const v = video.current!;
+        // Dicopot selagi menunggu izin kamera (mis. Batal ditekan cepat): matikan alirannya di sini,
+        // kalau tidak lampu kamera HP tetap menyala karena pembersihnya sudah lewat.
+        const v = video.current;
+        if (!jalan || !v) {
+          aliran.getTracks().forEach((t) => t.stop());
+          return;
+        }
         v.srcObject = aliran;
-        await v.play();
+        // play() bisa ditolak (dipotong muat ulang, kebijakan putar otomatis) padahal kameranya
+        // menyala — bingkainya tetap terbaca untuk dipindai, jadi itu bukan alasan menampilkan galat.
+        await v.play().catch(() => {});
         const pindai = () => {
           if (!jalan) return;
           if (v.videoWidth) {
@@ -283,7 +296,7 @@ function PemindaiQr({ onDapat, onBatal }: { onDapat: (teks: string) => void; onB
             const kode = jsQR(ctx.getImageData(0, 0, kanvas.width, kanvas.height).data, kanvas.width, kanvas.height);
             if (kode?.data?.startsWith("QE1.")) {
               jalan = false;
-              onDapat(kode.data);
+              dapatRef.current(kode.data);
               return;
             }
           }
@@ -291,14 +304,14 @@ function PemindaiQr({ onDapat, onBatal }: { onDapat: (teks: string) => void; onB
         };
         pindai();
       } catch {
-        setGalat("Kamera tidak bisa dibuka. Izinkan akses kamera untuk halaman ini.");
+        if (jalan) setGalat("Kamera tidak bisa dibuka. Izinkan akses kamera untuk halaman ini.");
       }
     })();
     return () => {
       jalan = false;
       aliran?.getTracks().forEach((t) => t.stop());
     };
-  }, [onDapat]);
+  }, []);
 
   return (
     <section className="glass-2 rounded-3xl p-4 text-center shadow-xl">
