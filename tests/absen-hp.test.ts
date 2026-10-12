@@ -100,3 +100,12 @@ describe("absen HP — pembantu", () => {
     expect(jenisGambar(new Uint8Array(Buffer.from("<html><script>")))).toBeNull();
   });
 });
+
+describe("absen HP — halaman publik", () => {
+  test("proxy meloloskan /absen/ dan /absen-layar/ tanpa sesi login", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("proxy.ts", "utf8").replace(/\/\/.*$/gm, "");
+    expect(src).toContain('pathname.startsWith("/absen/")');
+    expect(src).toContain('pathname.startsWith("/absen-layar/")');
+  });
+});

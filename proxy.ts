@@ -26,6 +26,10 @@ export default auth((req) => {
     pathname.startsWith("/absence") ||
     pathname === "/me" ||
     pathname.startsWith("/me/") ||
+    // Absen lewat HP: dibuka karyawan TANPA akun (masuk dengan PIN), dan layar QR dibuka
+    // tablet/TV toko. Dicocokkan per segmen — "/absen" bukan awalan "/absence".
+    pathname.startsWith("/absen/") ||
+    pathname.startsWith("/absen-layar/") ||
     pathname.startsWith("/link-expired") ||
     // robots.txt WAJIB bisa dibaca crawler tanpa login — kalau dialihkan ke /login,
     // mesin pencari tak pernah melihat larangan indeksnya.
