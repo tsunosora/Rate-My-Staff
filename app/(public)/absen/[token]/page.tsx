@@ -73,30 +73,34 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
     muat();
   }, [muat]);
 
-  async function mulai() {
+  // Kamera dibuka LANGSUNG di dalam ketukan, lokasi dibaca SESUDAH foto diambil. Urutannya penting:
+  // peramban hanya mengizinkan membuka kamera/pemilih berkas sesaat setelah ketukan, jadi kalau GPS
+  // dibaca dulu dan butuh beberapa detik, kamera diam-diam tidak terbuka dan tombolnya macet.
+  function mulai() {
     setPesan(null);
     if (!("geolocation" in navigator)) return setPesan({ ok: false, teks: "HP ini tidak bisa membaca lokasi." });
-    setLangkah("lokasi");
-    try {
-      const pos = await bacaLokasi();
-      tertunda.current = { foto: new Blob(), pos };
-      setLangkah("foto");
-      fotoInput.current?.click();
-    } catch {
-      setLangkah("diam");
-      setPesan({ ok: false, teks: "Lokasi tidak terbaca. Nyalakan GPS dan izinkan akses lokasi untuk halaman ini, lalu coba lagi." });
-    }
+    tertunda.current = null;
+    setLangkah("foto");
+    fotoInput.current?.click();
   }
 
   async function fotoDipilih(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (!f || !tertunda.current) return setLangkah("diam");
+    if (!f) return setLangkah("diam");
+    let foto: Blob;
     try {
-      tertunda.current.foto = await kecilkan(f);
+      foto = await kecilkan(f);
     } catch {
       setLangkah("diam");
       return setPesan({ ok: false, teks: "Foto tidak terbaca. Coba ambil ulang." });
+    }
+    setLangkah("lokasi");
+    try {
+      tertunda.current = { foto, pos: await bacaLokasi() };
+    } catch {
+      setLangkah("diam");
+      return setPesan({ ok: false, teks: "Lokasi tidak terbaca. Nyalakan GPS dan izinkan akses lokasi untuk halaman ini, lalu coba lagi." });
     }
     await kirim(null);
   }
@@ -168,7 +172,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
   }
 
   const a = keadaan.absen;
-  const sibuk = langkah !== "diam" && langkah !== "qr";
+  const sibuk = langkah === "lokasi" || langkah === "kirim";
   const sudahMasuk = (a?.hariIni.length ?? 0) % 2 === 1;
 
   return (

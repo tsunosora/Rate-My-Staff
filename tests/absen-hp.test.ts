@@ -109,3 +109,20 @@ describe("absen HP — halaman publik", () => {
     expect(src).toContain('pathname.startsWith("/absen-layar/")');
   });
 });
+
+describe("absen HP — Permissions-Policy", () => {
+  // Header situs mematikan kamera & lokasi untuk SEMUA halaman. Tanpa pengecualian di halaman absen,
+  // peramban menolak GPS ("disabled by permissions policy") dan tiap absen gagal di HP mana pun.
+  test("halaman absen mengizinkan lokasi & kamera, situs lain tetap terkunci", async () => {
+    const { default: cfg } = await import("../next.config");
+    const daftar = await cfg.headers!();
+    const nilai = (src: string) => daftar.filter((h) => h.source === src).flatMap((h) => h.headers).find((x) => x.key === "Permissions-Policy")?.value;
+    expect(nilai("/:path*")).toContain("geolocation=()");
+    expect(nilai("/absen/:path*")).toContain("geolocation=(self)");
+    expect(nilai("/absen/:path*")).toContain("camera=(self)");
+    expect(nilai("/settings/absen-hp")).toContain("geolocation=(self)");
+    // Next memakai header TERAKHIR untuk kunci yang sama: pengecualian wajib sesudah aturan umum.
+    const urut = daftar.map((h) => h.source);
+    expect(urut.indexOf("/absen/:path*")).toBeGreaterThan(urut.indexOf("/:path*"));
+  });
+});

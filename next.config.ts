@@ -44,6 +44,22 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Pengecualian SEMPIT untuk absen lewat HP: halaman karyawan butuh lokasi + kamera (pindai
+      // QR), pengaturan owner butuh lokasi ("Lokasi saya"). Tanpa ini peramban MENOLAK keduanya
+      // ("disabled by permissions policy") dan tiap absen gagal "Lokasi tidak terbaca". Next memakai
+      // header yang ditulis TERAKHIR untuk kunci yang sama, jadi entri ini harus tetap di bawah.
+      {
+        source: "/absen/:path*",
+        headers: [
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self), browsing-topics=()" },
+        ],
+      },
+      {
+        source: "/settings/absen-hp",
+        headers: [
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), browsing-topics=()" },
+        ],
+      },
     ];
   },
 };
