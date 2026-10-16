@@ -154,6 +154,7 @@ model Employee {
   pointEntries     PointEntry[]
   pointRedemptions PointRedemption[]
   absenHpBukti     AbsenHpBukti[]
+  peminjamanInventaris PeminjamanInventaris[]
 
   @@index([isActive])
 }
@@ -543,4 +544,46 @@ model TiketMasukTerpakai {
   createdAt       DateTime @default(now())
 
   @@index([kedaluwarsaPada])
+}
+
+// Inventaris kantor: barang milik usaha yang dipinjamkan ke karyawan (seragam, laptop, kunci,
+// kartu ID). `jumlah` = seluruh unit yang dimiliki; `rusakHilang` = unit yang tidak bisa dipakai
+// lagi. Unit dipegang dihitung dari peminjaman yang belum kembali, jadi tidak disimpan dua kali.
+model InventarisKantor {
+  id          Int      @id @default(autoincrement())
+  nama        String   @db.VarChar(150)
+  // seragam | laptop | kunci | kartu_id | elektronik | lainnya
+  kategori    String   @default("lainnya") @db.VarChar(30)
+  keterangan  String?  @db.VarChar(500)
+  jumlah      Int      @default(1)
+  rusakHilang Int      @default(0)
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  peminjaman PeminjamanInventaris[]
+
+  @@index([aktif])
+}
+
+// Satu kali barang dipegang karyawan. Kembali = `dikembalikanPada` terisi; `kondisiKembali`
+// rusak/hilang menambah `InventarisKantor.rusakHilang` sebanyak `jumlah`.
+model PeminjamanInventaris {
+  id               Int       @id @default(autoincrement())
+  inventarisId     Int
+  employeeId       Int
+  jumlah           Int       @default(1)
+  dipinjamPada     DateTime  @default(now())
+  dikembalikanPada DateTime?
+  // baik | rusak | hilang
+  kondisiKembali   String?   @db.VarChar(20)
+  catatan          String?   @db.VarChar(255)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  inventaris InventarisKantor @relation(fields: [inventarisId], references: [id], onDelete: Cascade)
+  employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([inventarisId, dikembalikanPada])
+  @@index([employeeId])
 }

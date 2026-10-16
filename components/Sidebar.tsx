@@ -10,6 +10,7 @@ import {
   IconAttendance,
   IconUsers,
   IconStar,
+  IconBox,
   IconSettings,
   IconChevronDown,
 } from "@/components/ui/icons";
@@ -39,6 +40,7 @@ const NAV: NavGroup[] = [
     ],
   },
   { label: "Direktori", href: "/employees", icon: IconUsers, require: "manager" },
+  { label: "Inventaris", href: "/inventaris", icon: IconBox, require: "manager" },
   {
     label: "Penilaian",
     icon: IconStar,

@@ -22,6 +22,8 @@ export const ATURAN_API: readonly Aturan[] = [
   { awalan: "/api/employees", fitur: "hr.employees" },
   { awalan: "/api/departments", fitur: "hr.employees" },
   { awalan: "/api/positions", fitur: "hr.employees" },
+  // Inventaris kantor (barang dipinjamkan ke karyawan) menempel pada data karyawan.
+  { awalan: "/api/inventaris", fitur: "hr.employees" },
 
   { awalan: "/api/attendance/leave-link", fitur: "hr.leave" },
   { awalan: "/api/attendance/receipt", fitur: "hr.overtime" },
@@ -47,6 +49,7 @@ export const ATURAN_API: readonly Aturan[] = [
   { awalan: "/api/assessments", fitur: "hr.assessment" },
   // /api/reports itu laporan PENILAIAN (prisma.assessment), bukan laporan absensi.
   { awalan: "/api/reports/employee/*/public-feedbacks", fitur: "hr.guest_rating" },
+  { awalan: "/api/reports/guest-rating", fitur: "hr.guest_rating" },
   { awalan: "/api/reports", fitur: "hr.assessment" },
 
   { awalan: "/api/public/employee", fitur: "hr.guest_rating" },
@@ -62,6 +65,7 @@ export const ATURAN_API: readonly Aturan[] = [
 
 export const ATURAN_HALAMAN: readonly Aturan[] = [
   { awalan: "/employees", fitur: "hr.employees" },
+  { awalan: "/inventaris", fitur: "hr.employees" },
   { awalan: "/attendance/receipt", fitur: "hr.overtime" },
   { awalan: "/attendance/report", fitur: "hr.reports" },
   { awalan: "/attendance", fitur: "hr.attendance" },
