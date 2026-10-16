@@ -22,6 +22,8 @@ export default auth((req) => {
 
   const isPublic =
     pathname.startsWith("/login") ||
+    pathname.startsWith("/masuk-qendali") ||
+    pathname.startsWith("/api/hp/tiket-masuk") ||
     pathname.startsWith("/rate") ||
     pathname.startsWith("/absence") ||
     pathname === "/me" ||
@@ -42,7 +44,12 @@ export default auth((req) => {
     pathname.startsWith("/iclock") ||
     pathname.startsWith("/api/auth");
 
-  if (!isPublic && !req.auth) {
+  // Aplikasi HP Owner: token Bearer hp1.… diperiksa di route (requireSession), bukan di sini —
+  // proxy tidak memuat Prisma. Hanya untuk /api, supaya token tidak membuka halaman.
+  const tokenHp =
+    pathname.startsWith("/api/") && /^bearer\s+hp1\./i.test(req.headers.get("authorization") ?? "");
+
+  if (!isPublic && !tokenHp && !req.auth) {
     return Response.redirect(new URL("/login", req.nextUrl.origin));
   }
 });

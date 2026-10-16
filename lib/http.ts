@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
+import { sesiDariTokenHp, tokenDariHeader } from "@/lib/hp/sesi";
 import { canManage, canAdminUsers } from "@/lib/rbac";
 import { tolakOlehLisensi } from "@/lib/lisensi/penjaga";
 
-/** Ambil session; lempar Response 401 bila belum login. */
+/**
+ * Ambil session; lempar Response 401 bila belum login. Selain cookie NextAuth, menerima token
+ * aplikasi HP Owner (`Authorization: Bearer hp1.…`, lib/hp/sesi.ts) — token yang ADA tapi tidak
+ * sah ditolak, tidak jatuh ke cookie, supaya HP tahu harus meminta tiket baru.
+ */
 export async function requireSession(): Promise<Session> {
-  const session = await auth();
+  const tokenHp = tokenDariHeader((await headers()).get("authorization"));
+  const session = tokenHp ? await sesiDariTokenHp(tokenHp) : await auth();
   if (!session) throw NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   return session;
 }

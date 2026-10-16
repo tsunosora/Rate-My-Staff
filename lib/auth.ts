@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { canAttempt, recordFailure, clearAttempts, sweep } from "@/lib/rate-limit";
+import { pakaiTiketMasuk } from "@/lib/lisensi/tiket-masuk";
 
 function clientIp(req?: Request): string {
   const h = req?.headers;
@@ -51,6 +52,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
         };
+      },
+    }),
+    // Tiket masuk `qm1` dari portal qendali.com (/masuk-qendali). Gagal-tertutup; aturannya di
+    // lib/lisensi/tiket-masuk.ts. Peran diambil dari akun di sini, tidak pernah dari tiket.
+    Credentials({
+      id: "qendali-tiket",
+      credentials: { tiket: { type: "text" } },
+      async authorize(credentials, request) {
+        const tiket = credentials?.tiket;
+        if (typeof tiket !== "string") return null;
+        sweep();
+        const key = `tiket:${clientIp(request as Request)}`;
+        if (!canAttempt(key)) return null;
+        const hasil = await pakaiTiketMasuk(tiket, "peramban");
+        if (!hasil.ok) {
+          recordFailure(key);
+          return null;
+        }
+        clearAttempts(key);
+        const { id, name, email, role } = hasil.pengguna;
+        return { id: String(id), name, email, role: role as never };
       },
     }),
   ],

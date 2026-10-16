@@ -146,6 +146,8 @@ const API_TERBUKA: Record<string, string> = {
   "/api/auth": "masuk & keluar",
   "/api/account/password": "ganti sandi sendiri",
   "/api/dashboard": "beranda, ada di semua paket",
+  "/api/hp/tiket-masuk": "masuk aplikasi HP Owner dengan tiket qendali.com",
+  "/api/hp/ringkasan": "beranda Tim aplikasi HP Owner, setara /api/dashboard",
   "/api/lisensi": "keadaan & penyegaran lisensi — jalan keluarnya",
   "/api/notifications": "notifikasi aplikasi",
   "/api/settings": "pengaturan umum",
@@ -157,6 +159,7 @@ const API_TERBUKA: Record<string, string> = {
 };
 const HALAMAN_TERBUKA: Record<string, string> = {
   "/login": "masuk",
+  "/masuk-qendali": "masuk dengan tiket dari portal qendali.com",
   "/dashboard": "beranda",
   "/settings": "pengaturan umum (kartu mesin & libur memanggil API yang dijaga sendiri)",
   "/settings/users": "akun pengguna",

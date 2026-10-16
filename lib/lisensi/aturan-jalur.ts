@@ -102,7 +102,7 @@ export const METODE_BACA = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * Jalur yang TETAP boleh menulis saat lisensi habis masa (hanya-baca). Tiap baris punya alasan:
- * - auth & ganti sandi: tanpa ini orangnya bahkan tidak bisa masuk untuk melihat datanya.
+ * - auth, tiket masuk HP & ganti sandi: tanpa ini orangnya bahkan tidak bisa masuk untuk melihat datanya.
  * - lisensi: SATU-SATUNYA jalan keluar — menyegarkan kunci sesudah membayar.
  * - notifikasi: menandai sudah dibaca tidak mengubah data usaha apa pun.
  * - sesi portal karyawan: itu masuk dengan PIN, bukan menulis data.
@@ -113,6 +113,7 @@ export const METODE_BACA = new Set(["GET", "HEAD", "OPTIONS"]);
  */
 const JALUR_BEBAS_HANYA_BACA: readonly RegExp[] = [
   /^\/api\/auth(\/|$)/,
+  /^\/api\/hp\/tiket-masuk$/,
   /^\/api\/account\/password$/,
   /^\/api\/lisensi(\/|$)/,
   /^\/api\/notifications(\/|$)/,

@@ -534,3 +534,13 @@ model FingerspotRawLog {
   @@index([processed])
   @@index([snMachine])
 }
+
+// Tiket masuk `qm1` yang sudah dipakai (lib/lisensi/tiket-masuk.ts): jti sekali pakai, disimpan
+// sampai tiketnya kedaluwarsa supaya tautan yang sama tidak bisa dipakai dua kali.
+model TiketMasukTerpakai {
+  jti             String   @id @db.VarChar(64)
+  kedaluwarsaPada DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([kedaluwarsaPada])
+}
