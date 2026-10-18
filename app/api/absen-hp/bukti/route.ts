@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireManager, json, route } from "@/lib/http";
 
-/** Bukti absen HP pada satu tanggal (bawaan hari ini), terbaru dulu. */
+/** Bukti absen HP pada satu tanggal (bawaan hari ini), terbaru dulu — termasuk pengajuan di luar lokasi. */
 export const GET = route(async (req) => {
   await requireManager();
   const t = new URL(req.url).searchParams.get("tanggal");
@@ -15,7 +15,7 @@ export const GET = route(async (req) => {
     orderBy: { createdAt: "desc" },
     take: 300,
     select: {
-      id: true, createdAt: true, jarakM: true, akurasiM: true, qr: true, attendanceId: true,
+      id: true, createdAt: true, jarakM: true, akurasiM: true, qr: true, attendanceId: true, status: true, alasan: true,
       employee: { select: { fullName: true } },
       lokasi: { select: { nama: true } },
     },
@@ -30,10 +30,14 @@ export const GET = route(async (req) => {
       id: d.id,
       waktu: d.createdAt,
       nama: d.employee.fullName,
-      lokasi: d.lokasi?.nama ?? "(lokasi dihapus)",
-      jarakM: d.jarakM,
+      lokasi: d.lokasi?.nama ?? (d.jarakM < 0 ? "(belum ada lokasi)" : "(lokasi dihapus)"),
+      jarakM: d.jarakM < 0 ? null : d.jarakM,
       akurasiM: d.akurasiM,
       qr: d.qr,
+      // Pengajuan di luar lokasi: "menunggu"/"ditolak" BELUM/TIDAK tercatat di absensi.
+      status: d.status,
+      luar: d.alasan !== null,
+      alasan: d.alasan,
       jenis: d.attendanceId ? jenisDari.get(d.attendanceId) ?? null : null,
       foto: `/api/absen-hp/foto/${d.id}`,
     })),

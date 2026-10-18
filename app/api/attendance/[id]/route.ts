@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { editAttendanceSchema } from "@/lib/validators/attendance";
-import { makeCalculator } from "@/lib/services/overtime";
-import { getSetting } from "@/lib/settings";
+import { hitungNominalLembur } from "@/lib/services/lembur/nominal";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -33,17 +32,8 @@ export const PUT = route<Ctx>(async (req, ctx) => {
   // Hitung ulang nominal lembur bila ada kategori (pakai engine sesuai konteks setting).
   const categoryId = d.overtimeCategoryId ?? existing.overtimeCategoryId;
   const approvedMinutes = d.approvedOvertimeMinutes ?? existing.approvedOvertimeMinutes;
-  if (categoryId) {
-    const category = await prisma.overtimeCategory.findUnique({ where: { id: categoryId } });
-    if (category) {
-      const context = await getSetting("overtime_engine_context");
-      const calc = makeCalculator(context);
-      data.overtimeAmount = calc.calculate({
-        category: { name: category.name, type: category.type, rate: Number(category.rate) },
-        approvedMinutes,
-      });
-    }
-  }
+  const nominal = await hitungNominalLembur(prisma, categoryId, approvedMinutes);
+  if (nominal !== null) data.overtimeAmount = nominal;
 
   const updated = await prisma.attendance.update({ where: { id: Number(id) }, data });
   return json(updated);

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { IconCheck, IconAlert, IconClock, IconAttendance } from "@/components/ui/icons";
+import { IsianLembur, badanLembur, nilaiAwalLembur, type NilaiLembur } from "@/components/lembur/IsianLembur";
 
 type Emp = { id: number; fullName: string };
 const STATUSES = [
@@ -27,6 +28,9 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  /** "izin" = form ketidakhadiran (bawaan), "lembur" = pengajuan lembur. */
+  const [jenisForm, setJenisForm] = useState<"izin" | "lembur">("izin");
+  const [lembur, setLembur] = useState<NilaiLembur>(nilaiAwalLembur);
 
   useEffect(() => {
     fetch(`/api/public/absence-form/${token}`)
@@ -42,7 +46,27 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
       .finally(() => setLoading(false));
   }, [token]);
 
+  async function submitLembur() {
+    if (!employeeId || !lembur.alasan.trim()) {
+      setError("Lengkapi nama dan alasan.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const res = await fetch(`/api/public/absence-form/${token}/lembur`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId: Number(employeeId), ...badanLembur(lembur) }),
+    });
+    setSaving(false);
+    if (res.ok) return setDone(true);
+    if (res.status === 410) return setExpired(true);
+    const body = await res.json().catch(() => ({}));
+    setError(pesanGagal(body));
+  }
+
   async function submit() {
+    if (jenisForm === "lembur") return submitLembur();
     if (!employeeId || !reason.trim()) {
       setError("Lengkapi nama dan alasan.");
       return;
@@ -79,7 +103,9 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
           </span>
           <h2 className="font-display text-xl font-bold text-fg">Terkirim!</h2>
           <p className="mt-1 text-muted">
-            Pengajuan Anda menunggu persetujuan owner. Absensi baru berubah setelah disetujui.
+            {jenisForm === "lembur"
+              ? "Pengajuan lembur Anda menunggu persetujuan owner. Lembur baru dihitung setelah disetujui."
+              : "Pengajuan Anda menunggu persetujuan owner. Absensi baru berubah setelah disetujui."}
           </p>
         </div>
       </Centered>
@@ -93,8 +119,34 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
           <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/30">
             <IconAttendance className="text-[22px]" />
           </span>
-          <h1 className="font-display text-xl font-bold text-fg">Formulir Ketidakhadiran</h1>
-          <p className="text-sm text-muted">Ajukan izin, sakit, atau cuti — menunggu persetujuan owner.</p>
+          <h1 className="font-display text-xl font-bold text-fg">
+            {jenisForm === "lembur" ? "Pengajuan Lembur" : "Formulir Ketidakhadiran"}
+          </h1>
+          <p className="text-sm text-muted">
+            {jenisForm === "lembur"
+              ? "Ajukan lembur yang sudah atau sedang dikerjakan — menunggu persetujuan owner."
+              : "Ajukan izin, sakit, atau cuti — menunggu persetujuan owner."}
+          </p>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-border-strong p-1">
+          {(
+            [
+              { key: "izin", label: "Izin / Sakit / Cuti" },
+              { key: "lembur", label: "Lembur" },
+            ] as const
+          ).map((j) => (
+            <button
+              key={j.key}
+              type="button"
+              onClick={() => { setJenisForm(j.key); setError(""); }}
+              className={`rounded-lg px-2 py-2 text-sm font-medium transition ${
+                jenisForm === j.key ? "bg-primary/15 text-primary" : "text-muted hover:bg-surface-2"
+              }`}
+            >
+              {j.label}
+            </button>
+          ))}
         </div>
 
         {error && (
@@ -111,6 +163,12 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
           </select>
         </label>
 
+        {jenisForm === "lembur" ? (
+          <div className="mb-4">
+            <IsianLembur nilai={lembur} onChange={setLembur} />
+          </div>
+        ) : (
+        <>
         <div className="mb-3 grid grid-cols-2 gap-2">
           <label className="block space-y-1.5 text-sm">
             <span className="font-medium text-muted">Tanggal mulai *</span>
@@ -152,12 +210,27 @@ export default function AbsencePage({ params }: { params: Promise<{ token: strin
             onChange={(e) => setReason(e.target.value)}
           />
         </label>
+        </>
+        )}
         <button onClick={submit} disabled={saving} className="btn-primary h-11 w-full">
           {saving ? "Mengirim…" : "Kirim"}
         </button>
       </div>
     </Centered>
   );
+}
+
+/** Pesan galat dari server: { message } atau hasil badRequest { errors: { field: [..] } }. */
+function pesanGagal(body: { message?: string; errors?: Record<string, unknown> }): string {
+  if (body.message) return body.message;
+  const e = body.errors;
+  if (e && typeof e === "object") {
+    const fe = (e.fieldErrors ?? e) as Record<string, unknown>;
+    for (const v of Object.values(fe)) {
+      if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+    }
+  }
+  return "Gagal mengirim. Coba lagi.";
 }
 
 function ExpiredView() {

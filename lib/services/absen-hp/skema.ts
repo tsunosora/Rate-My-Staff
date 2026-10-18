@@ -20,3 +20,13 @@ export const ubahKaryawanSchema = z.object({
   // Lepas kunci HP — dipakai kalau karyawan ganti HP. HP berikutnya yang absen jadi terkunci.
   lepasHp: z.boolean().optional(),
 });
+
+// Keputusan owner atas pengajuan absen di luar lokasi.
+export const putusPengajuanSchema = z.object({
+  aksi: z.enum(["setujui", "tolak"]),
+  catatan: z.string().trim().max(1000).nullish(),
+});
+
+export const setelanAbsenHpSchema = z.object({
+  luarLokasi: z.boolean(),
+});

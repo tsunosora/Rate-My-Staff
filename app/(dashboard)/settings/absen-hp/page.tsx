@@ -6,7 +6,15 @@ import { IconAlert, IconCheck, IconCopy, IconPlus, IconQr, IconTrash } from "@/c
 
 type Lokasi = { id: number; nama: string; lat: number; lng: number; radiusM: number; wajibQr: boolean; layarToken: string; aktif: boolean };
 type Karyawan = { id: number; nama: string; jabatan: string | null; aktif: boolean; hpTerkunciSejak: string | null; punyaPin: boolean; token: string | null };
-type Bukti = { id: number; waktu: string; nama: string; lokasi: string; jarakM: number; akurasiM: number; qr: boolean; jenis: string | null; foto: string };
+type Bukti = {
+  id: number; waktu: string; nama: string; lokasi: string; jarakM: number | null; akurasiM: number; qr: boolean; jenis: string | null; foto: string;
+  status: "diterima" | "menunggu" | "ditolak"; luar: boolean; alasan: string | null;
+};
+
+const STATUS_BUKTI: Record<string, { label: string; warna: string }> = {
+  menunggu: { label: "Menunggu persetujuan", warna: "var(--warning)" },
+  ditolak: { label: "Ditolak", warna: "var(--danger)" },
+};
 
 function soft(c: string, pct = 14): React.CSSProperties {
   return { background: `color-mix(in oklab, ${c} ${pct}%, transparent)`, color: c };
@@ -80,6 +88,7 @@ export default function AbsenHpPage() {
 
       <LokasiKartu lokasi={lokasi} kirim={kirim} />
       <KaryawanKartu karyawan={karyawan} aktifCount={aktifCount} kirim={kirim} adaLokasi={lokasi.some((l) => l.aktif)} />
+      <SetelanLuarKartu />
 
       <section className="glass rounded-2xl p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -102,8 +111,18 @@ export default function AbsenHpPage() {
                     {jam(b.waktu)} · {b.jenis === "in" ? "Masuk" : b.jenis === "out" ? "Pulang" : "—"}
                   </div>
                   <div className="truncate text-xs text-subtle">
-                    {b.lokasi} · {b.jarakM} m (±{b.akurasiM} m){b.qr ? " · QR ✓" : ""}
+                    {b.lokasi}{b.jarakM !== null ? ` · ${b.jarakM} m` : ""} (±{b.akurasiM} m){b.qr ? " · QR ✓" : ""}
                   </div>
+                  {b.luar && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="badge" style={soft(STATUS_BUKTI[b.status]?.warna ?? "var(--success)", 18)}>
+                        {STATUS_BUKTI[b.status]?.label ?? "Di luar lokasi · disetujui"}
+                      </span>
+                      {b.status === "menunggu" && (
+                        <a href="/attendance/absen-luar" className="text-primary underline">Putuskan</a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
@@ -262,6 +281,57 @@ function KaryawanKartu({ karyawan, aktifCount, kirim, adaLokasi }: {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/** Sakelar absen di luar lokasi — berlaku untuk semua karyawan yang absen HP-nya menyala. */
+function SetelanLuarKartu() {
+  const [luar, setLuar] = useState<boolean | null>(null);
+  const [galat, setGalat] = useState("");
+
+  useEffect(() => {
+    api<{ luarLokasi: boolean }>("/api/absen-hp/setelan")
+      .then((s) => setLuar(s.luarLokasi))
+      .catch((e: unknown) => setGalat(e instanceof Error ? e.message : "Gagal memuat setelan."));
+  }, []);
+
+  async function ubah(nilai: boolean) {
+    setGalat("");
+    const lama = luar;
+    setLuar(nilai);
+    try {
+      await api("/api/absen-hp/setelan", { method: "PATCH", body: JSON.stringify({ luarLokasi: nilai }) });
+    } catch (e) {
+      setLuar(lama);
+      setGalat(e instanceof Error ? e.message : "Gagal menyimpan.");
+    }
+  }
+
+  return (
+    <section className="glass rounded-2xl p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-2xl">
+          <h2 className="text-lg font-semibold text-fg">Absen di luar lokasi</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            Untuk karyawan lapangan atau dinas luar. Kalau HP-nya di luar radius, karyawan bisa mengajukan absen dengan
+            alasan, foto, dan lokasi GPS. Absennya baru tercatat setelah Anda setujui di{" "}
+            <a href="/attendance/absen-luar" className="text-primary underline">Absen di luar lokasi</a>. HP terkunci dan
+            GPS akurat tetap wajib.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium text-fg">
+          <input
+            type="checkbox"
+            className="h-5 w-5"
+            checked={luar === true}
+            disabled={luar === null}
+            onChange={(e) => ubah(e.target.checked)}
+          />
+          {luar ? "Boleh mengajukan" : "Tidak boleh"}
+        </label>
+      </div>
+      {galat && <p className="mt-2 text-sm text-danger">{galat}</p>}
     </section>
   );
 }

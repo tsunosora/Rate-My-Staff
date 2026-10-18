@@ -13,6 +13,7 @@ import {
   IconBox,
   IconSettings,
   IconChevronDown,
+  IconClock,
 } from "@/components/ui/icons";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
@@ -36,7 +37,20 @@ const NAV: NavGroup[] = [
       { label: "Dashboard", href: "/attendance" },
       { label: "Laporan Detail", href: "/attendance/report" },
       { label: "Struk", href: "/attendance/receipt" },
+      { label: "Jadwal Shift", href: "/jadwal-shift" },
       { label: "Izin & Cuti", href: "/leave-requests" },
+      { label: "Pengajuan Lembur", href: "/lembur" },
+      { label: "Absen di Luar Lokasi", href: "/attendance/absen-luar" },
+    ],
+  },
+  {
+    label: "Kerja Harian",
+    icon: IconClock,
+    require: "manager",
+    children: [
+      { label: "Reimbursement", href: "/reimbursement" },
+      { label: "Kunjungan Klien", href: "/kunjungan" },
+      { label: "Timesheet", href: "/timesheet" },
     ],
   },
   { label: "Direktori", href: "/employees", icon: IconUsers, require: "manager" },
@@ -101,12 +115,15 @@ export function Sidebar({ role }: { role?: string | null }) {
 /** Shared nav content — used by the desktop aside and the mobile drawer. */
 export function SidebarNav({ role }: { role?: string | null }) {
   const pathname = usePathname();
-  const isActive = (href: string) =>
-    // "/dashboard" & "/settings" (Umum) dicocokkan persis: tanpa itu "Umum" ikut menyala di
-    // tiap sub-halaman pengaturan (Jadwal Kerja, Akun, Langganan).
-    pathname === href || (href !== "/dashboard" && href !== "/settings" && pathname.startsWith(href));
   const lisensi = useLisensi();
   const nav = navForRole(role, lisensi);
+  // Yang menyala cuma tautan yang PALING cocok dengan alamatnya (per segmen). Dulu dicocokkan
+  // per awalan, jadi "Dashboard" Absensi (/attendance) ikut menyala di Laporan Detail, Struk,
+  // dan Absen di Luar Lokasi — dua menu aktif sekaligus.
+  const semuaHref = nav.flatMap((g) => [g.href, ...(g.children ?? []).map((c) => c.href)]).filter(Boolean) as string[];
+  const cocok = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const terbaik = semuaHref.filter(cocok).sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === terbaik;
 
   return (
     <>

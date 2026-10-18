@@ -3,7 +3,8 @@ import { mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { relabelDeviceScans } from "@/lib/services/fingerspot/sync";
-import { jenisGambar, type Keputusan, type Lokasi } from "./aturan";
+import { recomputeStoredStatus } from "@/lib/services/attendance/recompute";
+import { jenisGambar, type Keputusan, type KeputusanLuar, type Lokasi } from "./aturan";
 
 /** Foto absen = data pribadi karyawan: DI LUAR public/, cuma tersaji lewat rute ber-login. */
 export function folderFoto(): string {
@@ -101,4 +102,90 @@ export async function catatAbsenHp(a: {
   await relabelDeviceScans();
   const akhir = await prisma.attendance.findUnique({ where: { id: att.id }, select: { scanType: true } });
   return { attendanceId: att.id, scanType: akhir?.scanType ?? null, waktu };
+}
+
+/**
+ * Simpan PENGAJUAN absen di luar lokasi: bukti berstatus "menunggu", TANPA baris Attendance —
+ * jadi laporan apa pun (semuanya membaca Attendance) tidak menghitungnya sampai owner setuju.
+ * HP pertama tetap dikunci di sini, sama seperti absen biasa: pengajuan juga absen dari HP itu.
+ */
+export async function catatPengajuanLuar(a: {
+  employeeId: number;
+  keputusan: Extract<KeputusanLuar, { ok: true }>;
+  lat: number;
+  lng: number;
+  akurasiM: number;
+  fotoPath: string;
+  ip: string | null;
+}): Promise<{ id: number; waktu: Date }> {
+  const k = a.keputusan;
+  return prisma.$transaction(async (tx) => {
+    const b = await tx.absenHpBukti.create({
+      data: {
+        employeeId: a.employeeId,
+        lokasiId: k.lokasi?.id ?? null,
+        lat: a.lat,
+        lng: a.lng,
+        akurasiM: Math.round(a.akurasiM),
+        // -1 = belum ada lokasi absen sama sekali saat diajukan (kolomnya wajib angka).
+        jarakM: k.jarakM ?? -1,
+        fotoPath: a.fotoPath,
+        perangkat: k.sidik,
+        qr: false,
+        ip: a.ip,
+        status: "menunggu",
+        alasan: k.alasan,
+      },
+    });
+    if (k.kunciPerangkat) {
+      await tx.employee.updateMany({
+        where: { id: a.employeeId, absenHpPerangkat: null },
+        data: { absenHpPerangkat: k.sidik, absenHpPerangkatAt: b.createdAt },
+      });
+    }
+    return { id: b.id, waktu: b.createdAt };
+  });
+}
+
+/**
+ * Setujui pengajuan: baris Attendance dengan waktu = saat DIAJUKAN (bukan saat disetujui) —
+ * owner yang menyetujui sore hari tidak boleh membuat absen masuk pagi tercatat jam 17.00.
+ * Status diubah bersyarat ("menunggu" → "diterima") di dalam transaksi supaya dua klik
+ * serentak tidak membuat dua baris absensi.
+ */
+export async function setujuiPengajuanLuar(id: number, olehUserId: number | null, catatan: string | null): Promise<{ attendanceId: number } | null> {
+  const hasil = await prisma.$transaction(async (tx) => {
+    const b = await tx.absenHpBukti.findUnique({ where: { id }, select: { employeeId: true, createdAt: true } });
+    if (!b) return null;
+    const kunci = await tx.absenHpBukti.updateMany({
+      where: { id, status: "menunggu", attendanceId: null },
+      data: { status: "diterima", decidedById: olehUserId, decidedAt: new Date(), catatanKeputusan: catatan },
+    });
+    if (kunci.count === 0) return null;
+    const att = await tx.attendance.create({
+      data: {
+        employeeId: b.employeeId,
+        scanDate: b.createdAt,
+        scanType: b.createdAt.getHours() < 12 ? "in" : "out", // sementara; ditetapkan relabel
+        status: "on_time",
+        machineName: "hp",
+      },
+    });
+    await tx.absenHpBukti.update({ where: { id }, data: { attendanceId: att.id } });
+    return { attendanceId: att.id, employeeId: b.employeeId, waktu: b.createdAt };
+  });
+  if (!hasil) return null;
+  await relabelDeviceScans();
+  const awal = new Date(hasil.waktu);
+  awal.setHours(0, 0, 0, 0);
+  await recomputeStoredStatus(prisma, { employeeIds: [hasil.employeeId], from: awal });
+  return { attendanceId: hasil.attendanceId };
+}
+
+export async function tolakPengajuanLuar(id: number, olehUserId: number | null, catatan: string | null): Promise<boolean> {
+  const r = await prisma.absenHpBukti.updateMany({
+    where: { id, status: "menunggu", attendanceId: null },
+    data: { status: "ditolak", decidedById: olehUserId, decidedAt: new Date(), catatanKeputusan: catatan },
+  });
+  return r.count > 0;
 }

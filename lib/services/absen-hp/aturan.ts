@@ -139,3 +139,76 @@ export function jenisGambar(b: Uint8Array): "jpg" | "png" | "webp" | null {
   if (b.length > 12 && String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP") return "webp";
   return null;
 }
+
+// ── Absen DI LUAR lokasi (butuh persetujuan owner) ────────────────────────────────────────────
+//
+// Untuk karyawan lapangan / dinas luar. Yang DIGANTI persetujuan cuma syarat radius & QR; semua
+// pengaman lain tetap: harus dinyalakan owner, HP yang terkunci, GPS akurat, foto, jeda ketukan
+// ganda. Hasilnya bukan absen, tapi PENGAJUAN — Attendance baru lahir saat owner menyetujui.
+
+/** Setting owner: "false" mematikan pengajuan di luar lokasi. Bawaan (kosong) = boleh. */
+export const SETELAN_LUAR = "absen_hp_luar_lokasi";
+/** Pengajuan di luar lokasi per karyawan per hari — menahan pengajuan beruntun yang membanjiri owner. */
+export const MAKS_LUAR_PER_HARI = 6;
+export const ALASAN_MIN = 5;
+export const ALASAN_MAKS = 500;
+/** Kode tolakan putuskanAbsen() yang boleh diganti dengan pengajuan. */
+export const KODE_BOLEH_LUAR: readonly string[] = ["di_luar", "tanpa_lokasi"];
+
+export function luarDiizinkan(nilaiSetelan: string | null | undefined): boolean {
+  return String(nilaiSetelan ?? "").trim().toLowerCase() !== "false";
+}
+
+export type MasukanLuar = Masukan & {
+  izinkan: boolean; // setelan owner
+  alasan: string;
+  pengajuanHariIni: number; // pengajuan di luar lokasi milik karyawan ini sejak tengah malam
+};
+
+export type KeputusanLuar =
+  | { ok: true; lokasi: Lokasi | null; jarakM: number | null; sidik: string; kunciPerangkat: boolean; alasan: string }
+  | { ok: false; alasan: string; kode: string };
+
+/**
+ * Putuskan pengajuan absen di luar lokasi. Pemeriksaan dasarnya MEMAKAI putuskanAbsen() supaya
+ * tidak ada dua salinan aturan pengaman: pengajuan cuma diterima kalau satu-satunya alasan
+ * putuskanAbsen() menolak adalah radius (`di_luar`) atau belum ada lokasi (`tanpa_lokasi`).
+ * Di dalam radius tidak boleh mengajukan — termasuk lokasi ber-QR wajib: QR-nya harus dipindai.
+ */
+export function putuskanAbsenLuar(m: MasukanLuar): KeputusanLuar {
+  if (!m.izinkan) return { ok: false, kode: "luar_mati", alasan: "Owner tidak mengizinkan absen di luar lokasi." };
+
+  const dasar = putuskanAbsen({ ...m, qr: null });
+  if (dasar.ok || dasar.kode === "perlu_qr" || dasar.kode === "qr_salah") {
+    return { ok: false, kode: "di_dalam", alasan: "Anda berada di lokasi absen — pakai tombol absen biasa." };
+  }
+  if (!KODE_BOLEH_LUAR.includes(dasar.kode)) return { ok: false, kode: dasar.kode, alasan: dasar.alasan };
+
+  const alasan = String(m.alasan ?? "").trim();
+  if (alasan.length < ALASAN_MIN) return { ok: false, kode: "alasan_pendek", alasan: `Tulis alasannya (minimal ${ALASAN_MIN} huruf), mis. "kunjungan ke pelanggan".` };
+  if (alasan.length > ALASAN_MAKS) return { ok: false, kode: "alasan_panjang", alasan: `Alasan terlalu panjang (maksimal ${ALASAN_MAKS} huruf).` };
+
+  if (m.pengajuanHariIni >= MAKS_LUAR_PER_HARI) {
+    return { ok: false, kode: "batas_harian", alasan: `Sudah ${MAKS_LUAR_PER_HARI} pengajuan di luar lokasi hari ini. Hubungi owner.` };
+  }
+
+  const sidik = sidikPerangkat(String(m.idPerangkat).trim());
+  const t = lokasiTerdekat(m.lokasi, m.lat, m.lng);
+  return {
+    ok: true,
+    lokasi: t?.lokasi ?? null,
+    jarakM: t ? Math.round(t.jarakM) : null,
+    sidik,
+    kunciPerangkat: !m.perangkatTerdaftar,
+    alasan,
+  };
+}
+
+export type StatusBukti = "diterima" | "menunggu" | "ditolak";
+
+/** Keputusan owner atas satu pengajuan. Yang sudah diputus tidak bisa diputus ulang. */
+export function bolehDiputus(status: string, attendanceId: number | null): { ok: true } | { ok: false; alasan: string } {
+  if (status !== "menunggu") return { ok: false, alasan: "Pengajuan ini sudah diputuskan." };
+  if (attendanceId !== null) return { ok: false, alasan: "Pengajuan ini sudah tercatat di absensi." };
+  return { ok: true };
+}

@@ -54,6 +54,14 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self), browsing-topics=()" },
         ],
       },
+      // Portal karyawan: Kunjungan Klien butuh lokasi. Foto nota & kunjungan memakai
+      // <input type=file capture>, yang membuka kamera bawaan HP — tidak perlu izin `camera`.
+      {
+        source: "/me/:path*",
+        headers: [
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), browsing-topics=()" },
+        ],
+      },
       {
         source: "/settings/absen-hp",
         headers: [

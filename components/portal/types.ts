@@ -17,6 +17,8 @@ export type PortalState = {
   /** Dibuka oleh owner/HR/admin yang sedang login — tanpa PIN, hanya bisa melihat. */
   asManager: boolean;
   authenticated: boolean;
+  /** Kode fitur tab portal → termasuk paket atau tidak (lib/services/portal/keadaan.ts). */
+  fitur?: Record<string, boolean>;
 };
 
 export type AttendanceRow = {

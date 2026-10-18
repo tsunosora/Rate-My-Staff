@@ -16,17 +16,27 @@ import { AssessmentPanel } from "@/components/portal/AssessmentPanel";
 import { LeavePanel } from "@/components/portal/LeavePanel";
 import { PointsPanel } from "@/components/portal/PointsPanel";
 import { ChangePinForm } from "@/components/portal/ChangePinForm";
+import { LemburPanel } from "@/components/portal/LemburPanel";
+import { ReimbursementPanel } from "@/components/portal/ReimbursementPanel";
+import { KunjunganPanel } from "@/components/portal/KunjunganPanel";
+import { TimesheetPanel } from "@/components/portal/TimesheetPanel";
 import { soft } from "@/components/portal/ui";
 import type { Overview, PortalState } from "@/components/portal/types";
 
-const TABS = [
-  { key: "overview", label: "Ringkasan" },
-  { key: "attendance", label: "Absensi" },
-  { key: "assessment", label: "Penilaian" },
-  { key: "points", label: "Poin" },
+// `fitur` = kode lisensi yang harus ada supaya tab tampil (lib/services/portal/keadaan.ts).
+// `bulanan` = tab memakai pemilih bulan di atas; yang tidak punya rentangnya sendiri.
+const TABS: readonly { key: string; label: string; fitur?: string; bulanan?: boolean }[] = [
+  { key: "overview", label: "Ringkasan", bulanan: true },
+  { key: "attendance", label: "Absensi", bulanan: true },
+  { key: "assessment", label: "Penilaian", bulanan: true },
+  { key: "points", label: "Poin", bulanan: true },
   { key: "leave", label: "Izin" },
-] as const;
-type TabKey = (typeof TABS)[number]["key"];
+  { key: "lembur", label: "Lembur", fitur: "hr.overtime" },
+  { key: "kunjungan", label: "Kunjungan", fitur: "hr.visits" },
+  { key: "reimbursement", label: "Klaim", fitur: "hr.reimbursement" },
+  { key: "timesheet", label: "Timesheet", fitur: "hr.timesheet" },
+];
+type TabKey = string;
 
 function currentMonth(): { year: number; month: number } {
   const d = new Date();
@@ -176,7 +186,7 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
 
         <div className="flex flex-wrap items-center gap-2">
           <nav className="glass flex flex-1 gap-1 overflow-x-auto rounded-2xl p-1">
-            {TABS.map((t) => (
+            {TABS.filter((t) => !t.fitur || state.fitur?.[t.fitur] !== false).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
@@ -191,7 +201,7 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
             ))}
           </nav>
 
-          {tab !== "leave" && (
+          {TABS.find((t) => t.key === tab)?.bulanan && (
             <div className="glass flex items-center gap-1 rounded-2xl p-1">
               <button
                 onClick={() => shiftMonth(-1)}
@@ -222,6 +232,14 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
 
         {tab === "leave" ? (
           <LeavePanel token={token} ownerQuery={ownerQuery} />
+        ) : tab === "lembur" ? (
+          <LemburPanel token={token} ownerQuery={ownerQuery} />
+        ) : tab === "kunjungan" ? (
+          <KunjunganPanel token={token} ownerQuery={ownerQuery} />
+        ) : tab === "reimbursement" ? (
+          <ReimbursementPanel token={token} ownerQuery={ownerQuery} />
+        ) : tab === "timesheet" ? (
+          <TimesheetPanel token={token} ownerQuery={ownerQuery} />
         ) : tab === "points" ? (
           <PointsPanel token={token} year={year} month={month} ownerQuery={ownerQuery} />
         ) : loadError ? (

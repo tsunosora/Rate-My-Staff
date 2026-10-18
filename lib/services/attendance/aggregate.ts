@@ -2,6 +2,7 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import { buildReport, shouldEmitDate, type DayInput } from "./report";
 import { loadShiftConfig } from "./shift";
 import { getSetting } from "@/lib/settings";
+import { jadwalEfektifDari } from "@/lib/services/jadwal-shift/efektif";
 
 function dateKey(d: Date): string {
   const y = d.getFullYear();
@@ -81,6 +82,7 @@ export async function aggregateAttendance(
   const holidaySet = new Set(holidays.map((h) => dateKey(h.date)));
   const autoSunday = (await getSetting("auto_sunday_holiday")) === "true";
   const shiftConfig = await loadShiftConfig();
+  const jadwal = await jadwalEfektifDari(prisma, employees, startStr, endStr);
 
   const byEmpDate = new Map<string, typeof attendances>();
   for (const a of attendances) {
@@ -99,27 +101,22 @@ export async function aggregateAttendance(
 
   const days: (DayInput & { fullName: string; department: string | null })[] = [];
   for (const emp of employees) {
-    const schedule = emp.workSchedule
-      ? {
-          startTime: emp.workSchedule.startTime,
-          endTime: emp.workSchedule.endTime,
-          lateToleranceMinutes: emp.workSchedule.lateToleranceMinutes,
-          isHoliday: emp.workSchedule.isHoliday,
-          flexibleHours: emp.workSchedule.flexibleHours,
-        }
-      : null;
     for (const date of allDates) {
       const scans = byEmpDate.get(`${emp.id}|${date}`) ?? [];
       if (!showAllDates && scans.length === 0) continue;
       if (!shouldEmitDate(date, scans.length > 0, todayKey)) continue;
+      // Jadwal per tanggal (roster) menang atas jadwal tetap; libur roster = hari libur.
+      const hari = jadwal.get(emp.id, date);
       const isHoliday =
-        holidaySet.has(date) || (autoSunday && new Date(`${date}T00:00:00`).getDay() === 0);
+        holidaySet.has(date) ||
+        (autoSunday && new Date(`${date}T00:00:00`).getDay() === 0) ||
+        hari.libur;
       days.push({
         employeeId: emp.id,
         fullName: emp.fullName,
         department: emp.department?.name ?? null,
         date,
-        schedule,
+        schedule: hari.schedule,
         isHoliday,
         shiftConfig,
         scans: scans.map((s) => ({

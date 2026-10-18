@@ -2,6 +2,7 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import { computeAttendanceRow } from "./report";
 import { loadShiftConfig } from "./shift";
 import { getSetting } from "@/lib/settings";
+import { jadwalEfektifDari } from "@/lib/services/jadwal-shift/efektif";
 
 /**
  * Hitung ulang status/telat/lembur yang TERSIMPAN di baris Attendance.
@@ -73,19 +74,12 @@ export async function recomputeStoredStatus(
     loadShiftConfig(),
   ]);
 
-  const scheduleOf = new Map(
-    employees.map((e) => [
-      e.id,
-      e.workSchedule
-        ? {
-            startTime: e.workSchedule.startTime,
-            endTime: e.workSchedule.endTime,
-            lateToleranceMinutes: e.workSchedule.lateToleranceMinutes,
-            isHoliday: e.workSchedule.isHoliday,
-            flexibleHours: e.workSchedule.flexibleHours,
-          }
-        : null,
-    ])
+  // Jadwal per tanggal (roster) menang atas jadwal tetap — sama dengan laporan.
+  const jadwal = await jadwalEfektifDari(
+    prisma,
+    employees,
+    dates.reduce((a, b) => (a < b ? a : b)),
+    dates.reduce((a, b) => (a > b ? a : b))
   );
   const holidaySet = new Set(holidays.map((h) => dateKey(h.date)));
   const autoSunday = autoSundayRaw === "true";
@@ -94,13 +88,16 @@ export async function recomputeStoredStatus(
   for (const [key, scans] of groups) {
     const [empIdStr, date] = key.split("|");
     const employeeId = Number(empIdStr);
+    const hari = jadwal.get(employeeId, date);
     const isHoliday =
-      holidaySet.has(date) || (autoSunday && new Date(`${date}T00:00:00`).getDay() === 0);
+      holidaySet.has(date) ||
+      (autoSunday && new Date(`${date}T00:00:00`).getDay() === 0) ||
+      hari.libur;
 
     const computed = computeAttendanceRow({
       employeeId,
       date,
-      schedule: scheduleOf.get(employeeId) ?? null,
+      schedule: hari.schedule,
       isHoliday,
       shiftConfig,
       scans: scans.map((s) => ({

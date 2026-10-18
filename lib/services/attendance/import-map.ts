@@ -109,6 +109,11 @@ export type PreviewOptions = {
   autoSunday?: boolean; // setting auto_sunday_holiday
   noonHour?: number;
   shiftConfig?: ShiftConfig | null; // jam toko & shift (mode otomatis)
+  /**
+   * Jadwal per tanggal (roster). Bila diisi, menggantikan `workSchedule` karyawan untuk hari itu
+   * dan `libur` ikut dihitung sebagai hari libur. Tanpa ini = jadwal tetap (perilaku lama).
+   */
+  jadwalHari?: ((employeeId: number, dateISO: string) => { schedule: ScheduleInfo | null; libur: boolean }) | null;
 };
 
 /** "HH:MM" -> menit. */
@@ -160,11 +165,14 @@ export function buildImportPreview(
     }
 
     const derived = deriveScans(r.scans, opts.noonHour ?? 12, opts.shiftConfig ?? null);
+    // Roster hari itu (bila ada) menang atas jadwal tetap; libur roster = hari libur.
+    const hari = opts.jadwalHari?.(emp.id, r.dateISO) ?? null;
+    const liburHari = holiday || Boolean(hari?.libur);
     const computed = computeAttendanceRow({
       employeeId: emp.id,
       date: r.dateISO,
-      schedule: emp.workSchedule,
-      isHoliday: holiday,
+      schedule: hari ? hari.schedule : emp.workSchedule,
+      isHoliday: liburHari,
       shiftConfig: opts.shiftConfig ?? null,
       scans: derived.map((d) => ({
         scanDate: new Date(`${r.dateISO}T${d.time}`),
@@ -203,7 +211,7 @@ export function buildImportPreview(
       suggested,
       lateMinutes: computed.lateMinutes,
       overtimeMinutes: computed.overtimeMinutes,
-      isHoliday: holiday,
+      isHoliday: liburHari,
       matched: true,
     });
   }

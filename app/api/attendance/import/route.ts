@@ -5,6 +5,7 @@ import { getSetting } from "@/lib/settings";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { bolehMenambah } from "@/lib/lisensi/penjaga";
 import { loadShiftConfig } from "@/lib/services/attendance/shift";
+import { jadwalEfektif } from "@/lib/services/jadwal-shift/efektif";
 import { analyzeScanlog, describeScanlogFailure } from "@/lib/services/attendance/import-html";
 import {
   buildImportPreview,
@@ -99,7 +100,20 @@ export const POST = route(async (req: Request) => {
     if (createdEmployees > 0) employees = await loadEmployees();
   }
 
-  const preview = buildImportPreview(parsed, employees, { holidayDates, autoSunday, shiftConfig });
+  // Jadwal per tanggal (roster) untuk rentang tanggal di file — menang atas jadwal tetap.
+  const tanggalFile = parsed.map((p) => p.dateISO).sort();
+  const peta = await jadwalEfektif(
+    prisma,
+    employees.map((e) => e.id),
+    tanggalFile[0],
+    tanggalFile[tanggalFile.length - 1]
+  );
+  const preview = buildImportPreview(parsed, employees, {
+    holidayDates,
+    autoSunday,
+    shiftConfig,
+    jadwalHari: peta.jumlahRoster > 0 ? (id, d) => peta.get(id, d) : null,
+  });
 
   // Deteksi conflict: absensi eksisting hari itu dari mesin != import-html.
   const matched = preview.rows.filter((r) => r.matched && r.employeeId != null);

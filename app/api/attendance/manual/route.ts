@@ -3,6 +3,7 @@ import { requireManager, json, badRequest, route } from "@/lib/http";
 import { manualAttendanceSchema } from "@/lib/validators/attendance";
 import { computeAttendanceRow } from "@/lib/services/attendance/report";
 import { loadShiftConfig } from "@/lib/services/attendance/shift";
+import { jadwalEfektifDari } from "@/lib/services/jadwal-shift/efektif";
 
 function at(dateStr: string, time: string): Date {
   return new Date(`${dateStr}T${time}:00`);
@@ -22,15 +23,9 @@ export const POST = route(async (req: Request) => {
   });
   if (!employee) return badRequest({ employeeId: ["Karyawan tidak ditemukan"] });
 
-  const schedule = employee.workSchedule
-    ? {
-        startTime: employee.workSchedule.startTime,
-        endTime: employee.workSchedule.endTime,
-        lateToleranceMinutes: employee.workSchedule.lateToleranceMinutes,
-        isHoliday: employee.workSchedule.isHoliday,
-        flexibleHours: employee.workSchedule.flexibleHours,
-      }
-    : null;
+  // Jadwal hari itu: roster (JadwalShift) menang atas jadwal tetap karyawan.
+  const hari = (await jadwalEfektifDari(prisma, [employee], date, date)).get(employee.id, date);
+  const schedule = hari.schedule;
 
   const scans = [];
   if (clockIn) scans.push({ scanDate: at(date, clockIn), scanType: "in" });
@@ -42,7 +37,8 @@ export const POST = route(async (req: Request) => {
     employeeId,
     date,
     schedule,
-    isHoliday: false,
+    // Libur nasional sengaja tidak dihitung di sini (perilaku lama); libur roster karyawan iya.
+    isHoliday: hari.libur,
     shiftConfig,
     scans: scans.map((s) => ({ scanDate: s.scanDate, scanType: s.scanType })),
   });

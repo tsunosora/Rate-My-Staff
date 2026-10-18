@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { json, route } from "@/lib/http";
+import { notifyManagers } from "@/lib/notify";
+import { getSetting } from "@/lib/settings";
 import { requirePortalOwner } from "@/lib/services/portal/auth";
-import { putuskanAbsen } from "@/lib/services/absen-hp/aturan";
-import { FOTO_MAKS_BITA, catatAbsenHp, lokasiAktif, simpanFoto } from "@/lib/services/absen-hp/simpan";
+import { SETELAN_LUAR, luarDiizinkan, putuskanAbsen, putuskanAbsenLuar, KODE_BOLEH_LUAR } from "@/lib/services/absen-hp/aturan";
+import { FOTO_MAKS_BITA, catatAbsenHp, catatPengajuanLuar, lokasiAktif, simpanFoto } from "@/lib/services/absen-hp/simpan";
 import { kontakDari } from "@/lib/services/fingerspot/kontak-mesin";
 
 type Ctx = { params: Promise<{ token: string }> };
@@ -11,6 +13,9 @@ const angka = (v: FormDataEntryValue | null) => (v === null || v === "" ? NaN : 
 
 /**
  * PUBLIK (sesi PIN karyawan) — absen dari HP. Multipart: foto, lat, lng, akurasi, perangkat, qr.
+ * Dengan `luar=1` + `alasan`: PENGAJUAN absen di luar lokasi (menunggu persetujuan owner).
+ * Satu jalur, bukan jalur baru, supaya ikut pengecualian mode hanya-baca absen HP
+ * (lib/lisensi/aturan-jalur.ts) — data kehadiran tidak boleh hilang karena telat bayar.
  *
  * Owner yang membuka halaman karyawan lewat ?owner=1 DITOLAK di sini (requirePortalOwner):
  * owner boleh melihat, tidak boleh absen atas nama karyawannya.
@@ -33,8 +38,9 @@ export const POST = route<Ctx>(async (req, ctx) => {
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
   });
+  const izinkanLuar = luarDiizinkan(await getSetting(SETELAN_LUAR));
 
-  const keputusan = putuskanAbsen({
+  const dasar = {
     aktif: employee.absenHp,
     perangkatTerdaftar: employee.absenHpPerangkat,
     idPerangkat: String(form.get("perangkat") ?? ""),
@@ -45,8 +51,26 @@ export const POST = route<Ctx>(async (req, ctx) => {
     qr: (form.get("qr") as string | null) || null,
     absenTerakhir: terakhir?.createdAt ?? null,
     nowMs: Date.now(),
-  });
-  if (!keputusan.ok) return json(keputusan, { status: 422 });
+  };
+
+  const luar = form.get("luar") === "1";
+  let keputusanLuar: ReturnType<typeof putuskanAbsenLuar> | null = null;
+  let keputusan: ReturnType<typeof putuskanAbsen> | null = null;
+  if (luar) {
+    const awalHari = new Date();
+    awalHari.setHours(0, 0, 0, 0);
+    const pengajuanHariIni = await prisma.absenHpBukti.count({
+      where: { employeeId: employee.id, alasan: { not: null }, createdAt: { gte: awalHari } },
+    });
+    keputusanLuar = putuskanAbsenLuar({ ...dasar, izinkan: izinkanLuar, alasan: String(form.get("alasan") ?? ""), pengajuanHariIni });
+    if (!keputusanLuar.ok) return json(keputusanLuar, { status: 422 });
+  } else {
+    keputusan = putuskanAbsen(dasar);
+    if (!keputusan.ok) {
+      // HP tahu boleh menawarkan "Ajukan absen di luar lokasi" tanpa harus menebak setelan owner.
+      return json({ ...keputusan, bolehLuar: izinkanLuar && KODE_BOLEH_LUAR.includes(keputusan.kode) }, { status: 422 });
+    }
+  }
 
   const foto = form.get("foto");
   if (!(foto instanceof File) || foto.size === 0) {
@@ -62,24 +86,38 @@ export const POST = route<Ctx>(async (req, ctx) => {
   } catch {
     return json({ ok: false, kode: "bukan_gambar", alasan: "Berkas foto tidak dikenali. Ambil ulang fotonya." }, { status: 422 });
   }
+  const ip = kontakDari(req.headers).ip;
 
-  const hasil = await catatAbsenHp({
-    employeeId: employee.id,
-    keputusan,
-    lat,
-    lng,
-    akurasiM,
-    fotoPath,
-    ip: kontakDari(req.headers).ip,
-  });
+  if (keputusanLuar?.ok) {
+    const p = await catatPengajuanLuar({ employeeId: employee.id, keputusan: keputusanLuar, lat, lng, akurasiM, fotoPath, ip });
+    const jarak = keputusanLuar.jarakM === null ? "belum ada lokasi absen" : `${keputusanLuar.jarakM} m dari ${keputusanLuar.lokasi?.nama}`;
+    await notifyManagers("absen_luar", {
+      title: "Absen di luar lokasi menunggu persetujuan",
+      message: `${employee.fullName} · ${jarak} · "${keputusanLuar.alasan.slice(0, 80)}"`,
+      buktiId: p.id,
+      employeeId: employee.id,
+      href: "/attendance/absen-luar",
+    });
+    return json({
+      ok: true,
+      menunggu: true,
+      jam: p.waktu,
+      lokasi: keputusanLuar.lokasi?.nama ?? null,
+      jarakM: keputusanLuar.jarakM,
+      hpBaruDikunci: keputusanLuar.kunciPerangkat,
+    });
+  }
+
+  const k = keputusan as Extract<NonNullable<typeof keputusan>, { ok: true }>;
+  const hasil = await catatAbsenHp({ employeeId: employee.id, keputusan: k, lat, lng, akurasiM, fotoPath, ip });
 
   return json({
     ok: true,
     jenis: hasil.scanType,
     jam: hasil.waktu,
-    lokasi: keputusan.lokasi.nama,
-    jarakM: keputusan.jarakM,
-    qr: keputusan.qr,
-    hpBaruDikunci: keputusan.kunciPerangkat,
+    lokasi: k.lokasi.nama,
+    jarakM: k.jarakM,
+    qr: k.qr,
+    hpBaruDikunci: k.kunciPerangkat,
   });
 });

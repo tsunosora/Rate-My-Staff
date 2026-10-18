@@ -10,6 +10,7 @@ import {
   type ReceiptLabelSet,
 } from "./receipt-rates";
 import { getAllSettings } from "@/lib/settings";
+import { gabungMenitStruk, menitLemburDisetujuiPerTanggal } from "@/lib/services/lembur/struk";
 import type { ReceiptPeriod } from "./period";
 
 async function loadConfig(prisma: PrismaClient): Promise<{
@@ -41,9 +42,11 @@ export async function buildEmployeeReceipt(
     include: { department: true, workSchedule: true },
   });
   if (!emp) return null;
-  const [{ rows }, { rates, rounding, mealAllowance, flexHolidayRate, labels }] = await Promise.all([
+  const [{ rows }, { rates, rounding, mealAllowance, flexHolidayRate, labels }, lemburDisetujui] = await Promise.all([
     aggregateAttendance(prisma, { startStr: period.startStr, endStr: period.endStr, employeeId: String(employeeId) }),
     loadConfig(prisma),
+    // Pengajuan lembur yang disetujui owner (lib/services/lembur/struk.ts).
+    menitLemburDisetujuiPerTanggal(prisma, employeeId, period.startStr, period.endStr),
   ]);
   const flexible = Boolean(emp.workSchedule?.flexibleHours);
   const flexRatePerHour = emp.workSchedule ? Number(emp.workSchedule.overtimeWagePerHour) : 0;
@@ -71,7 +74,7 @@ export async function buildEmployeeReceipt(
       clockIn: r.clockIn,
       clockOut: r.clockOut,
       lateMinutes: r.lateMinutes,
-      overtimeMinutes: r.overtimeMinutes,
+      overtimeMinutes: gabungMenitStruk(r.overtimeMinutes, lemburDisetujui.get(r.date)),
       mealEligible: r.mealEligible,
       undertimeMinutes: r.undertimeMinutes,
       workedMinutes: r.workedMinutes,

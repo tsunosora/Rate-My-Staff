@@ -11,12 +11,23 @@ import type { PortalState } from "@/components/portal/types";
 type Absen = {
   aktif: boolean;
   hpTerkunci: boolean;
+  bolehLuar: boolean;
+  pengajuan: Pengajuan[];
   lokasi: { id: number; nama: string; radiusM: number; wajibQr: boolean }[];
   hariIni: { id: number; jam: string; jenis: string | null; lewat: "hp" | "mesin" }[];
 };
+type Pengajuan = { id: number; jam: string; status: "menunggu" | "diterima" | "ditolak"; alasan: string | null; catatan: string | null; lokasi: string | null; jarakM: number | null };
 type Keadaan = PortalState & { absen?: Absen };
-type Tolak = { ok: false; kode: string; alasan: string; perluQr?: boolean };
-type Terima = { ok: true; jenis: string | null; jam: string; lokasi: string; jarakM: number; qr: boolean; hpBaruDikunci: boolean };
+type Tolak = { ok: false; kode: string; alasan: string; perluQr?: boolean; bolehLuar?: boolean };
+type Terima =
+  | { ok: true; menunggu?: false; jenis: string | null; jam: string; lokasi: string; jarakM: number; qr: boolean; hpBaruDikunci: boolean }
+  | { ok: true; menunggu: true; jam: string; lokasi: string | null; jarakM: number | null; hpBaruDikunci: boolean };
+
+const STATUS_AJUAN: Record<Pengajuan["status"], { label: string; warna: string }> = {
+  menunggu: { label: "Menunggu persetujuan", warna: "var(--warning)" },
+  diterima: { label: "Disetujui", warna: "var(--success)" },
+  ditolak: { label: "Ditolak", warna: "var(--danger)" },
+};
 
 const KUNCI_PERANGKAT = "qe-absen-hp-perangkat";
 
@@ -57,7 +68,8 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
   const { token } = use(params);
   const [keadaan, setKeadaan] = useState<Keadaan | null>(null);
   const [tidakSah, setTidakSah] = useState(false);
-  const [langkah, setLangkah] = useState<"diam" | "lokasi" | "foto" | "kirim" | "qr">("diam");
+  const [langkah, setLangkah] = useState<"diam" | "lokasi" | "foto" | "kirim" | "qr" | "luar">("diam");
+  const [alasan, setAlasan] = useState("");
   const [pesan, setPesan] = useState<{ ok: boolean; teks: string } | null>(null);
   const fotoInput = useRef<HTMLInputElement>(null);
   const tertunda = useRef<{ foto: Blob; pos: GeolocationPosition } | null>(null);
@@ -105,7 +117,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
     await kirim(null);
   }
 
-  async function kirim(qr: string | null) {
+  async function kirim(qr: string | null, luar = false) {
     const t = tertunda.current;
     if (!t) return;
     setLangkah("kirim");
@@ -116,10 +128,24 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
     fd.set("akurasi", String(t.pos.coords.accuracy));
     fd.set("perangkat", idPerangkat());
     if (qr) fd.set("qr", qr);
+    if (luar) {
+      fd.set("luar", "1");
+      fd.set("alasan", alasan);
+    }
     try {
       const r = await fetch(`/api/public/absen/${token}/absen`, { method: "POST", body: fd });
       const d = (await r.json().catch(() => ({}))) as Terima | Tolak;
-      if (d.ok) {
+      if (d.ok && d.menunggu) {
+        tertunda.current = null;
+        setAlasan("");
+        setLangkah("diam");
+        setPesan({
+          ok: true,
+          teks: `Pengajuan absen di luar lokasi terkirim jam ${jamDari(d.jam)}. Absen baru tercatat setelah disetujui owner.` +
+            (d.hpBaruDikunci ? " HP ini sekarang terdaftar untuk Anda." : ""),
+        });
+        await muat();
+      } else if (d.ok) {
         tertunda.current = null;
         setLangkah("diam");
         setPesan({
@@ -128,7 +154,14 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
             (d.hpBaruDikunci ? " HP ini sekarang terdaftar untuk Anda." : ""),
         });
         await muat();
-      } else if ("perluQr" in d && d.perluQr) {
+      } else if (!luar && d.bolehLuar) {
+        // Di luar radius: foto & lokasi yang sudah diambil DIPERTAHANKAN, tinggal menulis alasan.
+        setPesan({ ok: false, teks: d.alasan });
+        setLangkah("luar");
+      } else if (luar && ["alasan_pendek", "alasan_panjang"].includes(d.kode)) {
+        setPesan({ ok: false, teks: d.alasan });
+        setLangkah("luar");
+      } else if (d.perluQr) {
         setPesan({ ok: false, teks: d.alasan });
         setLangkah("qr");
       } else {
@@ -228,6 +261,71 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
           />
         )}
 
+        {langkah === "luar" && (
+          <section className="glass-2 rounded-3xl p-4 shadow-xl">
+            <h2 className="text-sm font-semibold text-fg">Ajukan absen di luar lokasi</h2>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Foto dan lokasi Anda barusan ikut dikirim. Absen baru tercatat setelah owner menyetujuinya — waktunya tetap
+              jam Anda mengajukan sekarang.
+            </p>
+            <label className="mt-3 block space-y-1.5 text-sm">
+              <span className="font-medium text-muted">Alasan (wajib)</span>
+              <textarea
+                className="input"
+                rows={3}
+                maxLength={500}
+                placeholder="mis. kunjungan ke pelanggan di Jl. Merdeka"
+                value={alasan}
+                onChange={(e) => setAlasan(e.target.value)}
+              />
+            </label>
+            <div className="mt-3 flex gap-2">
+              <button
+                className="btn-ghost h-11 flex-1"
+                onClick={() => {
+                  tertunda.current = null;
+                  setAlasan("");
+                  setLangkah("diam");
+                }}
+              >
+                Batal
+              </button>
+              <button className="btn-primary h-11 flex-1 disabled:opacity-60" disabled={alasan.trim().length < 5} onClick={() => kirim(null, true)}>
+                Kirim pengajuan
+              </button>
+            </div>
+          </section>
+        )}
+
+        {a && a.pengajuan.length > 0 && (
+          <section className="glass rounded-2xl p-4">
+            <h2 className="mb-2 text-sm font-semibold text-fg">Pengajuan di luar lokasi</h2>
+            <ul className="space-y-2.5 text-sm">
+              {a.pengajuan.map((p) => (
+                <li key={p.id} className="space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-fg">
+                      {new Date(p.jam).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" })} · {jamDari(p.jam)}
+                    </span>
+                    <span className="badge" style={soft(STATUS_AJUAN[p.status]?.warna ?? "var(--fg-subtle)", 18)}>
+                      {STATUS_AJUAN[p.status]?.label ?? p.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-subtle">
+                    {p.alasan}
+                    {p.lokasi && p.jarakM !== null ? ` · ${p.jarakM} m dari ${p.lokasi}` : ""}
+                  </div>
+                  {p.catatan && (
+                    <div className="text-xs text-muted">
+                      <b className="text-fg">Catatan owner:</b> {p.catatan}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="glass rounded-2xl p-4">
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
             <IconClock /> Absen hari ini
@@ -251,6 +349,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
             Absen diterima kalau Anda berada di{" "}
             {a.lokasi.length ? a.lokasi.map((l) => `${l.nama} (${l.radiusM} m)`).join(", ") : "lokasi kerja"}, berfoto, dan memakai
             HP yang sama dengan absen pertama Anda.
+            {a.bolehLuar && " Sedang di luar lokasi (dinas, kunjungan)? Anda bisa mengajukan absen dengan alasan — tercatat setelah disetujui owner."}
           </p>
         )}
       </div>

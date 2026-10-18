@@ -77,6 +77,19 @@ export async function tolakOlehLisensi(req: Request): Promise<Response | null> {
   return null;
 }
 
+/**
+ * Fitur mana yang TAMPIL di layar tanpa login (tab portal karyawan). Kosmetik — rute API-nya
+ * sendiri yang menolak sungguhan. Aturannya sama dengan penegak di atas: tanpa kunci atau saat
+ * hanya-baca semuanya tampil (gagal-terbuka; hanya-baca tetap boleh MEMBACA riwayat).
+ */
+export async function fiturTampil(kode: readonly string[]): Promise<Record<string, boolean>> {
+  const keadaan = await keadaanLisensi().catch(() => null);
+  if (!keadaan || !keadaan.ditegakkan || keadaan.hanyaBaca) {
+    return Object.fromEntries(kode.map((k) => [k, true]));
+  }
+  return Object.fromEntries(kode.map((k) => [k, bolehFitur(keadaan, k)]));
+}
+
 /** Hitung pemakaian satu batas yang ditegakkan. null = kodenya tidak dikenal. */
 export async function hitungPemakaian(kode: string): Promise<number | null> {
   switch (kode) {
