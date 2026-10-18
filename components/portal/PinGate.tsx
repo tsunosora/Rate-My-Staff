@@ -84,8 +84,8 @@ export function PinGate({
       {canLogin && posproPin && (
         <p className="mb-4 rounded-xl border border-border bg-surface-2 p-3 text-xs leading-relaxed text-muted">
           {pinSet
-            ? "Bisa pakai PIN halaman ini, atau PIN PosPro Anda (PIN piket/desainer) — keduanya diterima."
-            : "Masukkan PIN PosPro Anda — PIN yang biasa dipakai di halaman piket/desainer."}
+            ? "Bisa pakai PIN halaman ini, atau PIN Qendali POS Anda (PIN piket/desainer) — keduanya diterima."
+            : "Masukkan PIN Qendali POS Anda — PIN yang biasa dipakai di halaman piket/desainer."}
         </p>
       )}
 

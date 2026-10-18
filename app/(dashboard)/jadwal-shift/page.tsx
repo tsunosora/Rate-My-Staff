@@ -129,7 +129,11 @@ export default function JadwalShiftPage() {
       sel: [{ employeeId: sel.k.id, tanggal: sel.tanggal, workScheduleId: p.workScheduleId, libur: p.libur, catatan }],
     });
     if (r) {
-      setNotice(`Jadwal ${sel.k.fullName} ${labelTanggal(sel.tanggal)} disimpan.`);
+      setNotice(
+        r.dihapus > 0 && r.disimpan === 0
+          ? `${sel.k.fullName} ${labelTanggal(sel.tanggal)} kembali ke jadwal tetap.`
+          : `Jadwal ${sel.k.fullName} ${labelTanggal(sel.tanggal)} disimpan.`
+      );
       setSel(null);
     }
   }

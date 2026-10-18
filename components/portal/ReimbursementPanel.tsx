@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
-import { IconAlert, IconCheck, IconPlus, IconTrash, IconUpload } from "@/components/ui/icons";
+import { IconAlert, IconCheck, IconPlus, IconTrash, IconUpload, IconX } from "@/components/ui/icons";
 import { Card, Empty, longDate, soft } from "./ui";
 import {
   PILIHAN_KATEGORI,
@@ -109,7 +109,7 @@ export function ReimbursementPanel({ token, ownerQuery = "" }: { token: string; 
         action={
           !sebagaiOwner && (
             <button onClick={() => setOpen((o) => !o)} className="btn-ghost h-9 text-xs">
-              <IconPlus className="text-[15px]" /> {open ? "Tutup" : "Ajukan"}
+              {open ? <IconX className="text-[15px]" /> : <IconPlus className="text-[15px]" />} {open ? "Tutup" : "Ajukan"}
             </button>
           )
         }

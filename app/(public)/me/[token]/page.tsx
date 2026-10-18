@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/fetcher";
 import {
   IconAlert,
@@ -59,6 +59,18 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
   const [data, setData] = useState<Overview | null>(null);
   const [loadError, setLoadError] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
+  // Deret tab lebih lebar dari layar HP: tab yang aktif digulir masuk ke pandangan. Yang disentuh
+  // cuma scrollLeft deret itu — scrollIntoView ikut menggulir seluruh halaman.
+  const deretTab = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = deretTab.current;
+    const aktif = nav?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!nav || !aktif) return;
+    const kiri = aktif.offsetLeft - nav.offsetLeft;
+    if (kiri < nav.scrollLeft || kiri + aktif.offsetWidth > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollLeft = Math.max(0, kiri - (nav.clientWidth - aktif.offsetWidth) / 2);
+    }
+  }, [tab, state?.authenticated]);
 
   const loadState = useCallback(async () => {
     try {
@@ -158,10 +170,10 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
                 className="btn-ghost h-9 px-3 text-xs"
                 aria-label="Ganti PIN"
               >
-                <IconSettings className="text-[15px]" /> PIN
+                <IconSettings className="text-[15px]" /> <span className="hidden sm:inline">PIN</span>
               </button>
               <button onClick={logout} className="btn-ghost h-9 px-3 text-xs" aria-label="Keluar">
-                <IconLogout className="text-[15px]" /> Keluar
+                <IconLogout className="text-[15px]" /> <span className="hidden sm:inline">Keluar</span>
               </button>
             </>
           )}
@@ -185,11 +197,13 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
         {showPinForm && <ChangePinForm token={token} onDone={() => setShowPinForm(false)} />}
 
         <div className="flex flex-wrap items-center gap-2">
-          <nav className="glass flex flex-1 gap-1 overflow-x-auto rounded-2xl p-1">
+          {/* Tab di barisnya sendiri: kalau berbagi baris dengan pemilih bulan, di HP cuma satu tab yang terlihat. */}
+          <nav ref={deretTab} className="glass flex w-full gap-1 overflow-x-auto rounded-2xl p-1">
             {TABS.filter((t) => !t.fitur || state.fitur?.[t.fitur] !== false).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
+                aria-current={tab === t.key ? "page" : undefined}
                 className={`flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition ${
                   tab === t.key
                     ? "bg-gradient-to-r from-primary to-primary-2 text-on-primary shadow-lg shadow-primary/25"
@@ -202,7 +216,7 @@ export default function EmployeePortalPage({ params }: { params: Promise<{ token
           </nav>
 
           {TABS.find((t) => t.key === tab)?.bulanan && (
-            <div className="glass flex items-center gap-1 rounded-2xl p-1">
+            <div className="glass ml-auto flex items-center gap-1 rounded-2xl p-1">
               <button
                 onClick={() => shiftMonth(-1)}
                 className="grid h-8 w-8 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-fg"

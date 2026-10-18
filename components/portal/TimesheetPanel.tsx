@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/fetcher";
-import { IconAlert, IconCheck, IconClock, IconPencil, IconPlus, IconTrash } from "@/components/ui/icons";
+import { IconAlert, IconCheck, IconClock, IconPencil, IconPlus, IconTrash, IconX } from "@/components/ui/icons";
 import { Card, Empty, hm, shortDate, soft } from "./ui";
 
 type Entri = {
@@ -188,7 +188,7 @@ export function TimesheetPanel({ token, ownerQuery = "" }: { token: string; owne
         action={
           data.bisaMenulis && (
             <button onClick={() => (form ? (setForm(null), setEditId(null)) : bukaBaru())} className="btn-ghost h-9 text-xs">
-              <IconPlus className="text-[15px]" /> {form ? "Tutup" : "Catat"}
+              {form ? <IconX className="text-[15px]" /> : <IconPlus className="text-[15px]" />} {form ? "Tutup" : "Catat"}
             </button>
           )
         }

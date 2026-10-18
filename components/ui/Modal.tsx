@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { IconX } from "@/components/ui/icons";
 
 export function Modal({
@@ -26,7 +27,10 @@ export function Modal({
     };
   }, [onClose]);
 
-  return (
+  // Dirender ke <body> lewat portal: di dalam konten halaman, induk yang punya konteks tumpukan
+  // sendiri (glass/backdrop-filter) mengurung `fixed`, sehingga tirai tidak menutupi sidebar.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
@@ -62,6 +66,7 @@ export function Modal({
           to { opacity: 1; transform: translateY(0) scale(1) }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

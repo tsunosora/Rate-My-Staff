@@ -109,7 +109,7 @@ export function EmployeeLinksModal({
 
       <p className="mb-4 text-xs leading-relaxed text-muted">
         {tab === "portal"
-          ? "Halaman pribadi karyawan: absensi, penilaian, estimasi lembur, dan pengajuan izin. Tautan di atas SELALU meminta PIN — termasuk untuk Anda — jadi bisa dipakai memastikan apa yang dilihat karyawan. Tombol di bawahnya membukanya sebagai owner tanpa PIN."
+          ? "Halaman pribadi karyawan: absensi, penilaian, poin, izin & lembur, serta (kalau termasuk paket) kunjungan klien, klaim, dan timesheet. Tautan di atas SELALU meminta PIN — termasuk untuk Anda — jadi bisa dipakai memastikan apa yang dilihat karyawan. Tombol di bawahnya membukanya sebagai owner tanpa PIN."
           : "Form penilaian bintang untuk pelanggan/tamu. Aman ditempel di meja atau nota."}
       </p>
 

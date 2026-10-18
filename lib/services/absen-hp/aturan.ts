@@ -23,6 +23,11 @@ export const AWALAN_QR = "QE1";
 export type Lokasi = { id: number; nama: string; lat: number; lng: number; radiusM: number; wajibQr: boolean; qrRahasia: string };
 
 /** Jarak dua titik di permukaan bumi, meter (haversine). */
+/** Jarak yang enak dibaca: 850 m, 3,2 km — satu bentuk untuk HP karyawan dan halaman owner. */
+export function teksJarak(m: number): string {
+  return m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
+}
+
 export function jarakMeter(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -117,7 +122,7 @@ export function putuskanAbsen(m: Masukan): Keputusan {
   const t = lokasiTerdekat(aktif, m.lat, m.lng)!;
   const jarak = Math.round(t.jarakM);
   if (t.jarakM > t.lokasi.radiusM) {
-    return { ok: false, kode: "di_luar", jarakM: jarak, lokasi: t.lokasi.nama, alasan: `Anda ${jarak} m dari ${t.lokasi.nama}. Absen hanya bisa dalam ${t.lokasi.radiusM} m.` };
+    return { ok: false, kode: "di_luar", jarakM: jarak, lokasi: t.lokasi.nama, alasan: `Anda ${teksJarak(jarak)} dari ${t.lokasi.nama}. Absen hanya bisa dalam ${t.lokasi.radiusM} m.` };
   }
 
   let qr = false;

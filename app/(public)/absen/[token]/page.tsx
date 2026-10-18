@@ -63,6 +63,9 @@ function bacaLokasi(): Promise<GeolocationPosition> {
 }
 
 const jamDari = (t: string) => new Date(t).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+/** Sama dengan teksJarak() di lib/services/absen-hp/aturan.ts (berkas itu memakai node:crypto, tidak bisa diimpor di peramban). */
+const teksJarak = (m: number) =>
+  m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
 
 export default function AbsenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -313,7 +316,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
                   </div>
                   <div className="text-xs text-subtle">
                     {p.alasan}
-                    {p.lokasi && p.jarakM !== null ? ` · ${p.jarakM} m dari ${p.lokasi}` : ""}
+                    {p.lokasi && p.jarakM !== null ? ` · ${teksJarak(p.jarakM)} dari ${p.lokasi}` : ""}
                   </div>
                   {p.catatan && (
                     <div className="text-xs text-muted">

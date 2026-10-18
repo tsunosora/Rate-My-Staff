@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/fetcher";
-import { IconAlert, IconCheck, IconPlus, IconTrash } from "@/components/ui/icons";
+import { IconAlert, IconCheck, IconPlus, IconTrash, IconX } from "@/components/ui/icons";
 import { Card, Empty, LeaveStatusBadge, hm, longDate, soft } from "./ui";
 import { IsianLembur, badanLembur, nilaiAwalLembur, type NilaiLembur } from "@/components/lembur/IsianLembur";
 
@@ -90,7 +90,7 @@ export function LemburPanel({ token, ownerQuery = "" }: { token: string; ownerQu
         title="Pengajuan lembur"
         action={
           <button onClick={() => setOpen((o) => !o)} className="btn-ghost h-9 text-xs">
-            <IconPlus className="text-[15px]" /> {open ? "Tutup" : "Ajukan"}
+            {open ? <IconX className="text-[15px]" /> : <IconPlus className="text-[15px]" />} {open ? "Tutup" : "Ajukan"}
           </button>
         }
       >

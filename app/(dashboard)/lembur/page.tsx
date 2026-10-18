@@ -223,7 +223,7 @@ export default function LemburPage() {
           >
             {f.label}
             {f.key === "pending" && data && data.pending > 0 && (
-              <span className="ml-1.5 rounded-full bg-warning/20 px-1.5 text-xs text-warning">{data.pending}</span>
+              <span className="ml-1.5 rounded-full bg-white px-1.5 text-xs font-semibold text-amber-700 shadow-sm">{data.pending}</span>
             )}
           </button>
         ))}
