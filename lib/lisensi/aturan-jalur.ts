@@ -155,7 +155,7 @@ const JALUR_BEBAS_HANYA_BACA: readonly RegExp[] = [
   /^\/api\/notifications(\/|$)/,
   /^\/api\/public\/portal\/[^/]+\/session$/,
   /^\/api\/public\/absen\/[^/]+\/(session|absen)$/,
-  /^\/api\/public\/absen\/[^/]+\/tim\/(sesi|absen)$/,
+  /^\/api\/public\/absen\/[^/]+\/tim\/(sesi|absen|rekap)$/,
 ];
 
 export function bebasHanyaBaca(jalur: string): boolean {
