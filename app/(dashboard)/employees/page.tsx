@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { EmployeeLinksModal } from "@/components/employees/EmployeeLinksModal";
 import { StatusMesin } from "@/components/employees/StatusMesin";
+import { useLisensi } from "@/components/lisensi/Lisensi";
+import { namaUnik, kunciNama } from "@/lib/services/upah-tarif/aturan";
 import {
   IconPlus,
   IconSearch,
@@ -33,9 +35,23 @@ type Employee = {
   departmentId: number | null;
   positionId: number | null;
   workScheduleId: number | null;
+  joinDate?: string | null;
+  salary?: string | number | null;
+  email?: string | null;
+  phone?: string | null;
   department: { id: number; name: string } | null;
   position: { id: number; name: string } | null;
+  // Upah tukang (hr.upah) & tim (hr.absen_hp). Decimal datang sebagai string.
+  upahHarian?: string | number | null;
+  upahLemburPerJam?: string | number | null;
+  kotaBawaan?: string | null;
+  divisiBawaan?: string | null;
+  timId?: number | null;
+  tim?: { id: number; nama: string; warna: string } | null;
 };
+
+type TimPilihan = { id: number; nama: string; aktif: boolean };
+type TarifRingkas = { kota: string; divisi: string; upahHarian: number; lemburPerJam: number; aktif: boolean };
 
 type FormState = {
   fullName: string;
@@ -50,6 +66,11 @@ type FormState = {
   phone: string;
   posproUserId: string;
   isActive: boolean;
+  upahHarian: string;
+  upahLemburPerJam: string;
+  kotaBawaan: string;
+  divisiBawaan: string;
+  timId: string;
 };
 
 const emptyForm: FormState = {
@@ -65,7 +86,25 @@ const emptyForm: FormState = {
   phone: "",
   posproUserId: "",
   isActive: true,
+  upahHarian: "",
+  upahLemburPerJam: "",
+  kotaBawaan: "",
+  divisiBawaan: "",
+  timId: "",
 };
+
+const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const teksAngka = (v: string | number | null | undefined) => (v === null || v === undefined || v === "" ? "" : String(Number(v)));
+/** "YYYY-MM-DD" menurut jam peramban (WIB). Tanggal masuk tersimpan sebagai tengah malam UTC
+ *  (dari form) atau tengah malam WIB (data lama); keduanya jatuh di tanggal yang benar di WIB,
+ *  sementara memotong teks ISO memundurkan yang kedua satu hari. */
+function tanggalLokal(v: string | null | undefined) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  const dua = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`;
+}
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -105,6 +144,15 @@ export default function EmployeesPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
 
+  // Bagian "Upah tukang" di form: rupiah butuh hr.upah, kota/divisi/tim butuh hr.absen_hp.
+  // Gagal-terbuka seperti sidebar: tanpa kunci lisensi atau saat hanya-baca, semuanya tampil.
+  const lisensi = useLisensi();
+  const punya = (kode: string) => !lisensi.ditegakkan || lisensi.hanyaBaca || lisensi.fitur.includes(kode);
+  const bolehUpah = punya("hr.upah");
+  const bolehLapangan = punya("hr.absen_hp");
+  const [timPilihan, setTimPilihan] = useState<TimPilihan[]>([]);
+  const [tarif, setTarif] = useState<TarifRingkas[]>([]);
+
   const load = useCallback(async () => {
     setLoading(true);
     const q = new URLSearchParams({ page: String(page) });
@@ -141,6 +189,20 @@ export default function EmployeesPage() {
     );
   }, []);
 
+  useEffect(() => {
+    if (bolehLapangan) {
+      api<{ tim: TimPilihan[] }>("/api/tim-kerja")
+        .then((d) => setTimPilihan(d.tim))
+        .catch(() => setTimPilihan([]));
+    }
+    // Tarif kota × divisi dipakai sebagai saran isian kota/divisi + petunjuk tarifnya.
+    if (bolehUpah) {
+      api<TarifRingkas[]>("/api/upah/tarif")
+        .then(setTarif)
+        .catch(() => setTarif([]));
+    }
+  }, [bolehLapangan, bolehUpah]);
+
   function openAdd() {
     setForm(emptyForm);
     setEditing(null);
@@ -157,12 +219,18 @@ export default function EmployeesPage() {
       departmentId: e.departmentId ? String(e.departmentId) : "",
       positionId: e.positionId ? String(e.positionId) : "",
       workScheduleId: e.workScheduleId ? String(e.workScheduleId) : "",
-      joinDate: "",
-      salary: "",
-      email: "",
-      phone: "",
+      // Diisi dari data tersimpan. Dulu dikosongkan, jadi menyimpan Edit menghapus keempatnya.
+      joinDate: tanggalLokal(e.joinDate),
+      salary: teksAngka(e.salary),
+      email: e.email ?? "",
+      phone: e.phone ?? "",
       posproUserId: e.posproUserId ? String(e.posproUserId) : "",
       isActive: e.isActive,
+      upahHarian: teksAngka(e.upahHarian),
+      upahLemburPerJam: teksAngka(e.upahLemburPerJam),
+      kotaBawaan: e.kotaBawaan ?? "",
+      divisiBawaan: e.divisiBawaan ?? "",
+      timId: e.timId ? String(e.timId) : "",
     });
     setError("");
     setModal("edit");
@@ -182,6 +250,16 @@ export default function EmployeesPage() {
       phone: form.phone || null,
       posproUserId: form.posproUserId ? Number(form.posproUserId) : null,
       isActive: form.isActive,
+      // Dikirim hanya kalau bagiannya tampil — server juga menyaringnya per lisensi.
+      ...(bolehUpah && {
+        upahHarian: form.upahHarian === "" ? null : Number(form.upahHarian),
+        upahLemburPerJam: form.upahLemburPerJam === "" ? null : Number(form.upahLemburPerJam),
+      }),
+      ...(bolehLapangan && {
+        kotaBawaan: form.kotaBawaan.trim() || null,
+        divisiBawaan: form.divisiBawaan.trim() || null,
+        timId: form.timId ? Number(form.timId) : null,
+      }),
     };
   }
 
@@ -293,6 +371,11 @@ export default function EmployeesPage() {
                         <div>
                           <div className="font-medium text-fg">{e.fullName}</div>
                           {e.nickname && <div className="text-xs text-subtle">{e.nickname}</div>}
+                          {e.tim && (
+                            <span className="badge mt-0.5 mr-1" style={softChip(e.tim.warna)} title="Tim kerja">
+                              {e.tim.nama}
+                            </span>
+                          )}
                           {e.jenis === "freelance" && (
                             <span className="badge mt-0.5" style={softChip("var(--warning)")}>
                               {e.perluDiperiksa ? "Freelance baru — perlu diperiksa" : "Freelance"}
@@ -410,6 +493,17 @@ export default function EmployeesPage() {
               </span>
             </Field>
 
+            {(bolehUpah || bolehLapangan) && (
+              <BagianUpahTukang
+                form={form}
+                setForm={setForm}
+                bolehUpah={bolehUpah}
+                bolehLapangan={bolehLapangan}
+                timPilihan={timPilihan}
+                tarif={tarif}
+              />
+            )}
+
             {modal === "edit" && (
               <label className="col-span-2 flex items-center gap-2 text-sm text-muted">
                 <input type="checkbox" className="accent-[color:var(--primary)]" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
@@ -479,6 +573,73 @@ function IconBtn({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Bagian "Upah tukang" di form karyawan. Tarif per karyawan dipakai PALING AKHIR: tarif proyek
+ * menang, lalu tarif kota × divisi (untuk hari tanpa proyek), baru tarif di sini.
+ */
+function BagianUpahTukang({
+  form, setForm, bolehUpah, bolehLapangan, timPilihan, tarif,
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  bolehUpah: boolean;
+  bolehLapangan: boolean;
+  timPilihan: TimPilihan[];
+  tarif: TarifRingkas[];
+}) {
+  const aktif = tarif.filter((t) => t.aktif);
+  const saranKota = namaUnik(aktif.map((t) => t.kota));
+  // Divisi yang disarankan mengikuti kota yang dipilih; tanpa kota → semua divisi.
+  const saranDivisi = namaUnik(
+    aktif.filter((t) => !form.kotaBawaan.trim() || kunciNama(t.kota) === kunciNama(form.kotaBawaan)).map((t) => t.divisi)
+  );
+  const cocok =
+    form.kotaBawaan.trim() && form.divisiBawaan.trim()
+      ? aktif.find((t) => kunciNama(t.kota) === kunciNama(form.kotaBawaan) && kunciNama(t.divisi) === kunciNama(form.divisiBawaan))
+      : undefined;
+
+  return (
+    <fieldset className="col-span-2 mt-1 grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+      <legend className="px-1 text-sm font-semibold text-fg">Upah tukang</legend>
+      {bolehLapangan && (
+        <>
+          <Field label="Kota bawaan">
+            <input list="saran-kota" value={form.kotaBawaan} onChange={(e) => setForm({ ...form, kotaBawaan: e.target.value })} className="input" placeholder="mis. Jakarta" />
+            <datalist id="saran-kota">{saranKota.map((k) => <option key={k} value={k} />)}</datalist>
+          </Field>
+          <Field label="Divisi bawaan">
+            <input list="saran-divisi" value={form.divisiBawaan} onChange={(e) => setForm({ ...form, divisiBawaan: e.target.value })} className="input" placeholder="mis. Tukang" />
+            <datalist id="saran-divisi">{saranDivisi.map((d) => <option key={d} value={d} />)}</datalist>
+          </Field>
+          <Field label="Tim" className="col-span-2">
+            <select value={form.timId} onChange={(e) => setForm({ ...form, timId: e.target.value })} className="input">
+              <option value="">— tanpa tim —</option>
+              {timPilihan.map((t) => (
+                <option key={t.id} value={t.id}>{t.nama}{t.aktif ? "" : " (nonaktif)"}</option>
+              ))}
+            </select>
+          </Field>
+        </>
+      )}
+      {bolehUpah && (
+        <>
+          <Field label="Upah harian (Rp)">
+            <input type="number" min={0} inputMode="numeric" value={form.upahHarian} onChange={(e) => setForm({ ...form, upahHarian: e.target.value })} className="input" placeholder="kosong = belum diatur" />
+          </Field>
+          <Field label="Lembur per jam (Rp)">
+            <input type="number" min={0} inputMode="numeric" value={form.upahLemburPerJam} onChange={(e) => setForm({ ...form, upahLemburPerJam: e.target.value })} className="input" placeholder="kosong = belum diatur" />
+          </Field>
+          <p className="col-span-2 text-xs text-subtle">
+            {cocok
+              ? `Ada tarif ${cocok.kota} · ${cocok.divisi}: ${rupiah(cocok.upahHarian)}/hari, lembur ${rupiah(cocok.lemburPerJam)}/jam. Tarif itu yang dipakai untuk hari tanpa proyek; upah di sini cadangan.`
+              : "Tarif proyek dipakai lebih dulu, lalu tarif kota × divisi, baru upah di sini. Atur tarif di Pengaturan → Tarif Upah."}
+          </p>
+        </>
+      )}
+    </fieldset>
   );
 }
 

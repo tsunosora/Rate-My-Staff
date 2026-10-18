@@ -17,6 +17,14 @@ import {
 } from "@/components/ui/icons";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+/** Dompet — untuk menu Upah. Lokal di sini karena set ikon bersama belum punya ikon uang. */
+const IconUang = (p: SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...p}>
+    <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v3h-4a2 2 0 0 0 0 4h4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5" />
+  </svg>
+);
+
 type Access = "all" | "manager" | "admin";
 type NavItem = { label: string; href: string; require?: Access };
 type NavGroup = {
@@ -42,7 +50,14 @@ const NAV: NavGroup[] = [
       { label: "Pengajuan Lembur", href: "/lembur" },
       { label: "Absen di Luar Lokasi", href: "/attendance/absen-luar" },
       { label: "Absen Tim", href: "/attendance/absen-tim" },
+      { label: "Rekap Tim", href: "/attendance/rekap-tim" },
     ],
+  },
+  {
+    label: "Upah",
+    icon: IconUang,
+    require: "manager",
+    children: [{ label: "Rekap Upah", href: "/upah" }],
   },
   {
     label: "Kerja Harian",
@@ -75,6 +90,8 @@ const NAV: NavGroup[] = [
       { label: "Umum", href: "/settings" },
       { label: "Jadwal Kerja", href: "/settings/work-schedules" },
       { label: "Absen lewat HP", href: "/settings/absen-hp" },
+      { label: "Tim Kerja", href: "/settings/tim-kerja" },
+      { label: "Tarif Upah", href: "/settings/upah" },
       { label: "Akun & Peran", href: "/settings/users", require: "admin" },
       { label: "Langganan", href: "/settings/langganan", require: "admin" },
     ],

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession, requireManager, json, badRequest, notFound, route } from "@/lib/http";
 import { employeeUpdateSchema } from "@/lib/validators/employee";
 import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
+import { dataLapangan } from "@/lib/services/upah-tarif/karyawan";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -36,10 +37,22 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 
   const existing = await prisma.employee.findFirst({
     where: { id: Number(id), deletedAt: null },
+    include: { timDipimpin: { select: { id: true, nama: true } } },
   });
   if (!existing) return notFound("Employee not found");
 
   const d = parsed.data;
+  const lapangan = await dataLapangan(d);
+  if (lapangan.timId !== undefined && lapangan.timId !== existing.timId) {
+    // Kepala tim tetap di timnya sendiri — tim tanpa kepala tidak punya yang merekap.
+    const dipimpin = existing.timDipimpin;
+    if (dipimpin && lapangan.timId !== dipimpin.id) {
+      return json({ message: `Karyawan ini kepala tim "${dipimpin.nama}". Ganti kepala tim itu dulu di Pengaturan → Tim Kerja.` }, { status: 409 });
+    }
+    if (lapangan.timId && !(await prisma.timKerja.findUnique({ where: { id: lapangan.timId }, select: { id: true } }))) {
+      return json({ message: "Tim tidak ditemukan." }, { status: 422 });
+    }
+  }
   // Mengaktifkan kembali karyawan yang nonaktif menambah satu ke hitungan batas lisensi.
   if (d.isActive === true && !existing.isActive) await wajibBolehMenambah("limit.employees");
   const employee = await prisma.employee.update({
@@ -57,9 +70,10 @@ export const PUT = route<Ctx>(async (req, ctx) => {
       ...(d.phone !== undefined && { phone: d.phone || null }),
       ...(d.isActive !== undefined && { isActive: d.isActive }),
       ...(d.posproUserId !== undefined && { posproUserId: d.posproUserId || null }),
+      ...lapangan,
     },
     omit: { portalPin: true },
-    include: { department: true, position: true, workSchedule: true },
+    include: { department: true, position: true, workSchedule: true, tim: { select: { id: true, nama: true, warna: true } } },
   });
   return json(employee);
 });

@@ -8,7 +8,7 @@ import { NamaMerek, UbinLogo } from "@/components/QendaliMark";
 import { IconAlert, IconCheck, IconClock } from "@/components/ui/icons";
 import type { PortalState } from "@/components/portal/types";
 import { bacaLokasi, idPerangkat, jamDari, kecilkan, teksJarak } from "@/components/absen/peramban";
-import { LayarTim } from "@/components/absen/LayarTim";
+import { RekapTim } from "@/components/absen/RekapTim";
 
 type Absen = {
   aktif: boolean;
@@ -39,7 +39,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
   const [langkah, setLangkah] = useState<"diam" | "lokasi" | "foto" | "kirim" | "qr" | "luar">("diam");
   const [alasan, setAlasan] = useState("");
   const [pesan, setPesan] = useState<{ ok: boolean; teks: string } | null>(null);
-  // Layar "Absen tim" untuk PIC lapangan (components/absen/LayarTim.tsx).
+  // Layar "Absen tim" untuk PIC lapangan = rekap harian tim (components/absen/RekapTim.tsx).
   const [layarTim, setLayarTim] = useState(false);
   const fotoInput = useRef<HTMLInputElement>(null);
   const tertunda = useRef<{ foto: Blob; pos: GeolocationPosition } | null>(null);
@@ -227,7 +227,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
           )}
         </section>
 
-        {layarTim && a?.tim && <LayarTim token={token} onTutup={() => setLayarTim(false)} />}
+        {layarTim && a?.tim && <RekapTim token={token} onTutup={() => setLayarTim(false)} />}
 
         {langkah === "qr" && (
           <PemindaiQr

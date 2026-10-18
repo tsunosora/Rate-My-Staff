@@ -5,11 +5,13 @@ import { nextEmployeeCode } from "@/lib/services/employee-code";
 import { putuskanFreelance } from "@/lib/services/absen-tim/aturan";
 import { freelanceSchema } from "@/lib/services/absen-tim/skema";
 import { wajibPic } from "@/lib/services/absen-tim/pic";
+import { timUntukPic } from "@/lib/services/tim-kerja/service";
 
 type Ctx = { params: Promise<{ token: string }> };
 
 /**
- * PUBLIK (sesi PIN PIC) — daftarkan tukang freelance di tempat. Orangnya langsung bisa diabsen,
+ * PUBLIK (sesi PIN PIC) — daftarkan tukang freelance di tempat. Orangnya LANGSUNG MASUK tim PIC
+ * (Kelola tim → Daftarkan freelance) dan langsung bisa direkap,
  * tapi berlabel "freelance baru — dari PIC <nama>" (perluDiperiksa) sampai owner/HR memeriksanya:
  * itu yang menahan tukang fiktif.
  *
@@ -32,6 +34,7 @@ export const POST = route<Ctx>(async (req, ctx) => {
   if (!k.ok) return json(k, { status: 422 });
 
   await wajibBolehMenambah("limit.employees");
+  const tim = await timUntukPic(prisma, pic.id);
   const kode = await nextEmployeeCode(prisma, k.nama);
   const e = await prisma.employee.create({
     data: {
@@ -41,6 +44,7 @@ export const POST = route<Ctx>(async (req, ctx) => {
       jenis: "freelance",
       perluDiperiksa: true,
       didaftarkanOlehId: pic.id,
+      timId: tim.id,
     },
     select: { id: true, fullName: true },
   });

@@ -42,3 +42,12 @@ export const jamDari = (t: string) => new Date(t).toLocaleTimeString("id-ID", { 
 /** Sama dengan teksJarak() di lib/services/absen-hp/aturan.ts. */
 export const teksJarak = (m: number) =>
   m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
+
+/** Pesan galat dari jawaban server: rute tim memakai `alasan`, penjaga lisensi memakai `message`. */
+export function pesanDari(d: unknown, cadangan: string): string {
+  const o = (d ?? {}) as { alasan?: string; message?: string };
+  return o.alasan || o.message || cadangan;
+}
+
+/** Pemanggil rute /api/public/absen/[token]/tim/* dari layar PIC (header x-perangkat sudah terpasang). */
+export type Minta = (jalur: string, init?: RequestInit) => Promise<{ ok: boolean; d: unknown }>;

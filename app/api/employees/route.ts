@@ -5,6 +5,7 @@ import { requireSession, requireManager, json, badRequest, route } from "@/lib/h
 import { wajibBolehMenambah } from "@/lib/lisensi/penjaga";
 import { employeeCreateSchema } from "@/lib/validators/employee";
 import { nextEmployeeCode } from "@/lib/services/employee-code";
+import { dataLapangan } from "@/lib/services/upah-tarif/karyawan";
 
 const PER_PAGE = 20;
 
@@ -37,7 +38,12 @@ export const GET = route(async (req: Request) => {
       orderBy: { fullName: "asc" },
       // portalPin adalah hash PIN portal — jangan pernah ikut keluar ke klien.
       omit: { portalPin: true },
-      include: { department: true, position: true, workSchedule: true },
+      include: {
+        department: true,
+        position: true,
+        workSchedule: true,
+        tim: { select: { id: true, nama: true, warna: true } },
+      },
     }),
     prisma.employee.count({ where }),
   ]);
@@ -52,6 +58,10 @@ export const POST = route(async (req: Request) => {
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   const d = parsed.data;
+  const lapangan = await dataLapangan(d);
+  if (lapangan.timId && !(await prisma.timKerja.findUnique({ where: { id: lapangan.timId }, select: { id: true } }))) {
+    return json({ message: "Tim tidak ditemukan." }, { status: 422 });
+  }
   await wajibBolehMenambah("limit.employees");
   const code = await nextEmployeeCode(prisma, d.nickname || d.fullName);
 
@@ -70,6 +80,7 @@ export const POST = route(async (req: Request) => {
       email: d.email || null,
       phone: d.phone || null,
       posproUserId: d.posproUserId || null,
+      ...lapangan,
     },
     include: { department: true, position: true, workSchedule: true },
   });
