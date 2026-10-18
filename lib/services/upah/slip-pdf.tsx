@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { HitunganPeriode } from "./hitung";
-import { LABEL_JENIS, LABEL_STATUS, labelSumber, tanggalPendek } from "./label";
+import { LABEL_JENIS, LABEL_STATUS, labelSumber, labelTim, tanggalPendek } from "./label";
 
 const rp = (n: number) => `${n < 0 ? "-" : ""}Rp${Math.abs(Math.round(n)).toLocaleString("id-ID")}`;
 const jam = (n: number) => (n ? `${n.toLocaleString("id-ID", { maximumFractionDigits: 2 })} jam` : "");
@@ -51,7 +51,7 @@ function Slip({ d }: { d: DataSlip }) {
       {d.namaUsaha && <Text style={s.usaha}>{d.namaUsaha}</Text>}
       <Text style={s.title}>Slip Upah</Text>
       <Text style={s.sub}>
-        {d.karyawan.nama} ({d.karyawan.kode}){d.karyawan.tim ? ` · Tim ${d.karyawan.tim}` : ""}
+        {d.karyawan.nama} ({d.karyawan.kode}){d.karyawan.tim ? ` · ${labelTim(d.karyawan.tim)}` : ""}
       </Text>
       <Text style={s.sub}>
         Periode {tanggalPendek(h.dari)} – {tanggalPendek(h.sampai)}

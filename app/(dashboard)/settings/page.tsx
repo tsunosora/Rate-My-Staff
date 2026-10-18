@@ -286,6 +286,17 @@ export default function SettingsPage() {
 
         <Card title="Sistem & Integrasi">
           <div className="space-y-3 text-sm">
+            <label className="block space-y-1">
+              <span className="text-muted">Nama usaha</span>
+              <input
+                className="input"
+                maxLength={120}
+                placeholder="Contoh: CV Maju Bersama"
+                value={settings.nama_usaha ?? ""}
+                onChange={(e) => setSettings({ ...settings, nama_usaha: e.target.value })}
+              />
+              <span className="block text-xs text-subtle">Tercetak di kop slip upah. Kosong = slip tanpa nama usaha.</span>
+            </label>
             <label className="space-y-1">
               <span className="text-muted">Engine perhitungan lembur</span>
               <select

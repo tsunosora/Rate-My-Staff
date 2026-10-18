@@ -5,6 +5,7 @@ import { api } from "@/lib/fetcher";
 import { Modal } from "@/components/ui/Modal";
 import { IconAlert, IconCheck, IconPencil, IconPlus, IconTrash, IconX } from "@/components/ui/icons";
 import { KotakPesan, Isian, soft, type Pesan } from "@/components/upah-tarif/umum";
+import { labelTim } from "@/lib/services/upah/label";
 
 type Anggota = { id: number; nama: string; jabatan: string | null; freelance: boolean; perluDiperiksa: boolean };
 type Tim = {
@@ -100,7 +101,7 @@ function TimBaru({ karyawan, kirim }: { karyawan: Karyawan[]; kirim: Kirim }) {
   const [picId, setPicId] = useState("");
 
   async function buat() {
-    const ok = await kirim("/api/tim-kerja", "POST", { nama: nama.trim(), warna, picId: picId ? Number(picId) : null }, `Tim ${nama.trim()} dibuat.`);
+    const ok = await kirim("/api/tim-kerja", "POST", { nama: nama.trim(), warna, picId: picId ? Number(picId) : null }, `${labelTim(nama)} dibuat.`);
     if (ok) {
       setNama("");
       setPicId("");

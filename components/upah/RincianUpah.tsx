@@ -6,7 +6,7 @@ import { api } from "@/lib/fetcher";
 import { IconAlert, IconCheck, IconChevronLeft, IconChevronRight, IconDownload, IconPencil, IconTrash } from "@/components/ui/icons";
 import { Modal } from "@/components/ui/Modal";
 import { soft } from "@/components/portal/ui";
-import { LABEL_JENIS, LABEL_STATUS, labelSumber, tanggalPendek } from "@/lib/services/upah/label";
+import { LABEL_JENIS, LABEL_STATUS, labelSumber, labelTim, tanggalPendek } from "@/lib/services/upah/label";
 import type { BarisHitung, HitunganPeriode, JenisPenyesuaian } from "@/lib/services/upah/hitung";
 import { BAYAR } from "./RekapUpah";
 import { geser, labelRentang, mingguIni } from "./periode";
@@ -119,7 +119,7 @@ export function RincianUpah({ employeeId, dari: dariAwal, sampai: sampaiAwal, bo
           {d && (
             <p className="mt-0.5 text-sm text-muted">
               {d.karyawan.kode}
-              {d.karyawan.tim ? ` · ${/^tim\s/i.test(d.karyawan.tim.nama) ? "" : "Tim "}${d.karyawan.tim.nama}` : ""}
+              {d.karyawan.tim ? ` · ${labelTim(d.karyawan.tim.nama)}` : ""}
               {d.karyawan.freelance ? " · freelance" : ""} · tarif orang{" "}
               {d.karyawan.upahHarian ? `${rp(d.karyawan.upahHarian)}/hari` : "belum diatur"}
               {d.karyawan.upahLemburPerJam ? `, lembur ${rp(d.karyawan.upahLemburPerJam)}/jam` : ""}

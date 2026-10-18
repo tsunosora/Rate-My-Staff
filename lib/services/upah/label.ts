@@ -17,6 +17,11 @@ export const LABEL_BAYAR: Record<StatusBayar, string> = {
   lunas: "Lunas",
 };
 
+/** "Rina" → "Tim Rina"; nama yang sudah diawali "Tim " dibiarkan (tim otomatis bernama "Tim <PIC>"). */
+export function labelTim(nama: string): string {
+  return /^tim\s/i.test(nama.trim()) ? nama.trim() : `Tim ${nama.trim()}`;
+}
+
 export function labelSumber(s: SumberTarif): string {
   return s === "proyek" ? "Proyek" : s === "kota_divisi" ? "Kota × divisi" : s === "karyawan" ? "Tarif orang" : "Belum diatur";
 }
