@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { EmployeeLinksModal } from "@/components/employees/EmployeeLinksModal";
+import { StatusMesin } from "@/components/employees/StatusMesin";
 import {
   IconPlus,
-  IconDownload,
   IconSearch,
   IconPencil,
   IconTrash,
@@ -219,28 +219,6 @@ export default function EmployeesPage() {
     load();
   }
 
-  const [syncBusy, setSyncBusy] = useState(false);
-  const [syncMsg, setSyncMsg] = useState("");
-
-  async function syncFromDevice() {
-    setSyncBusy(true);
-    setSyncMsg("");
-    try {
-      const res = await api<{ total: number; created: number; renamed: number; existing: number }>(
-        "/api/employees/device-sync",
-        { method: "POST", body: JSON.stringify({}) }
-      );
-      setSyncMsg(
-        `Dari ${res.total} user di mesin: ${res.created} karyawan baru, ${res.renamed} nama diperbarui.`
-      );
-      load();
-    } catch (e) {
-      setSyncMsg("Gagal: " + (e as Error).message);
-    } finally {
-      setSyncBusy(false);
-    }
-  }
-
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
   return (
@@ -251,21 +229,14 @@ export default function EmployeesPage() {
           <p className="mt-0.5 text-sm text-muted">Kelola data karyawan &amp; PIN mesin.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={syncFromDevice} disabled={syncBusy} className="btn-ghost h-10 disabled:opacity-60">
-            <IconDownload className="text-[17px]" /> {syncBusy ? "Sinkron…" : "Sinkron dari Mesin"}
-          </button>
           <button onClick={openAdd} className="btn-primary h-10">
             <IconPlus className="text-[17px]" /> Karyawan
           </button>
         </div>
       </div>
 
-      {syncMsg && (
-        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
-          <span className={syncMsg.startsWith("Gagal") ? "text-danger" : "text-fg"}>{syncMsg}</span>
-          <button onClick={() => setSyncMsg("")} className="btn-ghost shrink-0 px-3 py-1.5 text-xs">Tutup</button>
-        </div>
-      )}
+      {/* Pendaftaran dari mesin: tombol tarik cuma untuk mesin LAN; mesin cloud mengirim sendiri. */}
+      <StatusMesin onBerubah={load} />
 
       <div className="glass flex flex-wrap gap-3 rounded-2xl p-3">
         <label className="relative flex min-w-56 flex-1 items-center">
