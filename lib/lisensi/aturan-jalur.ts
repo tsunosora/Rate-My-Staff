@@ -40,6 +40,18 @@ export const ATURAN_API: readonly Aturan[] = [
   { awalan: "/api/work-schedules", fitur: "hr.schedule" },
   { awalan: "/api/holidays", fitur: "hr.schedule" },
   { awalan: "/api/overtime-categories", fitur: "hr.overtime" },
+  // Paritas Hadirr (18 Okt 2026). Pengajuan lembur & jadwal shift per tanggal ikut kode yang
+  // sudah ada (paket Absensi); reimbursement, kunjungan, timesheet kode baru (paket Kinerja).
+  { awalan: "/api/overtime-requests", fitur: "hr.overtime" },
+  { awalan: "/api/jadwal-shift", fitur: "hr.schedule" },
+  { awalan: "/api/reimbursements", fitur: "hr.reimbursement" },
+  { awalan: "/api/kunjungan", fitur: "hr.visits" },
+  { awalan: "/api/timesheet", fitur: "hr.timesheet" },
+  { awalan: "/api/public/absence-form/*/lembur", fitur: "hr.overtime" },
+  { awalan: "/api/public/portal/*/lembur", fitur: "hr.overtime" },
+  { awalan: "/api/public/portal/*/reimbursement", fitur: "hr.reimbursement" },
+  { awalan: "/api/public/portal/*/kunjungan", fitur: "hr.visits" },
+  { awalan: "/api/public/portal/*/timesheet", fitur: "hr.timesheet" },
 
   { awalan: "/api/leave-requests", fitur: "hr.leave" },
   { awalan: "/api/public/absence-form", fitur: "hr.leave" },
@@ -81,6 +93,12 @@ export const ATURAN_HALAMAN: readonly Aturan[] = [
   { awalan: "/absen", fitur: "hr.absen_hp" },
   { awalan: "/absen-layar", fitur: "hr.absen_hp" },
   { awalan: "/settings/absen-hp", fitur: "hr.absen_hp" },
+  { awalan: "/attendance/absen-luar", fitur: "hr.absen_hp" },
+  { awalan: "/lembur", fitur: "hr.overtime" },
+  { awalan: "/jadwal-shift", fitur: "hr.schedule" },
+  { awalan: "/reimbursement", fitur: "hr.reimbursement" },
+  { awalan: "/kunjungan", fitur: "hr.visits" },
+  { awalan: "/timesheet", fitur: "hr.timesheet" },
 ];
 
 function cocok(jalur: string, awalan: string): boolean {

@@ -240,6 +240,11 @@
       "grup": "hr_absensi"
     },
     {
+      "kode": "hr.reimbursement",
+      "nama": "Reimbursement dengan foto nota & persetujuan",
+      "grup": "hr_absensi"
+    },
+    {
       "kode": "hr.reports",
       "nama": "Laporan absensi + ekspor Excel/PDF",
       "grup": "hr_absensi"
@@ -250,9 +255,24 @@
       "grup": "hr_absensi"
     },
     {
+      "kode": "hr.timesheet",
+      "nama": "Timesheet pekerjaan per proyek",
+      "grup": "hr_absensi"
+    },
+    {
+      "kode": "hr.visits",
+      "nama": "Kunjungan klien (check-in GPS + foto, hasil kunjungan)",
+      "grup": "hr_absensi"
+    },
+    {
       "kode": "hr.workers",
       "nama": "Data pekerja, tanda tangan & stempel",
       "grup": "event_proyek"
+    },
+    {
+      "kode": "inventory.gudang",
+      "nama": "Manajemen gudang (gudang, rak, label QR, kiosk, penerimaan)",
+      "grup": "keuangan_stok"
     },
     {
       "kode": "inventory.opname",
@@ -522,6 +542,7 @@
       "domain.sendiri",
       "finance.cashflow",
       "hpp.calc",
+      "inventory.gudang",
       "inventory.opname",
       "inventory.stock",
       "invoice.quotation",
@@ -596,8 +617,11 @@
       "hr.points",
       "hr.portal",
       "hr.pos_link",
+      "hr.reimbursement",
       "hr.reports",
-      "hr.schedule"
+      "hr.schedule",
+      "hr.timesheet",
+      "hr.visits"
     ],
     "qendali_website": [
       "website.artikel",
@@ -651,6 +675,7 @@
         "ads.meta",
         "ai.studio",
         "app.owner",
+        "inventory.gudang",
         "shift.close",
         "wa.automation",
         "wa.cloud"
@@ -719,8 +744,11 @@
         "hr.points",
         "hr.portal",
         "hr.pos_link",
+        "hr.reimbursement",
         "hr.reports",
-        "hr.schedule"
+        "hr.schedule",
+        "hr.timesheet",
+        "hr.visits"
       ],
       "fiturTambahan": [
         "hr.absen_hp"
@@ -769,6 +797,7 @@
         "ai.studio",
         "app.owner",
         "brand.white_label",
+        "inventory.gudang",
         "shift.close",
         "wa.automation",
         "wa.cloud"
@@ -805,6 +834,7 @@
       "fiturTambahan": [
         "ads.meta",
         "app.owner",
+        "inventory.gudang",
         "shift.close",
         "wa.automation",
         "wa.cloud"

@@ -64,6 +64,9 @@ model User {
   notifications       Notification[]
   leaveDecisions      LeaveRequest[]    @relation("LeaveDecider")
   redemptionDecisions PointRedemption[] @relation("RedemptionDecider")
+  lemburDecisions     PengajuanLembur[] @relation("LemburDecider")
+  reimburseDecisions  Reimbursement[]   @relation("ReimburseDecider")
+  absenHpDecisions    AbsenHpBukti[]    @relation("AbsenHpDecider")
 }
 
 model Department {
@@ -109,52 +112,58 @@ model WorkSchedule {
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime?
 
-  employees Employee[]
+  employees   Employee[]
+  jadwalShift JadwalShift[]
 }
 
 model Employee {
-  id             Int       @id @default(autoincrement())
-  employeeCode   String    @unique @db.VarChar(20)
-  machinePin     String?   @unique @db.VarChar(50)
-  publicToken    String?   @unique @db.VarChar(36)
-  fullName       String    @db.VarChar(150)
-  nickname       String?   @db.VarChar(50)
-  departmentId   Int?
-  positionId     Int?
-  workScheduleId Int?
-  photoPath      String?   @db.VarChar(255)
-  joinDate       DateTime?
-  salary         Decimal?  @db.Decimal(15, 2)
-  email          String?
-  phone          String?
-  isActive       Boolean   @default(true)
+  id                 Int       @id @default(autoincrement())
+  employeeCode       String    @unique @db.VarChar(20)
+  machinePin         String?   @unique @db.VarChar(50)
+  publicToken        String?   @unique @db.VarChar(36)
+  fullName           String    @db.VarChar(150)
+  nickname           String?   @db.VarChar(50)
+  departmentId       Int?
+  positionId         Int?
+  workScheduleId     Int?
+  photoPath          String?   @db.VarChar(255)
+  joinDate           DateTime?
+  salary             Decimal?  @db.Decimal(15, 2)
+  email              String?
+  phone              String?
+  isActive           Boolean   @default(true)
   // Portal karyawan (/me/[token]): hash bcrypt PIN. Null = PIN belum dibuat.
-  portalPin      String?   @db.VarChar(100)
-  portalPinSetAt DateTime?
+  portalPin          String?   @db.VarChar(100)
+  portalPinSetAt     DateTime?
   // Pemetaan ke akun PosPro (User.id di sana) untuk menarik KPI kinerja.
   // Null = belum dipetakan; KPI PosPro tidak ditampilkan untuk karyawan ini.
-  posproUserId   Int?      @unique
+  posproUserId       Int?      @unique
   // Absen lewat HP (add-on hr.absen_hp): dinyalakan owner PER KARYAWAN. Perangkat = sidik
   // (sha256) id acak yang disimpan HP pertama yang dipakai — HP lain ditolak sampai owner
   // melepasnya. Yang disimpan cuma sidiknya, jadi isi basis data tidak bisa dipakai menyamar.
   absenHp            Boolean   @default(false)
   absenHpPerangkat   String?   @db.VarChar(64)
   absenHpPerangkatAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
 
-  department       Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position         Position?           @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  workSchedule     WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
-  assessments      Assessment[]
-  attendances      Attendance[]
-  enrollments      MachineEnrollment[]
-  leaveRequests    LeaveRequest[]
-  pointEntries     PointEntry[]
-  pointRedemptions PointRedemption[]
-  absenHpBukti     AbsenHpBukti[]
+  department           Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position             Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  workSchedule         WorkSchedule?          @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  assessments          Assessment[]
+  attendances          Attendance[]
+  enrollments          MachineEnrollment[]
+  leaveRequests        LeaveRequest[]
+  pointEntries         PointEntry[]
+  pointRedemptions     PointRedemption[]
+  absenHpBukti         AbsenHpBukti[]
   peminjamanInventaris PeminjamanInventaris[]
+  pengajuanLembur      PengajuanLembur[]
+  jadwalShift          JadwalShift[]
+  reimbursement        Reimbursement[]
+  kunjunganKlien       KunjunganKlien[]
+  timesheetEntri       TimesheetEntri[]
 
   @@index([isActive])
 }
@@ -181,24 +190,33 @@ model AbsenLokasi {
 // Bukti satu absen lewat HP: foto, posisi, jarak ke lokasi, perangkat, dan apakah QR dipindai.
 // Disimpan TERPISAH dari Attendance supaya baris absensi tetap berbentuk sama dengan scan mesin.
 model AbsenHpBukti {
-  id           Int      @id @default(autoincrement())
-  attendanceId Int?     @unique
-  employeeId   Int
-  lokasiId     Int?
-  lat          Float
-  lng          Float
-  akurasiM     Int
-  jarakM       Int
-  fotoPath     String   @db.VarChar(255)
-  perangkat    String   @db.VarChar(64)
-  qr           Boolean  @default(false)
-  ip           String?  @db.VarChar(64)
-  createdAt    DateTime @default(now())
+  id               Int       @id @default(autoincrement())
+  attendanceId     Int?      @unique
+  employeeId       Int
+  lokasiId         Int?
+  lat              Float
+  lng              Float
+  akurasiM         Int
+  jarakM           Int
+  fotoPath         String    @db.VarChar(255)
+  perangkat        String    @db.VarChar(64)
+  qr               Boolean   @default(false)
+  ip               String?   @db.VarChar(64)
+  // diterima | menunggu | ditolak. "menunggu" = absen di luar radius lokasi yang DIAJUKAN
+  // karyawan; attendanceId baru terisi saat owner menyetujuinya.
+  status           String    @default("diterima") @db.VarChar(20)
+  alasan           String?   @db.Text
+  decidedById      Int?
+  decidedAt        DateTime?
+  catatanKeputusan String?   @db.Text
+  createdAt        DateTime  @default(now())
 
-  employee Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  lokasi   AbsenLokasi? @relation(fields: [lokasiId], references: [id], onDelete: SetNull)
+  employee  Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lokasi    AbsenLokasi? @relation(fields: [lokasiId], references: [id], onDelete: SetNull)
+  decidedBy User?        @relation("AbsenHpDecider", fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@index([employeeId, createdAt])
+  @@index([status])
 }
 
 // Mesin absensi fisik (per cabang). Dikenali dari SN (dev_id) yang dikirim mesin.
@@ -586,4 +604,135 @@ model PeminjamanInventaris {
 
   @@index([inventarisId, dikembalikanPada])
   @@index([employeeId])
+}
+
+// ── Paritas Hadirr (18 Okt 2026) ────────────────────────────────────────────────────────────
+// Tanggal disimpan sebagai DateTime tengah malam LOKAL ("YYYY-MM-DDT00:00:00"), sama dengan
+// LeaveRequest — bukan @db.Date, supaya satu konvensi tanggal untuk seluruh modul absensi.
+
+// Pengajuan lembur dari karyawan (hr.overtime). Menit lembur yang DIBAYAR tetap
+// Attendance.approvedOvertimeMinutes — itu yang dibaca struk lembur; pengajuan yang disetujui
+// menulis ke sana, jadi tidak ada dua sumber untuk satu angka.
+model PengajuanLembur {
+  id               Int         @id @default(autoincrement())
+  employeeId       Int
+  tanggal          DateTime
+  mulai            String?     @db.VarChar(5)
+  selesai          String?     @db.VarChar(5)
+  menit            Int
+  alasan           String      @db.Text
+  status           LeaveStatus @default(pending)
+  // "portal" | "link" | "admin"
+  sumber           String      @default("portal") @db.VarChar(20)
+  menitDisetujui   Int?
+  decidedById      Int?
+  decidedAt        DateTime?
+  catatanKeputusan String?     @db.Text
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  decidedBy User?    @relation("LemburDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, tanggal])
+  @@index([status])
+}
+
+// Jadwal shift PER TANGGAL (hr.schedule). Kalau ada baris untuk (karyawan, tanggal), dia
+// MENGALAHKAN Employee.workScheduleId untuk hari itu. libur = true → hari itu libur karyawan
+// itu (bukan libur nasional), workScheduleId diabaikan.
+model JadwalShift {
+  id             Int      @id @default(autoincrement())
+  employeeId     Int
+  tanggal        DateTime
+  workScheduleId Int?
+  libur          Boolean  @default(false)
+  catatan        String?  @db.VarChar(255)
+  createdById    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workSchedule WorkSchedule? @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+
+  @@unique([employeeId, tanggal])
+  @@index([tanggal])
+}
+
+// Klaim penggantian biaya (hr.reimbursement). status: menunggu | disetujui | ditolak | dibayar.
+model Reimbursement {
+  id               Int       @id @default(autoincrement())
+  employeeId       Int
+  tanggal          DateTime
+  // transport | makan | bensin | parkir | belanja | lainnya
+  kategori         String    @default("lainnya") @db.VarChar(30)
+  jumlah           Decimal   @db.Decimal(15, 2)
+  keterangan       String    @db.Text
+  fotoPath         String?   @db.VarChar(255)
+  status           String    @default("menunggu") @db.VarChar(20)
+  jumlahDisetujui  Decimal?  @db.Decimal(15, 2)
+  sumber           String    @default("portal") @db.VarChar(20)
+  decidedById      Int?
+  decidedAt        DateTime?
+  catatanKeputusan String?   @db.Text
+  dibayarAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  decidedBy User?    @relation("ReimburseDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, tanggal])
+  @@index([status])
+}
+
+// Kunjungan ke klien (hr.visits): check-in di lokasi klien (GPS + foto), check-out + hasil.
+// Bukan absensi — tidak menyentuh Attendance.
+model KunjunganKlien {
+  id             Int       @id @default(autoincrement())
+  employeeId     Int
+  namaKlien      String    @db.VarChar(150)
+  alamat         String?   @db.VarChar(255)
+  tujuan         String?   @db.VarChar(255)
+  masukAt        DateTime
+  masukLat       Float
+  masukLng       Float
+  masukAkurasiM  Int
+  masukFoto      String?   @db.VarChar(255)
+  keluarAt       DateTime?
+  keluarLat      Float?
+  keluarLng      Float?
+  keluarAkurasiM Int?
+  // tertarik | deal | follow_up | tidak_tertarik | lainnya
+  hasil          String?   @db.VarChar(30)
+  catatan        String?   @db.Text
+  ip             String?   @db.VarChar(64)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, masukAt])
+  @@index([masukAt])
+}
+
+// Catatan pekerjaan per rentang jam (hr.timesheet).
+model TimesheetEntri {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  tanggal    DateTime
+  mulai      String   @db.VarChar(5)
+  selesai    String   @db.VarChar(5)
+  menit      Int
+  proyek     String   @db.VarChar(100)
+  kegiatan   String   @db.VarChar(255)
+  catatan    String?  @db.Text
+  sumber     String   @default("portal") @db.VarChar(20)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, tanggal])
+  @@index([proyek])
 }
