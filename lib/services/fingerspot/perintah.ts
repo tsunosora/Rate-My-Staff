@@ -66,6 +66,61 @@ export function ambilPinMesin(data: unknown): Map<string, string> {
   return hasil;
 }
 
+/**
+ * Pecah badan kiriman mesin: [4-byte LE panjang JSON][JSON][byte 0 opsional]([4-byte LE panjang][blob])*.
+ * Blob ke-n dirujuk JSON sebagai "BIN_n" (mis. "user_id_array": "BIN_1"). Tahan rusak: berhenti
+ * diam-diam di bingkai yang tidak masuk akal.
+ */
+export function pecahBlob(buf: Buffer): Buffer[] {
+  if (buf.length < 4) return [];
+  const pj = buf.readUInt32LE(0);
+  let i = 4 + pj;
+  if (pj <= 0 || i > buf.length) return [];
+  const blob: Buffer[] = [];
+  while (i + 4 <= buf.length) {
+    if (buf[i] === 0 && blob.length === 0 && i + 5 <= buf.length) {
+      // byte 0 penutup JSON (bentuk FkWeb) — lewati sekali bila panjang sesudahnya masuk akal
+      const coba = buf.readUInt32LE(i + 1);
+      if (coba > 0 && i + 5 + coba <= buf.length) i += 1;
+    }
+    const n = buf.readUInt32LE(i);
+    if (n <= 0 || i + 4 + n > buf.length) break;
+    blob.push(buf.subarray(i + 4, i + 4 + n));
+    i += 4 + n;
+  }
+  return blob;
+}
+
+/**
+ * Daftar PIN dari blob GET_USER_ID_LIST: `user_id_count` rekaman berukuran `one_user_id_size` byte.
+ * Bentuk tiap rekaman belum didokumentasikan; PIN dibaca sebagai teks ASCII di awal rekaman sampai
+ * byte 0 (atau sebagai angka 4-byte LE kalau awalnya bukan teks). Kembalikan null kalau bentuknya
+ * tidak cocok — pemanggil lalu menyimpan byte mentahnya untuk diperiksa.
+ */
+export function pinDariBlob(data: unknown, blob: Buffer[]): Map<string, string> | null {
+  const o = (data ?? {}) as Record<string, unknown>;
+  const ref = typeof o.user_id_array === "string" ? /^BIN_(\d+)$/.exec(o.user_id_array) : null;
+  if (!ref) return null;
+  const b = blob[Number(ref[1]) - 1];
+  const ukuran = Number(o.one_user_id_size);
+  const jumlah = Number(o.user_id_count);
+  if (!b || !ukuran || !jumlah || b.length < ukuran * jumlah) return null;
+  const hasil = new Map<string, string>();
+  for (let k = 0; k < jumlah; k++) {
+    const r = b.subarray(k * ukuran, (k + 1) * ukuran);
+    let teks = "";
+    for (const c of r) {
+      if (c === 0) break;
+      if (c < 0x20 || c > 0x7e) { teks = ""; break; }
+      teks += String.fromCharCode(c);
+    }
+    const mentah = teks.trim() || (r.length >= 4 ? String(r.readUInt32LE(0)) : "");
+    const pin = normalisasiPin(mentah);
+    if (pin && !hasil.has(pin)) hasil.set(pin, mentah);
+  }
+  return hasil.size > 0 ? hasil : null;
+}
+
 /** PIN ternormalisasi dari jawaban daftar PIN. */
 export function ambilDaftarPin(data: unknown): string[] {
   return [...ambilPinMesin(data).keys()];
@@ -195,17 +250,25 @@ export async function terimaHasil(
   transId: string | null,
   kodeBalasan: string | null,
   data: unknown,
+  mentah?: Buffer,
 ) {
   if (!transId) return null;
   const p = await prisma.fingerspotPerintah.findUnique({ where: { transId } });
   if (!p || p.machineId !== machineId) return null;
   const ok = berhasil(kodeBalasan);
+  const blob = mentah ? pecahBlob(mentah) : [];
+  // Simpan blob (maks 4 KB, base64) bersama JSON-nya: bentuk rekaman mesin belum terdokumentasi,
+  // jadi byte aslinya perlu bisa diperiksa kalau pembacaan PIN meleset.
+  const disimpan = {
+    ...((data ?? {}) as Record<string, unknown>),
+    ...(blob.length ? { _blob: blob.map((b) => b.subarray(0, 4096).toString("base64")) } : {}),
+  };
   await prisma.fingerspotPerintah.update({
     where: { id: p.id },
     data: {
       status: ok ? "selesai" : "gagal",
       kodeBalasan: kodeBalasan ?? null,
-      hasil: (data ?? null) as Prisma.InputJsonValue,
+      hasil: disimpan as Prisma.InputJsonValue,
       selesaiAt: new Date(),
       catatan: ok ? null : `Mesin menolak perintah (${kodeBalasan}).`,
     },
@@ -213,7 +276,16 @@ export async function terimaHasil(
   if (!ok) return { cmdCode: p.cmdCode, ok };
 
   if (p.cmdCode === "GET_USER_ID_LIST") {
-    const pins = ambilPinMesin(data);
+    const dariBlob = pinDariBlob(data, blob);
+    const pins = dariBlob ?? ambilPinMesin(data);
+    const jumlahDiMesin = Number((data as { user_id_count?: unknown } | null)?.user_id_count);
+    if (pins.size === 0 && jumlahDiMesin > 0) {
+      await prisma.fingerspotPerintah.update({
+        where: { id: p.id },
+        data: { status: "gagal", catatan: `Mesin punya ${jumlahDiMesin} user, tapi daftar PIN-nya belum bisa dibaca. Laporkan ke Qendali.` },
+      });
+      return { cmdCode: p.cmdCode, ok: false };
+    }
     const terdaftar = new Set(
       (await prisma.machineEnrollment.findMany({ where: { machineId }, select: { pin: true } })).map((e) => e.pin),
     );
@@ -276,7 +348,8 @@ export async function ringkasanTarikan(prisma: PrismaClient): Promise<RingkasanT
     if (rangkaian.length === 0) continue;
     const kepala = rangkaian[0];
     const info = rangkaian.slice(1);
-    const pinDiMesin = kepala.status === "selesai" ? ambilDaftarPin(kepala.hasil).length : null;
+    const jumlah = Number((kepala.hasil as { user_id_count?: unknown } | null)?.user_id_count);
+    const pinDiMesin = kepala.status === "selesai" ? (jumlah > 0 ? jumlah : ambilDaftarPin(kepala.hasil).length) : null;
     const dibuat = info.filter((x) => x.catatan?.startsWith("Karyawan dibuat")).length;
     const berjalan = rangkaian.some((x) => x.status === "menunggu" || x.status === "terkirim");
     hasil.push({

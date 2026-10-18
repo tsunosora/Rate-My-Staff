@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     } else if (machine && requestCode === "send_cmd_result") {
       // Jawaban perintah kita (tarik daftar pengguna dari Direktori). trans_id = milik perintah.
       const kode = req.headers.get("cmd_return_code") ?? (data.cmd_return_code as string | undefined) ?? null;
-      await terimaHasil(prisma, machine.id, transId, kode, data);
+      await terimaHasil(prisma, machine.id, transId, kode, data, buf);
     }
   } catch (e) {
     console.error("[realtime] gagal proses:", (e as Error).message);

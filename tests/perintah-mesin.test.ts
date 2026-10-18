@@ -76,3 +76,58 @@ describe("pengaman", () => {
     expect(berhasil("ERROR_INVALID_PARAM")).toBe(false);
   });
 });
+
+import { pecahBlob, pinDariBlob } from "@/lib/services/fingerspot/perintah";
+
+/** Bangun badan kiriman mesin: [len][json](byte0?)([len][blob])*. */
+function badanMesin(json: object, blobs: Buffer[], nolSesudahJson = false) {
+  const j = Buffer.from(JSON.stringify(json));
+  const parts: Buffer[] = [Buffer.alloc(4), j];
+  parts[0].writeUInt32LE(j.length, 0);
+  if (nolSesudahJson) parts.push(Buffer.from([0]));
+  for (const b of blobs) {
+    const l = Buffer.alloc(4);
+    l.writeUInt32LE(b.length, 0);
+    parts.push(l, b);
+  }
+  return Buffer.concat(parts);
+}
+
+/** Rekaman 36 byte: PIN teks ASCII diisi byte 0, sisanya acak. */
+function rekamanTeks(pin: string) {
+  const r = Buffer.alloc(36, 0);
+  r.write(pin, 0, "ascii");
+  r[30] = 7; // byte lain (mis. hak akses) tidak boleh mengganggu
+  return r;
+}
+
+describe("daftar PIN di blob biner (jawaban asli mesin: user_id_array = \"BIN_1\")", () => {
+  const meta = { user_id_array: "BIN_1", user_id_count: 3, one_user_id_size: 36 };
+
+  it("PIN teks per rekaman 36 byte", () => {
+    const blob = Buffer.concat(["1", "10", "00000031"].map(rekamanTeks));
+    const pecah = pecahBlob(badanMesin(meta, [blob]));
+    expect(pecah).toHaveLength(1);
+    expect([...pinDariBlob(meta, pecah)!.entries()]).toEqual([["1", "1"], ["10", "10"], ["31", "00000031"]]);
+  });
+
+  it("dengan byte 0 penutup JSON (bentuk FkWeb)", () => {
+    const blob = Buffer.concat(["5", "6", "7"].map(rekamanTeks));
+    const pecah = pecahBlob(badanMesin(meta, [blob], true));
+    expect([...pinDariBlob(meta, pecah)!.keys()]).toEqual(["5", "6", "7"]);
+  });
+
+  it("PIN sebagai angka 4-byte LE", () => {
+    const blob = Buffer.concat([12, 13, 14].map((n) => { const r = Buffer.alloc(36, 0); r.writeUInt32LE(n, 0); return r; }));
+    expect([...pinDariBlob(meta, pecahBlob(badanMesin(meta, [blob])))!.keys()]).toEqual(["12", "13", "14"]);
+  });
+
+  it("blob kurang panjang = null (byte mentah disimpan untuk diperiksa, bukan ditebak)", () => {
+    const blob = rekamanTeks("1");
+    expect(pinDariBlob(meta, pecahBlob(badanMesin(meta, [blob])))).toBeNull();
+  });
+
+  it("tanpa rujukan BIN = null", () => {
+    expect(pinDariBlob({ user_id_count: 2 }, [])).toBeNull();
+  });
+});
