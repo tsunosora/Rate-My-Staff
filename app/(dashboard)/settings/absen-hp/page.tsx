@@ -111,7 +111,7 @@ export default function AbsenHpPage() {
                     {jam(b.waktu)} · {b.jenis === "in" ? "Masuk" : b.jenis === "out" ? "Pulang" : "—"}
                   </div>
                   <div className="truncate text-xs text-subtle">
-                    {b.lokasi}{b.jarakM !== null ? ` · ${b.jarakM} m` : ""} (±{b.akurasiM} m){b.qr ? " · QR ✓" : ""}
+                    {b.lokasi}{b.jarakM !== null ? ` · ${b.jarakM < 1000 ? `${b.jarakM} m` : `${(b.jarakM / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`}` : ""} (±{b.akurasiM} m){b.qr ? " · QR ✓" : ""}
                   </div>
                   {b.luar && (
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
