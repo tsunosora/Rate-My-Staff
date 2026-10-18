@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { pullDeviceUsers } from "@/lib/services/fingerspot/device";
 import { resolveMachine, syncMachineUsers, upsertEnrollment } from "@/lib/services/fingerspot/sync";
 import { keadaanPendaftaranMesin } from "@/lib/services/fingerspot/pendaftaran";
+import { antreTarikPengguna, ringkasanTarikan } from "@/lib/services/fingerspot/perintah";
+import { idPengguna } from "@/lib/services/absen-tim/simpan";
 
 /**
  * GET — keadaan pendaftaran dari mesin untuk Direktori: cara sinkron (lan/cloud), pendaftaran
@@ -12,18 +14,26 @@ import { keadaanPendaftaranMesin } from "@/lib/services/fingerspot/pendaftaran";
 export const GET = route(async () => {
   await requireManager();
   const ipLama = await getSetting("fp_device_ip");
-  return json(await keadaanPendaftaranMesin(prisma, ipLama));
+  const keadaan = await keadaanPendaftaranMesin(prisma, ipLama);
+  return json({ ...keadaan, tarikan: await ringkasanTarikan(prisma) });
 });
 
 /**
  * POST — tarik daftar user (PIN + NAMA) dari mesin mode LAN dan daftarkan per mesin. PIN yang sudah
  * terdaftar dilewati; nama placeholder diperbarui ke nama asli.
  *
- * Mesin mode CLOUD tidak ditarik: ia mengirim sendiri data pendaftaran ke server, dan server tidak
- * bisa menjangkau IP mesin di jaringan toko.
+ * Mesin mode CLOUD tidak bisa dijangkau lewat IP. Untuknya perintah baca GET_USER_ID_LIST diantre
+ * dan dikirim saat mesin mengecek perintah (~20 detik); karyawan yang belum ada dibuat begitu mesin
+ * menjawab. Jawaban 202 — layar Direktori memantau kemajuannya lewat GET.
  */
 export const POST = route(async () => {
-  await requireManager();
+  const session = await requireManager();
+
+  const cloud = await prisma.machine.count({ where: { mode: "cloud" } });
+  if (cloud > 0) {
+    const r = await antreTarikPengguna(prisma, await idPengguna(session.user?.email));
+    return json({ ok: true, cloud: true, ...r }, { status: 202 });
+  }
 
   const lan = await prisma.machine.findMany({ where: { mode: "lan", ip: { not: null } }, select: { id: true } });
   try {
@@ -38,15 +48,7 @@ export const POST = route(async () => {
 
     // Setelan lama (sebelum ada daftar mesin): satu IP global di Pengaturan.
     const ip = (await getSetting("fp_device_ip"))?.trim();
-    if (!ip) {
-      return json(
-        {
-          message:
-            "Mesin absensi di sini memakai mode cloud: karyawan yang didaftarkan di mesin masuk ke Direktori dengan sendirinya, tidak perlu ditarik.",
-        },
-        { status: 422 },
-      );
-    }
+    if (!ip) return json({ message: "Belum ada mesin absensi yang terdaftar." }, { status: 422 });
     const port = Number(await getSetting("fp_device_port")) || 5005;
     const sn = (await getSetting("fingerspot_sn"))?.trim() || `direct-ip:${ip}`;
     const { users } = await pullDeviceUsers({ ip, port });

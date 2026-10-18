@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { extractJson, parseIoTime } from "@/lib/services/fingerspot/realtime";
 import { resolveMachine, ingestScansForMachine, relabelDeviceScans, upsertEnrollment } from "@/lib/services/fingerspot/sync";
-import { dequeueCommandForDevice, frameCommandBody } from "@/lib/services/fingerspot/command-queue";
+import { dequeueCommandForDevice } from "@/lib/services/fingerspot/command-queue";
+import { ambilPerintahUntukMesin, jawabanPerintah, terimaHasil } from "@/lib/services/fingerspot/perintah";
 import { kontakDari } from "@/lib/services/fingerspot/kontak-mesin";
 
 /**
@@ -54,32 +55,28 @@ export async function POST(req: Request) {
       const pin = String(data.user_id ?? "").trim();
       const name = (data.user_name as string | undefined) ?? null;
       if (pin) await upsertEnrollment(machine.id, pin, name);
+    } else if (machine && requestCode === "send_cmd_result") {
+      // Jawaban perintah kita (tarik daftar pengguna dari Direktori). trans_id = milik perintah.
+      const kode = req.headers.get("cmd_return_code") ?? (data.cmd_return_code as string | undefined) ?? null;
+      await terimaHasil(prisma, machine.id, transId, kode, data);
     }
-    // send_cmd_result / lainnya: hasil eksekusi perintah sudah tercatat di FingerspotRawLog.
   } catch (e) {
     console.error("[realtime] gagal proses:", (e as Error).message);
     // Tetap balas OK agar mesin tak retry-storm; data mentah sudah tersimpan utk audit.
   }
 
-  // Mesin polling perintah: bila ada perintah pending utk SN ini, kirim (response_code CMD).
-  // INERT bila antrian kosong/tak ada → balas OK biasa (perilaku lama tak berubah).
+  // Mesin mengecek perintah: kirim SATU perintah menunggu untuk mesin ini (antrean database dari
+  // tombol "Tarik dari mesin"; lalu antrean berkas lama untuk alat uji). Tanpa perintah = OK biasa.
   if (requestCode === "receive_cmd" && devId) {
-    const cmd = dequeueCommandForDevice(devId);
-    if (cmd) {
-      const body = frameCommandBody(cmd.body);
-      // Firmware mesin butuh Content-Length + Connection: close (tak paham chunked).
-      return new Response(new Uint8Array(body), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Length": String(body.length),
-          "Connection": "close",
-          "response_code": "CMD",
-          "cmd_code": cmd.cmdCode,
-          "trans_id": cmd.id,
-        },
-      });
+    try {
+      const mesin = await prisma.machine.findUnique({ where: { sn: devId }, select: { id: true } });
+      const p = mesin ? await ambilPerintahUntukMesin(prisma, mesin.id) : null;
+      if (p) return jawabanPerintah(p.cmdCode, p.transId, p.body);
+    } catch (e) {
+      console.error("[realtime] gagal ambil perintah:", (e as Error).message);
     }
+    const cmd = dequeueCommandForDevice(devId);
+    if (cmd) return jawabanPerintah(cmd.cmdCode, cmd.id, cmd.body);
   }
 
   return ack(transId);

@@ -318,6 +318,7 @@ model Machine {
 
   enrollments MachineEnrollment[]
   attendances Attendance[]
+  perintah    FingerspotPerintah[]
 }
 
 // Pemetaan PIN mesin → karyawan, per MESIN. PIN unik per mesin (bukan global),
@@ -954,4 +955,31 @@ model PembayaranUpah {
   penyesuaian PenyesuaianUpah[]
 
   @@index([employeeId, periodeMulai])
+}
+
+// Perintah server -> mesin mode CLOUD (protokol realtime Fingerspot). Mesin mengecek perintah tiap
+// ~20 detik (receive_cmd); perintah "menunggu" dikirim di cek berikutnya lalu "terkirim", dan mesin
+// melapor lewat send_cmd_result (trans_id sama) -> "selesai" / "gagal". 18 Okt 2026: mesin berhenti
+// mengirim sendiri data pendaftaran (realtime_enroll_data) sejak 30 Sep, jadi Direktori menarik
+// daftar user dengan GET_USER_ID_LIST lalu GET_USER_INFO per PIN yang belum ada.
+// HANYA perintah baca yang boleh diantre (lihat PERINTAH_BOLEH di lib/services/fingerspot/perintah.ts).
+model FingerspotPerintah {
+  id          Int       @id @default(autoincrement())
+  machineId   Int
+  transId     String    @unique @db.VarChar(40)
+  cmdCode     String    @db.VarChar(40)
+  body        Json?
+  status      String    @default("menunggu") @db.VarChar(20) // menunggu | terkirim | selesai | gagal
+  kodeBalasan String?   @db.VarChar(60)
+  hasil       Json?
+  catatan     String?   @db.VarChar(255)
+  dibuatOleh  Int?
+  createdAt   DateTime  @default(now())
+  dikirimAt   DateTime?
+  selesaiAt   DateTime?
+
+  machine Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([machineId, status])
+  @@index([createdAt])
 }
