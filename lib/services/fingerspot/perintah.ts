@@ -350,16 +350,22 @@ export async function ringkasanTarikan(prisma: PrismaClient): Promise<RingkasanT
     const info = rangkaian.slice(1);
     const jumlah = Number((kepala.hasil as { user_id_count?: unknown } | null)?.user_id_count);
     const pinDiMesin = kepala.status === "selesai" ? (jumlah > 0 ? jumlah : ambilDaftarPin(kepala.hasil).length) : null;
+    // Tarikan lama (sebelum blob dibaca, 18 Okt) tercatat "selesai" tanpa satu PIN pun terbaca;
+    // jangan sampai terbaca "semuanya sudah ada". Tandanya: catatan "0 PIN di mesin" padahal mesin
+    // melaporkan punya user.
+    const tidakTerbaca = kepala.status === "selesai" && jumlah > 0 && /^0 PIN di mesin/.test(kepala.catatan ?? "");
     const dibuat = info.filter((x) => x.catatan?.startsWith("Karyawan dibuat")).length;
     const berjalan = rangkaian.some((x) => x.status === "menunggu" || x.status === "terkirim");
     hasil.push({
       mesin: kepala.machine.name,
-      status: berjalan ? "berjalan" : kepala.status === "gagal" ? "gagal" : "selesai",
+      status: berjalan ? "berjalan" : kepala.status === "gagal" || tidakTerbaca ? "gagal" : "selesai",
       mulai: kepala.createdAt,
       pinDiMesin,
       belumAda: info.length,
       dibuat,
-      catatan: kepala.status === "gagal" ? kepala.catatan : null,
+      catatan: tidakTerbaca
+        ? `Mesin punya ${jumlah} user, tapi daftar PIN-nya belum terbaca. Tekan Tarik dari mesin lagi.`
+        : kepala.status === "gagal" ? kepala.catatan : null,
     });
   }
   return hasil;
