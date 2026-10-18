@@ -9,7 +9,7 @@ export const GET = route(async () => {
     orderBy: { fullName: "asc" },
     select: {
       id: true, fullName: true, publicToken: true, absenHp: true, absenHpPerangkatAt: true,
-      portalPin: true, position: { select: { name: true } },
+      portalPin: true, bisaAbsenTim: true, jenis: true, position: { select: { name: true } },
     },
   });
   return json(
@@ -18,6 +18,8 @@ export const GET = route(async () => {
       nama: e.fullName,
       jabatan: e.position?.name ?? null,
       aktif: e.absenHp,
+      pic: e.bisaAbsenTim,
+      freelance: e.jenis === "freelance",
       hpTerkunciSejak: e.absenHpPerangkatAt,
       punyaPin: e.portalPin !== null,
       token: e.absenHp ? e.publicToken : null,

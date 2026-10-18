@@ -18,13 +18,14 @@ export const PATCH = route<Ctx>(async (req, ctx) => {
   const e = await prisma.employee.findFirst({ where: { id, deletedAt: null }, select: { id: true, publicToken: true } });
   if (!e) return notFound("Karyawan tidak ditemukan.");
 
-  const { aktif, lepasHp } = parsed.data;
+  const { aktif, lepasHp, pic } = parsed.data;
   await prisma.employee.update({
     where: { id },
     data: {
       ...(aktif !== undefined ? { absenHp: aktif } : {}),
       ...(aktif && !e.publicToken ? { publicToken: randomUUID() } : {}),
       ...(lepasHp ? { absenHpPerangkat: null, absenHpPerangkatAt: null } : {}),
+      ...(pic !== undefined ? { bisaAbsenTim: pic } : {}),
     },
   });
   return json({ ok: true });

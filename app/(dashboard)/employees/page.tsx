@@ -27,6 +27,9 @@ type Employee = {
   fullName: string;
   nickname: string | null;
   isActive: boolean;
+  // Absen tim (18 Okt 2026): freelance yang didaftarkan PIC berlabel "baru" sampai diperiksa.
+  jenis?: string;
+  perluDiperiksa?: boolean;
   departmentId: number | null;
   positionId: number | null;
   workScheduleId: number | null;
@@ -319,6 +322,11 @@ export default function EmployeesPage() {
                         <div>
                           <div className="font-medium text-fg">{e.fullName}</div>
                           {e.nickname && <div className="text-xs text-subtle">{e.nickname}</div>}
+                          {e.jenis === "freelance" && (
+                            <span className="badge mt-0.5" style={softChip("var(--warning)")}>
+                              {e.perluDiperiksa ? "Freelance baru — perlu diperiksa" : "Freelance"}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>

@@ -41,6 +41,7 @@ const NAV: NavGroup[] = [
       { label: "Izin & Cuti", href: "/leave-requests" },
       { label: "Pengajuan Lembur", href: "/lembur" },
       { label: "Absen di Luar Lokasi", href: "/attendance/absen-luar" },
+      { label: "Absen Tim", href: "/attendance/absen-tim" },
     ],
   },
   {

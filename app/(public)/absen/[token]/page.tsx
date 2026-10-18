@@ -7,14 +7,17 @@ import { PinGate } from "@/components/portal/PinGate";
 import { NamaMerek, UbinLogo } from "@/components/QendaliMark";
 import { IconAlert, IconCheck, IconClock } from "@/components/ui/icons";
 import type { PortalState } from "@/components/portal/types";
+import { bacaLokasi, idPerangkat, jamDari, kecilkan, teksJarak } from "@/components/absen/peramban";
+import { LayarTim } from "@/components/absen/LayarTim";
 
 type Absen = {
   aktif: boolean;
   hpTerkunci: boolean;
+  tim: boolean;
   bolehLuar: boolean;
   pengajuan: Pengajuan[];
   lokasi: { id: number; nama: string; radiusM: number; wajibQr: boolean }[];
-  hariIni: { id: number; jam: string; jenis: string | null; lewat: "hp" | "mesin" }[];
+  hariIni: { id: number; jam: string; jenis: string | null; lewat: "hp" | "tim" | "mesin" }[];
 };
 type Pengajuan = { id: number; jam: string; status: "menunggu" | "diterima" | "ditolak"; alasan: string | null; catatan: string | null; lokasi: string | null; jarakM: number | null };
 type Keadaan = PortalState & { absen?: Absen };
@@ -29,44 +32,6 @@ const STATUS_AJUAN: Record<Pengajuan["status"], { label: string; warna: string }
   ditolak: { label: "Ditolak", warna: "var(--danger)" },
 };
 
-const KUNCI_PERANGKAT = "qe-absen-hp-perangkat";
-
-/** Id acak HP ini; server cuma menyimpan sidiknya. Hilang kalau data peramban dihapus. */
-function idPerangkat(): string {
-  try {
-    let id = localStorage.getItem(KUNCI_PERANGKAT);
-    if (!id) {
-      id = crypto.randomUUID() + crypto.randomUUID().slice(0, 8);
-      localStorage.setItem(KUNCI_PERANGKAT, id);
-    }
-    return id;
-  } catch {
-    return "";
-  }
-}
-
-/** Foto dikecilkan di HP (sisi terpanjang 1280 px, JPEG) supaya cepat terkirim di sinyal lemah. */
-async function kecilkan(berkas: File): Promise<Blob> {
-  const bmp = await createImageBitmap(berkas);
-  const skala = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
-  const c = document.createElement("canvas");
-  c.width = Math.round(bmp.width * skala);
-  c.height = Math.round(bmp.height * skala);
-  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
-  return new Promise((ok, gagal) => c.toBlob((b) => (b ? ok(b) : gagal(new Error("foto"))), "image/jpeg", 0.8));
-}
-
-function bacaLokasi(): Promise<GeolocationPosition> {
-  return new Promise((ok, gagal) =>
-    navigator.geolocation.getCurrentPosition(ok, gagal, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }),
-  );
-}
-
-const jamDari = (t: string) => new Date(t).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-/** Sama dengan teksJarak() di lib/services/absen-hp/aturan.ts (berkas itu memakai node:crypto, tidak bisa diimpor di peramban). */
-const teksJarak = (m: number) =>
-  m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
-
 export default function AbsenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const [keadaan, setKeadaan] = useState<Keadaan | null>(null);
@@ -74,6 +39,8 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
   const [langkah, setLangkah] = useState<"diam" | "lokasi" | "foto" | "kirim" | "qr" | "luar">("diam");
   const [alasan, setAlasan] = useState("");
   const [pesan, setPesan] = useState<{ ok: boolean; teks: string } | null>(null);
+  // Layar "Absen tim" untuk PIC lapangan (components/absen/LayarTim.tsx).
+  const [layarTim, setLayarTim] = useState(false);
   const fotoInput = useRef<HTMLInputElement>(null);
   const tertunda = useRef<{ foto: Blob; pos: GeolocationPosition } | null>(null);
 
@@ -244,6 +211,12 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
             </button>
           )}
 
+          {!keadaan.asManager && a?.aktif && a.tim && !layarTim && (
+            <button onClick={() => setLayarTim(true)} disabled={sibuk} className="btn-ghost mt-3 h-12 w-full disabled:opacity-60">
+              Absen tim
+            </button>
+          )}
+
           <input ref={fotoInput} type="file" accept="image/*" capture="user" className="hidden" onChange={fotoDipilih} />
 
           {pesan && (
@@ -253,6 +226,8 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
             </p>
           )}
         </section>
+
+        {layarTim && a?.tim && <LayarTim token={token} onTutup={() => setLayarTim(false)} />}
 
         {langkah === "qr" && (
           <PemindaiQr
@@ -338,7 +313,7 @@ export default function AbsenPage({ params }: { params: Promise<{ token: string 
               {a.hariIni.map((h) => (
                 <li key={h.id} className="flex justify-between">
                   <span className="text-fg">{h.jenis === "out" ? "Pulang" : "Masuk"} · {jamDari(h.jam)}</span>
-                  <span className="text-subtle">{h.lewat === "hp" ? "lewat HP" : "mesin"}</span>
+                  <span className="text-subtle">{h.lewat === "hp" ? "lewat HP" : h.lewat === "tim" ? "dicatat PIC" : "mesin"}</span>
                 </li>
               ))}
             </ul>

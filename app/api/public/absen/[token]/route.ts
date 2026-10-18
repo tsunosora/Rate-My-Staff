@@ -46,6 +46,8 @@ export const GET = route<Ctx>(async (req, ctx) => {
     absen: {
       aktif: employee.absenHp,
       hpTerkunci: employee.absenHpPerangkat !== null,
+      // PIC lapangan: tombol "Absen tim" (lib/services/absen-tim). Hanya kalau absen HP-nya menyala.
+      tim: employee.absenHp && employee.bisaAbsenTim,
       bolehLuar: luarDiizinkan(setelanLuar),
       pengajuan: pengajuan.map((p) => ({
         id: p.id,
@@ -61,7 +63,7 @@ export const GET = route<Ctx>(async (req, ctx) => {
         id: a.id,
         jam: a.scanDate,
         jenis: a.scanType,
-        lewat: a.machineName === "hp" ? "hp" : "mesin",
+        lewat: a.machineName === "hp" ? "hp" : a.machineName === "tim" ? "tim" : "mesin",
       })),
     },
   });

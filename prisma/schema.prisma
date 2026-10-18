@@ -67,6 +67,7 @@ model User {
   lemburDecisions     PengajuanLembur[] @relation("LemburDecider")
   reimburseDecisions  Reimbursement[]   @relation("ReimburseDecider")
   absenHpDecisions    AbsenHpBukti[]    @relation("AbsenHpDecider")
+  absenTimDecisions   AbsenTimBaris[]   @relation("AbsenTimDecider")
 }
 
 model Department {
@@ -144,6 +145,14 @@ model Employee {
   absenHp            Boolean   @default(false)
   absenHpPerangkat   String?   @db.VarChar(64)
   absenHpPerangkatAt DateTime?
+  // Absen tim oleh PIC lapangan (18 Okt 2026). jenis "tetap" | "freelance". bisaAbsenTim = PIC
+  // yang boleh mengabsenkan anggotanya dari HP-nya sendiri. Freelance yang didaftarkan PIC di
+  // tempat membawa didaftarkanOlehId + perluDiperiksa=true sampai owner/HR memeriksanya
+  // (mencegah tukang fiktif).
+  jenis              String    @default("tetap") @db.VarChar(20)
+  bisaAbsenTim       Boolean   @default(false)
+  didaftarkanOlehId  Int?
+  perluDiperiksa     Boolean   @default(false)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
@@ -164,6 +173,10 @@ model Employee {
   reimbursement        Reimbursement[]
   kunjunganKlien       KunjunganKlien[]
   timesheetEntri       TimesheetEntri[]
+  didaftarkanOleh      Employee?              @relation("FreelanceDariPic", fields: [didaftarkanOlehId], references: [id], onDelete: SetNull)
+  freelanceDidaftarkan Employee[]             @relation("FreelanceDariPic")
+  sesiAbsenTim         SesiAbsenTim[]
+  absenTimBaris        AbsenTimBaris[]
 
   @@index([isActive])
 }
@@ -216,6 +229,59 @@ model AbsenHpBukti {
   decidedBy User?        @relation("AbsenHpDecider", fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@index([employeeId, createdAt])
+  @@index([status])
+}
+
+// Absen tim: satu sesi = satu tempat kerja satu hari, dibuka PIC dari HP-nya. Titiknya GPS HP PIC
+// saat membuka sesi — owner tidak perlu membuat "lokasi absen" untuk tiap venue.
+model SesiAbsenTim {
+  id         Int      @id @default(autoincrement())
+  picId      Int
+  namaTempat String   @db.VarChar(150)
+  lat        Float
+  lng        Float
+  akurasiM   Int
+  mulaiAt    DateTime @default(now())
+  catatan    String?  @db.Text
+  // Notifikasi ke owner/HR terakhir untuk sesi ini — paling banyak satu per 30 menit, supaya
+  // 20 tukang yang diabsen tidak menjadi 20 notifikasi.
+  diberitahuAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pic   Employee        @relation(fields: [picId], references: [id], onDelete: Cascade)
+  baris AbsenTimBaris[]
+
+  @@index([picId, mulaiAt])
+  @@index([mulaiAt])
+}
+
+// Satu absen masuk/pulang anggota yang dicatat PIC. MENUNGGU sampai owner/HR menyetujui; baru
+// saat disetujui lahir baris Attendance (machineName "tim") — laporan apa pun membaca Attendance,
+// jadi yang menunggu/ditolak tidak pernah terhitung.
+model AbsenTimBaris {
+  id               Int       @id @default(autoincrement())
+  sesiId           Int
+  employeeId       Int
+  jenis            String    @db.VarChar(10) // in | out
+  waktu            DateTime  @default(now())
+  lat              Float
+  lng              Float
+  akurasiM         Int
+  fotoPath         String    @db.VarChar(255)
+  status           String    @default("menunggu") @db.VarChar(20) // menunggu | diterima | ditolak
+  attendanceId     Int?      @unique
+  decidedById      Int?
+  decidedAt        DateTime?
+  catatanKeputusan String?   @db.Text
+  createdAt        DateTime  @default(now())
+
+  sesi      SesiAbsenTim @relation(fields: [sesiId], references: [id], onDelete: Cascade)
+  employee  Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  decidedBy User?        @relation("AbsenTimDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([sesiId, status])
+  @@index([employeeId, waktu])
   @@index([status])
 }
 

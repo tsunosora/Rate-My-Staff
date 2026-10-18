@@ -19,6 +19,9 @@ export const ubahKaryawanSchema = z.object({
   aktif: z.boolean().optional(),
   // Lepas kunci HP — dipakai kalau karyawan ganti HP. HP berikutnya yang absen jadi terkunci.
   lepasHp: z.boolean().optional(),
+  // PIC lapangan: boleh mengabsenkan anggota timnya dari HP-nya (Absen tim). Cuma bermakna kalau
+  // absen HP karyawan itu menyala.
+  pic: z.boolean().optional(),
 });
 
 // Keputusan owner atas pengajuan absen di luar lokasi.

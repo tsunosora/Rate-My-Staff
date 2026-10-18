@@ -34,6 +34,8 @@ export const ATURAN_API: readonly Aturan[] = [
   // klien paket Absensi yang membeli add-on ini tidak punya hr.portal.
   { awalan: "/api/absen-hp", fitur: "hr.absen_hp" },
   { awalan: "/api/public/absen", fitur: "hr.absen_hp" },
+  // Absen tim oleh PIC lapangan (18 Okt 2026) — bagian add-on absen HP, tanpa kode fitur baru.
+  { awalan: "/api/absen-tim", fitur: "hr.absen_hp" },
   { awalan: "/api/public/absen-layar", fitur: "hr.absen_hp" },
   { awalan: "/api/fingerspot/logs", fitur: "hr.attendance" },
 
@@ -94,6 +96,7 @@ export const ATURAN_HALAMAN: readonly Aturan[] = [
   { awalan: "/absen-layar", fitur: "hr.absen_hp" },
   { awalan: "/settings/absen-hp", fitur: "hr.absen_hp" },
   { awalan: "/attendance/absen-luar", fitur: "hr.absen_hp" },
+  { awalan: "/attendance/absen-tim", fitur: "hr.absen_hp" },
   { awalan: "/lembur", fitur: "hr.overtime" },
   { awalan: "/jadwal-shift", fitur: "hr.schedule" },
   { awalan: "/reimbursement", fitur: "hr.reimbursement" },
@@ -129,6 +132,8 @@ export const METODE_BACA = new Set(["GET", "HEAD", "OPTIONS"]);
  * - notifikasi: menandai sudah dibaca tidak mengubah data usaha apa pun.
  * - sesi portal karyawan: itu masuk dengan PIN, bukan menulis data.
  * - absen lewat HP: data kehadiran, alasannya sama dengan scan mesin di bawah.
+ * - absen tim oleh PIC (buka sesi + catat absen anggota): data kehadiran juga. Pendaftaran
+ *   freelance (`tim/freelance`) SENGAJA tidak — itu membuat data karyawan baru.
  * Penerimaan scan dari MESIN (`/iclock`, `/api/fingerspot/*`) tidak lewat `route()` sama
  * sekali, jadi absensi tetap masuk saat hanya-baca — data kehadiran yang ditolak mesin hilang
  * atau menumpuk di mesin, dan itu bukan hukuman yang pantas untuk telat bayar.
@@ -141,6 +146,7 @@ const JALUR_BEBAS_HANYA_BACA: readonly RegExp[] = [
   /^\/api\/notifications(\/|$)/,
   /^\/api\/public\/portal\/[^/]+\/session$/,
   /^\/api\/public\/absen\/[^/]+\/(session|absen)$/,
+  /^\/api\/public\/absen\/[^/]+\/tim\/(sesi|absen)$/,
 ];
 
 export function bebasHanyaBaca(jalur: string): boolean {

@@ -5,7 +5,7 @@ import { api } from "@/lib/fetcher";
 import { IconAlert, IconCheck, IconCopy, IconPlus, IconQr, IconTrash } from "@/components/ui/icons";
 
 type Lokasi = { id: number; nama: string; lat: number; lng: number; radiusM: number; wajibQr: boolean; layarToken: string; aktif: boolean };
-type Karyawan = { id: number; nama: string; jabatan: string | null; aktif: boolean; hpTerkunciSejak: string | null; punyaPin: boolean; token: string | null };
+type Karyawan = { id: number; nama: string; jabatan: string | null; aktif: boolean; pic: boolean; freelance: boolean; hpTerkunciSejak: string | null; punyaPin: boolean; token: string | null };
 type Bukti = {
   id: number; waktu: string; nama: string; lokasi: string; jarakM: number | null; akurasiM: number; qr: boolean; jenis: string | null; foto: string;
   status: "diterima" | "menunggu" | "ditolak"; luar: boolean; alasan: string | null;
@@ -242,7 +242,9 @@ function KaryawanKartu({ karyawan, aktifCount, kirim, adaLokasi }: {
       <h2 className="mb-1 text-lg font-semibold text-fg">Karyawan <span className="text-sm font-normal text-subtle">({aktifCount} memakai absen HP)</span></h2>
       <p className="mb-3 text-sm text-muted">
         Nyalakan per orang, lalu kirim tautan absennya. Karyawan membuat PIN sendiri saat pertama membuka
-        tautan, dan HP pertama yang dipakai absen jadi terkunci untuknya.
+        tautan, dan HP pertama yang dipakai absen jadi terkunci untuknya. Centang <b className="text-fg">PIC</b> untuk
+        karyawan lapangan yang boleh mengabsenkan anggota timnya dari HP-nya (Absensi → Absen Tim) — absen yang
+        dicatat PIC menunggu persetujuan Anda.
       </p>
       {!adaLokasi && (
         <p className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm" style={soft("var(--warning)")}>
@@ -257,9 +259,16 @@ function KaryawanKartu({ karyawan, aktifCount, kirim, adaLokasi }: {
                 onChange={(e) => kirim(`/api/absen-hp/karyawan/${k.id}`, "PATCH", { aktif: e.target.checked })} />
               <span className="font-medium text-fg">{k.nama}</span>
               {k.jabatan && <span className="text-xs text-subtle">{k.jabatan}</span>}
+              {k.freelance && <span className="badge" style={soft("var(--warning)", 18)}>Freelance</span>}
             </label>
             {k.aktif && (
               <>
+                <label className="flex items-center gap-1.5 text-xs text-muted" title="Boleh mengabsenkan anggota tim dari HP-nya">
+                  <input type="checkbox" className="accent-[color:var(--primary)]" checked={k.pic}
+                    onChange={(e) => kirim(`/api/absen-hp/karyawan/${k.id}`, "PATCH", { pic: e.target.checked },
+                      e.target.checked ? `${k.nama} sekarang PIC: tombol "Absen tim" muncul di halaman absennya.` : `${k.nama} bukan PIC lagi.`)} />
+                  PIC (boleh absenkan tim)
+                </label>
                 <span className="text-xs text-subtle">
                   {k.hpTerkunciSejak ? `HP terkunci sejak ${new Date(k.hpTerkunciSejak).toLocaleDateString("id-ID")}` : "HP belum terkunci"}
                   {" · "}
