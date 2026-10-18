@@ -36,6 +36,11 @@ export const ATURAN_API: readonly Aturan[] = [
   { awalan: "/api/public/absen", fitur: "hr.absen_hp" },
   // Absen tim oleh PIC lapangan (18 Okt 2026) — bagian add-on absen HP, tanpa kode fitur baru.
   { awalan: "/api/absen-tim", fitur: "hr.absen_hp" },
+  // Upah tukang (Tahap 1, 18 Okt 2026). Rekap harian & tim ikut absen HP (mencatat kehadiran);
+  // hitungan RUPIAH (tarif, rekap upah, slip, pembayaran) kode hr.upah, paket Kinerja.
+  { awalan: "/api/rekap-tim", fitur: "hr.absen_hp" },
+  { awalan: "/api/tim-kerja", fitur: "hr.absen_hp" },
+  { awalan: "/api/upah", fitur: "hr.upah" },
   { awalan: "/api/public/absen-layar", fitur: "hr.absen_hp" },
   { awalan: "/api/fingerspot/logs", fitur: "hr.attendance" },
 
@@ -97,6 +102,10 @@ export const ATURAN_HALAMAN: readonly Aturan[] = [
   { awalan: "/settings/absen-hp", fitur: "hr.absen_hp" },
   { awalan: "/attendance/absen-luar", fitur: "hr.absen_hp" },
   { awalan: "/attendance/absen-tim", fitur: "hr.absen_hp" },
+  { awalan: "/attendance/rekap-tim", fitur: "hr.absen_hp" },
+  { awalan: "/settings/tim-kerja", fitur: "hr.absen_hp" },
+  { awalan: "/upah", fitur: "hr.upah" },
+  { awalan: "/settings/upah", fitur: "hr.upah" },
   { awalan: "/lembur", fitur: "hr.overtime" },
   { awalan: "/jadwal-shift", fitur: "hr.schedule" },
   { awalan: "/reimbursement", fitur: "hr.reimbursement" },

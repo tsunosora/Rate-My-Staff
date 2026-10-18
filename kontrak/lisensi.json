@@ -260,6 +260,11 @@
       "grup": "hr_absensi"
     },
     {
+      "kode": "hr.upah",
+      "nama": "Upah tukang: tarif harian, kota × divisi, proyek, slip & pembayaran",
+      "grup": "hr_absensi"
+    },
+    {
       "kode": "hr.visits",
       "nama": "Kunjungan klien (check-in GPS + foto, hasil kunjungan)",
       "grup": "hr_absensi"
@@ -621,6 +626,7 @@
       "hr.reports",
       "hr.schedule",
       "hr.timesheet",
+      "hr.upah",
       "hr.visits"
     ],
     "qendali_website": [
@@ -748,6 +754,7 @@
         "hr.reports",
         "hr.schedule",
         "hr.timesheet",
+        "hr.upah",
         "hr.visits"
       ],
       "fiturTambahan": [

@@ -68,6 +68,7 @@ model User {
   reimburseDecisions  Reimbursement[]   @relation("ReimburseDecider")
   absenHpDecisions    AbsenHpBukti[]    @relation("AbsenHpDecider")
   absenTimDecisions   AbsenTimBaris[]   @relation("AbsenTimDecider")
+  rekapDecisions      RekapHarian[]     @relation("RekapDecider")
 }
 
 model Department {
@@ -153,6 +154,12 @@ model Employee {
   bisaAbsenTim       Boolean   @default(false)
   didaftarkanOlehId  Int?
   perluDiperiksa     Boolean   @default(false)
+  // Upah tukang (Tahap 1). Null = belum diatur; tarif proyek / kota×divisi didahulukan.
+  upahHarian         Decimal?  @db.Decimal(12, 2)
+  upahLemburPerJam   Decimal?  @db.Decimal(12, 2)
+  kotaBawaan         String?   @db.VarChar(100)
+  divisiBawaan       String?   @db.VarChar(100)
+  timId              Int?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
@@ -177,6 +184,12 @@ model Employee {
   freelanceDidaftarkan Employee[]             @relation("FreelanceDariPic")
   sesiAbsenTim         SesiAbsenTim[]
   absenTimBaris        AbsenTimBaris[]
+  tim                  TimKerja?              @relation("TimAnggota", fields: [timId], references: [id], onDelete: SetNull)
+  timDipimpin          TimKerja?              @relation("TimPic")
+  rekapHarian          RekapHarian[]          @relation("RekapKaryawan")
+  rekapDicatat         RekapHarian[]          @relation("RekapPic")
+  penyesuaianUpah      PenyesuaianUpah[]      @relation("PenyesuaianKaryawan")
+  pembayaranUpah       PembayaranUpah[]       @relation("PembayaranKaryawan")
 
   @@index([isActive])
 }
@@ -235,19 +248,19 @@ model AbsenHpBukti {
 // Absen tim: satu sesi = satu tempat kerja satu hari, dibuka PIC dari HP-nya. Titiknya GPS HP PIC
 // saat membuka sesi — owner tidak perlu membuat "lokasi absen" untuk tiap venue.
 model SesiAbsenTim {
-  id         Int      @id @default(autoincrement())
-  picId      Int
-  namaTempat String   @db.VarChar(150)
-  lat        Float
-  lng        Float
-  akurasiM   Int
-  mulaiAt    DateTime @default(now())
-  catatan    String?  @db.Text
+  id           Int       @id @default(autoincrement())
+  picId        Int
+  namaTempat   String    @db.VarChar(150)
+  lat          Float
+  lng          Float
+  akurasiM     Int
+  mulaiAt      DateTime  @default(now())
+  catatan      String?   @db.Text
   // Notifikasi ke owner/HR terakhir untuk sesi ini — paling banyak satu per 30 menit, supaya
   // 20 tukang yang diabsen tidak menjadi 20 notifikasi.
   diberitahuAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   pic   Employee        @relation(fields: [picId], references: [id], onDelete: Cascade)
   baris AbsenTimBaris[]
@@ -801,4 +814,144 @@ model TimesheetEntri {
 
   @@index([employeeId, tanggal])
   @@index([proyek])
+}
+
+// ── Upah tukang (Tahap 1, 18 Okt 2026) ─────────────────────────────────────────────────────
+// Absensi & upah tukang lapangan dihitung di Employee (keputusan Faisal). Bentuknya meniru link
+// PIC Qendali Event: rekap HARIAN per orang (hadir / setengah / absen) + jam lembur + kota, divisi,
+// proyek/event. Tanggal = DateTime tengah malam LOKAL, sama dengan LeaveRequest & PengajuanLembur.
+// Rekap harian TIDAK menulis ke Attendance (yang itu scan berjam-jam); ia sumber upah tukang.
+
+// Tim tetap. picId = kepala tim (unik: satu PIC satu tim). Anggota = Employee.timId.
+model TimKerja {
+  id        Int      @id @default(autoincrement())
+  nama      String   @unique @db.VarChar(80)
+  picId     Int?     @unique
+  warna     String   @default("#6366f1") @db.VarChar(9)
+  aktif     Boolean  @default(true)
+  catatan   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pic     Employee?  @relation("TimPic", fields: [picId], references: [id], onDelete: SetNull)
+  anggota Employee[] @relation("TimAnggota")
+}
+
+// Matriks tarif Kota × Divisi. Dipakai hanya kalau baris rekap TIDAK punya proyek.
+model TarifKotaDivisi {
+  id           Int      @id @default(autoincrement())
+  kota         String   @db.VarChar(100)
+  divisi       String   @db.VarChar(100)
+  upahHarian   Decimal  @db.Decimal(12, 2)
+  lemburPerJam Decimal  @default(0) @db.Decimal(12, 2)
+  aktif        Boolean  @default(true)
+  catatan      String?  @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([kota, divisi])
+}
+
+// Proyek / event tempat tukang bekerja, dengan tarif khusus opsional. sumber "lokal" = dibuat di
+// Employee; Tahap 2 akan mengisi sumber "event" + refId dari instalasi Qendali Event usaha itu.
+model ProyekKerja {
+  id           Int       @id @default(autoincrement())
+  kode         String?   @db.VarChar(30)
+  nama         String    @db.VarChar(150)
+  lokasi       String?   @db.VarChar(150)
+  mulai        DateTime?
+  selesai      DateTime?
+  upahHarian   Decimal?  @db.Decimal(12, 2)
+  lemburPerJam Decimal?  @db.Decimal(12, 2)
+  aktif        Boolean   @default(true)
+  sumber       String    @default("lokal") @db.VarChar(20)
+  refId        String?   @db.VarChar(64)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  rekap RekapHarian[]
+
+  @@unique([sumber, refId])
+  @@index([aktif])
+}
+
+// Satu baris = satu orang satu hari. status: hadir | setengah | absen.
+// persetujuan: menunggu | disetujui | ditolak — yang dihitung upah HANYA disetujui.
+// Kalau PIC mengubah baris yang sudah disetujui, persetujuan kembali "menunggu".
+// pembayaranId terisi = sudah dibayar → terkunci (tidak bisa diubah PIC maupun admin).
+model RekapHarian {
+  id                Int       @id @default(autoincrement())
+  employeeId        Int
+  tanggal           DateTime
+  status            String    @default("absen") @db.VarChar(10)
+  lemburJam         Decimal   @default(0) @db.Decimal(5, 2)
+  kota              String?   @db.VarChar(100)
+  divisi            String?   @db.VarChar(100)
+  proyekId          Int?
+  catatan           String?   @db.VarChar(255)
+  fotoPath          String?   @db.VarChar(255)
+  lat               Float?
+  lng               Float?
+  akurasiM          Int?
+  dicatatOlehPicId  Int?
+  sumber            String    @default("pic") @db.VarChar(20)
+  persetujuan       String    @default("menunggu") @db.VarChar(20)
+  decidedById       Int?
+  decidedAt         DateTime?
+  alasanTolak       String?   @db.Text
+  upahKhusus        Decimal?  @db.Decimal(12, 2)
+  upahKhususCatatan String?   @db.VarChar(255)
+  pembayaranId      Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  employee   Employee        @relation("RekapKaryawan", fields: [employeeId], references: [id], onDelete: Cascade)
+  dicatatPic Employee?       @relation("RekapPic", fields: [dicatatOlehPicId], references: [id], onDelete: SetNull)
+  proyek     ProyekKerja?    @relation(fields: [proyekId], references: [id], onDelete: SetNull)
+  decidedBy  User?           @relation("RekapDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  pembayaran PembayaranUpah? @relation(fields: [pembayaranId], references: [id], onDelete: SetNull)
+
+  @@unique([employeeId, tanggal])
+  @@index([tanggal])
+  @@index([persetujuan, tanggal])
+  @@index([dicatatOlehPicId, tanggal])
+}
+
+// bonus | tunjangan (menambah) — potongan | kasbon (mengurangi). jumlah selalu positif.
+model PenyesuaianUpah {
+  id           Int      @id @default(autoincrement())
+  employeeId   Int
+  tanggal      DateTime
+  jenis        String   @db.VarChar(20)
+  jumlah       Decimal  @db.Decimal(12, 2)
+  catatan      String?  @db.VarChar(255)
+  dibuatOlehId Int?
+  pembayaranId Int?
+  createdAt    DateTime @default(now())
+
+  employee   Employee        @relation("PenyesuaianKaryawan", fields: [employeeId], references: [id], onDelete: Cascade)
+  pembayaran PembayaranUpah? @relation(fields: [pembayaranId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, tanggal])
+}
+
+// Upah yang sudah DIBAYAR untuk satu orang satu periode. rincian = salinan hitungan saat dibayar
+// (tarif bisa berubah sesudahnya; slip lama tidak boleh ikut berubah).
+model PembayaranUpah {
+  id             Int      @id @default(autoincrement())
+  employeeId     Int
+  periodeMulai   DateTime
+  periodeSelesai DateTime
+  jumlah         Decimal  @db.Decimal(14, 2)
+  rincian        Json
+  catatan        String?  @db.VarChar(255)
+  dibayarOlehId  Int?
+  dibayarAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  employee    Employee          @relation("PembayaranKaryawan", fields: [employeeId], references: [id], onDelete: Cascade)
+  rekap       RekapHarian[]
+  penyesuaian PenyesuaianUpah[]
+
+  @@index([employeeId, periodeMulai])
 }
